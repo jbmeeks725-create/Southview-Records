@@ -110,15 +110,26 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-size: 2.4rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.25em;
   color: #f9fafb;
+  line-height: 1.1;
+}
+
+.splash-title-sub {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.5em;
+  color: #f9fafb;
+  margin-top: 0.15rem;
 }
 
 .splash-tagline {
-  margin: 0.4rem 0 0;
-  font-size: 0.95rem;
-  color: #9ca3af;
-  letter-spacing: 0.04em;
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  color: #caa15a;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 @keyframes splash-content-in {
@@ -197,6 +208,11 @@ h1, h2, h3, h4, h5, h6 {
 
   .splash-title {
     font-size: 1.9rem;
+  }
+
+  .splash-title-sub {
+    font-size: 0.75rem;
+    letter-spacing: 0.4em;
   }
 }
 
