@@ -1158,12 +1158,6 @@ h1 {
   color: #6b7280;
 }
 
-.landing-footer {
-  margin: 0;
-  font-size: 0.75rem;
-  color: #4b5563;
-}
-
 @media (max-width: 900px) {
   .landing-screen {
     grid-template-columns: 1fr;

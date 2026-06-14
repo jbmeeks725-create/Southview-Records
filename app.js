@@ -4090,6 +4090,8 @@ const LANDING_VIDEOS = {
   right: ["right-1.mp4", "right-2.mp4", "right-3.mp4"],
 };
 
+const LANDING_VIDEO_PLAYBACK_RATE = 0.5;
+
 function setupLandingVideoCarousel(videoEl, files) {
   if (!videoEl || files.length === 0) return;
 
@@ -4098,10 +4100,17 @@ function setupLandingVideoCarousel(videoEl, files) {
   function playCurrent() {
     videoEl.src = files[index];
     videoEl.load();
+    videoEl.playbackRate = LANDING_VIDEO_PLAYBACK_RATE;
     videoEl.play().catch(() => {
       // Autoplay can be blocked until user interaction; ignore.
     });
   }
+
+  // Some browsers reset playbackRate when a new source loads,
+  // so reapply it once metadata is available too.
+  videoEl.addEventListener("loadedmetadata", () => {
+    videoEl.playbackRate = LANDING_VIDEO_PLAYBACK_RATE;
+  });
 
   videoEl.addEventListener("ended", () => {
     index = (index + 1) % files.length;
