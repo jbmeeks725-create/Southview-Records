@@ -26,40 +26,58 @@
     </div>
   </div>
 
-  <div id="authOverlay" class="modal-overlay">
-    <div class="modal auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
-      <div class="modal-header">
-        <h2 id="authTitle">Sign in to Spin Vinyl</h2>
+  <div id="authOverlay" class="landing-screen">
+    <div class="landing-video-col landing-video-left">
+      <video id="landingVideoLeft" class="landing-video" autoplay muted loop playsinline></video>
+      <div class="landing-video-overlay"></div>
+    </div>
+
+    <div class="landing-center">
+      <img src="icon-192.png" alt="" class="landing-logo" />
+      <h1 class="landing-title">SPIN</h1>
+      <p class="landing-tagline">The digital home<br />for your vinyl collection</p>
+
+      <div id="landingNowPlaying" class="landing-now-playing" hidden>
+        <img id="landingNowPlayingCover" class="landing-now-playing-cover" src="" alt="" />
+        <div class="landing-now-playing-info">
+          <p class="landing-now-playing-label">Now Playing</p>
+          <p id="landingNowPlayingArtist" class="landing-now-playing-artist"></p>
+          <p id="landingNowPlayingAlbum" class="landing-now-playing-album"></p>
+        </div>
       </div>
 
-      <p class="field-hint">Sign in to access your collection and wishlist.</p>
-
-      <form id="authForm">
-        <div class="form-row">
-          <label for="authEmail">Email</label>
-          <input type="email" id="authEmail" autocomplete="email" required />
-        </div>
-        <div class="form-row">
-          <label for="authPassword">Password</label>
-          <div class="password-field-wrap">
-            <input type="password" id="authPassword" autocomplete="current-password" required minlength="6" />
-            <button type="button" id="authPasswordToggle" class="password-toggle-btn" aria-label="Show password" aria-pressed="false">
-              <i class="ti ti-eye" aria-hidden="true"></i>
-            </button>
+      <div id="landingAuthForms">
+        <form id="authForm" class="landing-form">
+          <div class="form-row">
+            <label for="authEmail">Email</label>
+            <input type="email" id="authEmail" autocomplete="email" required />
           </div>
-        </div>
+          <div class="form-row">
+            <label for="authPassword">Password</label>
+            <div class="password-field-wrap">
+              <input type="password" id="authPassword" autocomplete="current-password" required minlength="6" />
+              <button type="button" id="authPasswordToggle" class="password-toggle-btn" aria-label="Show password" aria-pressed="false">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
 
-        <div id="authStatus" class="form-status"></div>
+          <div id="authStatus" class="form-status"></div>
 
-        <div class="form-actions">
-          <button type="submit" id="authSubmitBtn" class="btn-primary">Sign in</button>
-        </div>
-      </form>
+          <div class="landing-form-actions">
+            <button type="submit" id="authSubmitBtn" class="landing-btn landing-btn-primary">Sign in</button>
+            <button type="button" id="authToggleBtn" class="landing-btn landing-btn-secondary">Create account</button>
+          </div>
+        </form>
+      </div>
 
-      <p class="auth-toggle-text">
-        <span id="authToggleLabel">Don't have an account?</span>
-        <button type="button" id="authToggleBtn" class="link-btn">Create one</button>
-      </p>
+      <p class="landing-keywords">Catalog &middot; Discover &middot; Listen &middot; Share</p>
+      <p class="landing-footer">Spin Vinyl. Keep better record of your records.</p>
+    </div>
+
+    <div class="landing-video-col landing-video-right">
+      <video id="landingVideoRight" class="landing-video" autoplay muted loop playsinline></video>
+      <div class="landing-video-overlay"></div>
     </div>
   </div>
 
@@ -231,6 +249,7 @@
       <button type="button" id="homePageBtn" class="view-btn active" aria-pressed="true">Home</button>
       <button type="button" id="collectionPageBtn" class="view-btn" aria-pressed="false">My Collection</button>
       <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
+      <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Room</button>
     </nav>
     <div id="collectionFilters" hidden>
       <input
@@ -571,6 +590,33 @@
       <!-- wishlist cards injected here -->
     </div>
   </section>
+
+  <section id="roomSection" hidden>
+    <div class="room-page">
+      <div class="room-page-header">
+        <h2>My Room</h2>
+        <button type="button" id="changeRoomThemeBtn" class="btn-secondary">Change room style</button>
+      </div>
+
+      <div id="roomScene" class="room-scene">
+        <img id="roomBackgroundImg" src="rooms/room-cozy-den.svg" alt="" class="room-background" />
+      </div>
+    </div>
+  </section>
+
+  <!-- Room theme picker modal -->
+  <div id="roomThemeOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="roomThemeTitle">
+      <div class="modal-header">
+        <h2 id="roomThemeTitle">Choose a room style</h2>
+        <button type="button" id="closeRoomThemeBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div id="roomThemeGrid" class="room-theme-grid"></div>
+
+      <div id="roomThemeStatus" class="form-status"></div>
+    </div>
+  </div>
 
   <!-- Add Record modal -->
   <div id="addRecordOverlay" class="modal-overlay" hidden>

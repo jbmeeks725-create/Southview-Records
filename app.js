@@ -303,7 +303,7 @@ function renderCards(filtered) {
     albumFavBtn.classList.toggle("active", albumFav.isAlbumFavorite);
     albumFavBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      toggleFavorite("favorite_albums", r.album, albumFavBtn);
+      toggleFavorite("favorite_albums", r.album, albumFavBtn, { cover_url: r.cover_url, artist: r.artist });
     });
 
     const artistFavBtn = document.createElement("button");
@@ -1000,7 +1000,7 @@ function parseFavoriteFlags(record) {
   };
 }
 
-async function toggleFavorite(field, value, btn) {
+async function toggleFavorite(field, value, btn, extraInfo) {
   if (!currentUser) return;
 
   const current = currentProfile?.[field] || [];
@@ -1010,10 +1010,22 @@ async function toggleFavorite(field, value, btn) {
     ? current.filter((v) => v.toLowerCase() !== value.toLowerCase())
     : [...current, value];
 
+  const fieldsToSave = { [field]: updated };
+
+  if (field === "favorite_albums") {
+    const meta = { ...(currentProfile?.favorite_albums_meta || {}) };
+    if (isActive) {
+      delete meta[value];
+    } else {
+      meta[value] = { cover_url: extraInfo?.cover_url || null, artist: extraInfo?.artist || null };
+    }
+    fieldsToSave.favorite_albums_meta = meta;
+  }
+
   btn.disabled = true;
 
   try {
-    await saveProfileFields({ [field]: updated });
+    await saveProfileFields(fieldsToSave);
 
     const nowActive = !isActive;
     btn.classList.toggle("active", nowActive);
@@ -1436,6 +1448,89 @@ function setupProfile() {
 
   document.getElementById("avatarOverlay").addEventListener("click", (e) => {
     if (e.target.id === "avatarOverlay") closeAvatarModal();
+  });
+}
+
+// ------------ My Room ------------
+
+const ROOM_THEMES = [
+  { id: "cozy-den", file: "rooms/room-cozy-den.svg", label: "Cozy Den" },
+  { id: "modern-loft", file: "rooms/room-modern-loft.svg", label: "Modern Loft" },
+  { id: "vintage-lounge", file: "rooms/room-vintage-lounge.svg", label: "Vintage Lounge" },
+];
+
+function getRoomTheme() {
+  const themeId = currentProfile?.room_theme || "cozy-den";
+  return ROOM_THEMES.find((t) => t.id === themeId) || ROOM_THEMES[0];
+}
+
+function renderRoom() {
+  const theme = getRoomTheme();
+  document.getElementById("roomBackgroundImg").src = theme.file;
+}
+
+function openRoomThemeModal() {
+  const overlay = document.getElementById("roomThemeOverlay");
+  const statusEl = document.getElementById("roomThemeStatus");
+  statusEl.textContent = "";
+  statusEl.className = "form-status";
+
+  const grid = document.getElementById("roomThemeGrid");
+  grid.innerHTML = "";
+
+  const currentThemeId = getRoomTheme().id;
+
+  ROOM_THEMES.forEach((theme) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "room-theme-option";
+    if (theme.id === currentThemeId) btn.classList.add("active");
+
+    const img = document.createElement("img");
+    img.src = theme.file;
+    img.alt = theme.label;
+
+    const label = document.createElement("span");
+    label.className = "room-theme-option-label";
+    label.textContent = theme.label;
+
+    btn.appendChild(img);
+    btn.appendChild(label);
+    btn.addEventListener("click", () => selectRoomTheme(theme));
+    grid.appendChild(btn);
+  });
+
+  overlay.hidden = false;
+}
+
+function closeRoomThemeModal() {
+  document.getElementById("roomThemeOverlay").hidden = true;
+}
+
+async function selectRoomTheme(theme) {
+  const statusEl = document.getElementById("roomThemeStatus");
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    await saveProfileFields({ room_theme: theme.id });
+    renderRoom();
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+    openRoomThemeModal();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  }
+}
+
+function setupRoom() {
+  document.getElementById("changeRoomThemeBtn").addEventListener("click", () => openRoomThemeModal());
+  document.getElementById("closeRoomThemeBtn").addEventListener("click", () => closeRoomThemeModal());
+
+  document.getElementById("roomThemeOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "roomThemeOverlay") closeRoomThemeModal();
   });
 }
 
@@ -1962,9 +2057,11 @@ function setPage(page) {
   const homeBtn = document.getElementById("homePageBtn");
   const collectionBtn = document.getElementById("collectionPageBtn");
   const wishlistBtn = document.getElementById("wishlistPageBtn");
+  const roomBtn = document.getElementById("roomPageBtn");
 
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
+  const roomSection = document.getElementById("roomSection");
   const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
   const wishlistSection = document.getElementById("wishlistSection");
@@ -1977,11 +2074,13 @@ function setPage(page) {
   const isCollection = page === "collection";
   const isWishlist = page === "wishlist";
   const isProfile = page === "profile";
+  const isRoom = page === "room";
 
   [
     [homeBtn, isHome],
     [collectionBtn, isCollection],
     [wishlistBtn, isWishlist],
+    [roomBtn, isRoom],
   ].forEach(([btn, active]) => {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-pressed", String(active));
@@ -1989,21 +2088,27 @@ function setPage(page) {
 
   homeSection.hidden = !isHome;
   profileSection.hidden = !isProfile;
+  roomSection.hidden = !isRoom;
   atAGlanceSection.hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
   filterControls.hidden = !isCollection;
-  statusSection.hidden = isHome || isProfile;
-  gridDensity.hidden = isHome || isProfile;
+  statusSection.hidden = isHome || isProfile || isRoom;
+  gridDensity.hidden = isHome || isProfile || isRoom;
   pageNav.hidden = isProfile;
 
   document.getElementById("addRecordBtn").hidden = !isCollection;
   document.getElementById("addWishlistBtn").hidden = !isWishlist;
   document.getElementById("findAllDiscogsBtn").hidden = !isWishlist;
-  document.getElementById("importBtn").hidden = isHome || isProfile;
+  document.getElementById("importBtn").hidden = isHome || isProfile || isRoom;
 
   if (isProfile) {
     renderProfile();
+    return;
+  }
+
+  if (isRoom) {
+    renderRoom();
     return;
   }
 
@@ -3673,6 +3778,10 @@ function setupEvents() {
     .addEventListener("click", () => setPage("wishlist"));
 
   document
+    .getElementById("roomPageBtn")
+    .addEventListener("click", () => setPage("room"));
+
+  document
     .getElementById("spotlightShuffleBtn")
     .addEventListener("click", () => {
       spotlightRecordId = null;
@@ -3869,9 +3978,7 @@ function resetPasswordVisibility() {
 
 function setAuthMode(mode) {
   authMode = mode;
-  const title = document.getElementById("authTitle");
   const submitBtn = document.getElementById("authSubmitBtn");
-  const toggleLabel = document.getElementById("authToggleLabel");
   const toggleBtn = document.getElementById("authToggleBtn");
   const statusEl = document.getElementById("authStatus");
 
@@ -3880,15 +3987,19 @@ function setAuthMode(mode) {
   resetPasswordVisibility();
 
   if (mode === "signup") {
-    title.textContent = "Create your Spin Vinyl account";
     submitBtn.textContent = "Create account";
-    toggleLabel.textContent = "Already have an account?";
-    toggleBtn.textContent = "Sign in";
+    submitBtn.classList.remove("landing-btn-primary");
+    submitBtn.classList.add("landing-btn-secondary");
+    toggleBtn.textContent = "Sign in instead";
+    toggleBtn.classList.remove("landing-btn-secondary");
+    toggleBtn.classList.add("landing-btn-primary");
   } else {
-    title.textContent = "Sign in to Spin Vinyl";
     submitBtn.textContent = "Sign in";
-    toggleLabel.textContent = "Don't have an account?";
-    toggleBtn.textContent = "Create one";
+    submitBtn.classList.remove("landing-btn-secondary");
+    submitBtn.classList.add("landing-btn-primary");
+    toggleBtn.textContent = "Create account";
+    toggleBtn.classList.remove("landing-btn-primary");
+    toggleBtn.classList.add("landing-btn-secondary");
   }
 }
 
@@ -3968,6 +4079,84 @@ function onSignedOut() {
   wishlist = [];
   setPage("home");
   showAuthOverlay(true);
+}
+
+// ------------ Landing page ------------
+
+const LANDING_OWNER_USER_ID = "7450ce03-630d-487a-ab59-60a0c7ccab74";
+
+const LANDING_VIDEOS = {
+  left: ["left-1.mp4", "left-2.mp4", "left-3.mp4", "left-4.mp4"],
+  right: ["right-1.mp4", "right-2.mp4", "right-3.mp4"],
+};
+
+function setupLandingVideoCarousel(videoEl, files) {
+  if (!videoEl || files.length === 0) return;
+
+  let index = 0;
+
+  function playCurrent() {
+    videoEl.src = files[index];
+    videoEl.load();
+    videoEl.play().catch(() => {
+      // Autoplay can be blocked until user interaction; ignore.
+    });
+  }
+
+  videoEl.addEventListener("ended", () => {
+    index = (index + 1) % files.length;
+    playCurrent();
+  });
+
+  // In case a clip is itself set to loop, advance on error too
+  // (e.g. missing file) so the carousel doesn't get stuck.
+  videoEl.addEventListener("error", () => {
+    if (files.length > 1) {
+      index = (index + 1) % files.length;
+      playCurrent();
+    }
+  });
+
+  videoEl.loop = false;
+  playCurrent();
+}
+
+async function loadLandingNowPlaying() {
+  try {
+    const { data, error } = await supabaseClient
+      .from("public_profiles")
+      .select("favorite_albums, favorite_albums_meta")
+      .eq("user_id", LANDING_OWNER_USER_ID)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return;
+
+    const albums = data.favorite_albums || [];
+    if (albums.length === 0) return;
+
+    const albumName = albums[Math.floor(Math.random() * albums.length)];
+    const meta = (data.favorite_albums_meta || {})[albumName] || {};
+
+    const wrap = document.getElementById("landingNowPlaying");
+    const coverImg = document.getElementById("landingNowPlayingCover");
+    const artistEl = document.getElementById("landingNowPlayingArtist");
+    const albumEl = document.getElementById("landingNowPlayingAlbum");
+
+    coverImg.src = meta.cover_url || "icon-512.png";
+    coverImg.alt = albumName;
+    artistEl.textContent = meta.artist || "";
+    albumEl.textContent = albumName;
+    wrap.hidden = false;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function setupLandingPage() {
+  setupLandingVideoCarousel(document.getElementById("landingVideoLeft"), LANDING_VIDEOS.left);
+  setupLandingVideoCarousel(document.getElementById("landingVideoRight"), LANDING_VIDEOS.right);
+  loadLandingNowPlaying();
 }
 
 function setupAuth() {
@@ -4189,6 +4378,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEvents();
   setupOnboarding();
   setupProfile();
+  setupRoom();
   setupAllTagInputs();
+  setupLandingPage();
   setupAuth();
 });
