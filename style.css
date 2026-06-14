@@ -836,12 +836,20 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6%;
+  padding: 4%;
   text-align: center;
 }
 
 .room-now-playing[hidden] {
   display: none;
+}
+
+.room-now-playing-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 
 .room-now-playing-text {

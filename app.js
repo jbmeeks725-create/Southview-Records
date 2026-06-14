@@ -1567,7 +1567,6 @@ function renderRoomFrames(theme) {
 
     if (albumName) {
       el.type = "button";
-      el.title = albumMeta?.artist ? `${albumMeta.artist} — ${albumName}` : albumName;
 
       const matchingRecord = allRecords.find(
         (r) => r.album.toLowerCase() === albumName.toLowerCase()
@@ -1576,9 +1575,14 @@ function renderRoomFrames(theme) {
         el.addEventListener("click", () => openRecordDetailModal(matchingRecord.id));
       }
 
-      if (albumMeta?.cover_url) {
+      const coverUrl = albumMeta?.cover_url || matchingRecord?.cover_url || null;
+      const artist = albumMeta?.artist || matchingRecord?.artist || null;
+
+      el.title = artist ? `${artist} — ${albumName}` : albumName;
+
+      if (coverUrl) {
         const img = document.createElement("img");
-        img.src = albumMeta.cover_url;
+        img.src = coverUrl;
         img.alt = albumName;
         el.appendChild(img);
       } else {
@@ -1607,16 +1611,38 @@ function renderRoomFrames(theme) {
 
 function renderRoomNowPlaying(theme) {
   const wrap = document.getElementById("roomNowPlaying");
-  const textEl = document.getElementById("roomNowPlayingText");
 
   wrap.style.left = `${theme.nowPlaying.left}%`;
   wrap.style.top = `${theme.nowPlaying.top}%`;
   wrap.style.width = `${theme.nowPlaying.width}%`;
   wrap.style.height = `${theme.nowPlaying.height}%`;
 
-  // Placeholder for Stage 4 (user-selected "now playing" record)
-  wrap.hidden = true;
-  textEl.textContent = "";
+  wrap.innerHTML = "";
+
+  if (allRecords.length === 0) {
+    wrap.hidden = true;
+    return;
+  }
+
+  // Pick a random record from the collection to feature.
+  // (Stage 4 will let the user pin a specific choice.)
+  const record = allRecords[Math.floor(Math.random() * allRecords.length)];
+
+  if (record.cover_url) {
+    const img = document.createElement("img");
+    img.src = record.cover_url;
+    img.alt = record.album;
+    img.className = "room-now-playing-cover";
+    wrap.appendChild(img);
+  } else {
+    const textEl = document.createElement("p");
+    textEl.className = "room-now-playing-text";
+    textEl.textContent = `${record.artist} — ${record.album}`;
+    wrap.appendChild(textEl);
+  }
+
+  wrap.title = `${record.artist} — ${record.album}`;
+  wrap.hidden = false;
 }
 
 function openRoomThemeModal() {
