@@ -1074,12 +1074,12 @@ h1 {
   font-size: 1.4rem;
   font-weight: 500;
   letter-spacing: 0.5em;
-  color: #caa15a;
-  margin-top: 0.5rem;
+  color: #f9fafb;
+  margin-top: 0.15rem;
 }
 
 .landing-tagline {
-  margin: 0.6rem 0 1.5rem;
+  margin: 1.25rem 0 1.5rem;
   font-size: 1rem;
   color: #caa15a;
   letter-spacing: 0.08em;
@@ -1212,7 +1212,7 @@ h1 {
   .landing-title-sub {
     font-size: 1rem;
     letter-spacing: 0.4em;
-    margin-top: 0.35rem;
+    margin-top: 0.1rem;
   }
 
   .landing-tagline {
