@@ -738,7 +738,7 @@ header {
 .room-scene {
   position: relative;
   width: 100%;
-  aspect-ratio: 1200 / 700;
+  aspect-ratio: 1536 / 1024;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid #1f2937;
@@ -784,7 +784,7 @@ header {
 
 .room-theme-option img {
   width: 100%;
-  aspect-ratio: 1200 / 700;
+  aspect-ratio: 1536 / 1024;
   object-fit: cover;
   border-radius: 4px;
   display: block;

@@ -1454,13 +1454,16 @@ function setupProfile() {
 // ------------ My Room ------------
 
 const ROOM_THEMES = [
-  { id: "cozy-den", file: "rooms/room-cozy-den.svg", label: "Cozy Den" },
-  { id: "modern-loft", file: "rooms/room-modern-loft.svg", label: "Modern Loft" },
-  { id: "vintage-lounge", file: "rooms/room-vintage-lounge.svg", label: "Vintage Lounge" },
+  { id: "cozy", file: "room-cozy.png", label: "Cozy Den" },
+  { id: "modern", file: "room-modern.png", label: "Modern Loft" },
+  { id: "retro", file: "room-retro.png", label: "Mid-Century Retro" },
+  { id: "rock", file: "room-rock.png", label: "Classic Rock" },
+  { id: "punk", file: "room-punk.png", label: "Punk Record Shop" },
+  { id: "store", file: "room-store.png", label: "Indie Record Store" },
 ];
 
 function getRoomTheme() {
-  const themeId = currentProfile?.room_theme || "cozy-den";
+  const themeId = currentProfile?.room_theme || "cozy";
   return ROOM_THEMES.find((t) => t.id === themeId) || ROOM_THEMES[0];
 }
 
