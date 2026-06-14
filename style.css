@@ -17,6 +17,20 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
 }
 
+.brand h1 {
+  letter-spacing: 0.2em;
+  line-height: 1.1;
+}
+
+.brand-title-sub {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.45em;
+  color: #f9fafb;
+  margin-top: 0.1rem;
+}
+
 /* Navigation and stats (Jost Medium) */
 .view-btn,
 .landing-tagline,
@@ -2270,6 +2284,11 @@ h1 {
 
   h1 {
     font-size: 1.3rem;
+  }
+
+  .brand-title-sub {
+    font-size: 0.5rem;
+    letter-spacing: 0.35em;
   }
 
   .tagline {
