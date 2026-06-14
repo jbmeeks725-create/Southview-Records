@@ -1454,12 +1454,84 @@ function setupProfile() {
 // ------------ My Room ------------
 
 const ROOM_THEMES = [
-  { id: "cozy", file: "room-cozy.png", label: "Cozy Den" },
-  { id: "modern", file: "room-modern.png", label: "Modern Loft" },
-  { id: "retro", file: "room-retro.png", label: "Mid-Century Retro" },
-  { id: "rock", file: "room-rock.png", label: "Classic Rock" },
-  { id: "punk", file: "room-punk.png", label: "Punk Record Shop" },
-  { id: "store", file: "room-store.png", label: "Indie Record Store" },
+  {
+    id: "cozy",
+    file: "room-cozy.png",
+    label: "Cozy Den",
+    frames: [
+      { left: 15.62, top: 10.74, width: 9.44, height: 19.53 },
+      { left: 27.02, top: 10.74, width: 9.44, height: 19.53 },
+      { left: 39.39, top: 10.74, width: 9.44, height: 19.53 },
+      { left: 50.46, top: 10.74, width: 9.44, height: 19.53 },
+      { left: 61.52, top: 10.74, width: 9.44, height: 19.53 },
+    ],
+    nowPlaying: { left: 72.92, top: 48.83, width: 11.39, height: 16.11 },
+  },
+  {
+    id: "modern",
+    file: "room-modern.png",
+    label: "Modern Loft",
+    frames: [
+      { left: 18.88, top: 11.23, width: 8.46, height: 18.55 },
+      { left: 29.95, top: 11.23, width: 8.46, height: 18.55 },
+      { left: 40.69, top: 11.23, width: 8.46, height: 18.55 },
+      { left: 51.43, top: 11.23, width: 8.46, height: 18.55 },
+      { left: 62.17, top: 11.23, width: 8.46, height: 18.55 },
+    ],
+    nowPlaying: { left: 75.52, top: 47.85, width: 11.39, height: 16.6 },
+  },
+  {
+    id: "retro",
+    file: "room-retro.png",
+    label: "Mid-Century Retro",
+    frames: [
+      { left: 19.53, top: 9.28, width: 8.46, height: 20.51 },
+      { left: 30.27, top: 9.28, width: 8.14, height: 20.51 },
+      { left: 40.69, top: 9.28, width: 8.14, height: 20.51 },
+      { left: 51.43, top: 9.28, width: 8.14, height: 20.51 },
+      { left: 61.52, top: 9.28, width: 8.14, height: 20.51 },
+    ],
+    nowPlaying: { left: 73.89, top: 45.41, width: 11.07, height: 18.07 },
+  },
+  {
+    id: "rock",
+    file: "room-rock.png",
+    label: "Classic Rock",
+    frames: [
+      { left: 19.53, top: 9.28, width: 8.14, height: 20.02 },
+      { left: 29.62, top: 9.28, width: 8.14, height: 20.02 },
+      { left: 39.71, top: 9.28, width: 8.14, height: 20.02 },
+      { left: 49.8, top: 9.28, width: 8.14, height: 20.02 },
+      { left: 58.59, top: 9.28, width: 8.14, height: 20.02 },
+    ],
+    nowPlaying: { left: 76.17, top: 51.27, width: 11.39, height: 15.62 },
+  },
+  {
+    id: "punk",
+    file: "room-punk.png",
+    label: "Punk Record Shop",
+    frames: [
+      { left: 19.21, top: 9.28, width: 8.14, height: 22.95 },
+      { left: 29.3, top: 9.28, width: 8.14, height: 22.95 },
+      { left: 39.39, top: 9.28, width: 8.14, height: 22.95 },
+      { left: 49.48, top: 9.28, width: 8.14, height: 22.95 },
+      { left: 56.97, top: 9.28, width: 8.14, height: 22.95 },
+    ],
+    nowPlaying: { left: 71.61, top: 48.83, width: 11.07, height: 16.11 },
+  },
+  {
+    id: "store",
+    file: "room-store.png",
+    label: "Indie Record Store",
+    frames: [
+      { left: 19.86, top: 10.74, width: 7.81, height: 20.02 },
+      { left: 29.62, top: 10.74, width: 7.81, height: 20.02 },
+      { left: 39.39, top: 10.74, width: 7.81, height: 20.02 },
+      { left: 49.15, top: 10.74, width: 7.81, height: 20.02 },
+      { left: 58.59, top: 10.74, width: 7.81, height: 20.02 },
+    ],
+    nowPlaying: { left: 70.96, top: 50.29, width: 11.39, height: 15.62 },
+  },
 ];
 
 function getRoomTheme() {
@@ -1470,6 +1542,81 @@ function getRoomTheme() {
 function renderRoom() {
   const theme = getRoomTheme();
   document.getElementById("roomBackgroundImg").src = theme.file;
+
+  renderRoomFrames(theme);
+  renderRoomNowPlaying(theme);
+}
+
+function renderRoomFrames(theme) {
+  const container = document.getElementById("roomFrames");
+  container.innerHTML = "";
+
+  const favoriteAlbums = currentProfile?.favorite_albums || [];
+  const meta = currentProfile?.favorite_albums_meta || {};
+
+  theme.frames.forEach((frame, i) => {
+    const albumName = favoriteAlbums[i];
+    const albumMeta = albumName ? meta[albumName] : null;
+
+    const el = document.createElement(albumName ? "button" : "div");
+    el.className = "room-frame";
+    el.style.left = `${frame.left}%`;
+    el.style.top = `${frame.top}%`;
+    el.style.width = `${frame.width}%`;
+    el.style.height = `${frame.height}%`;
+
+    if (albumName) {
+      el.type = "button";
+      el.title = albumMeta?.artist ? `${albumMeta.artist} — ${albumName}` : albumName;
+
+      const matchingRecord = allRecords.find(
+        (r) => r.album.toLowerCase() === albumName.toLowerCase()
+      );
+      if (matchingRecord) {
+        el.addEventListener("click", () => openRecordDetailModal(matchingRecord.id));
+      }
+
+      if (albumMeta?.cover_url) {
+        const img = document.createElement("img");
+        img.src = albumMeta.cover_url;
+        img.alt = albumName;
+        el.appendChild(img);
+      } else {
+        const placeholder = document.createElement("div");
+        placeholder.className = "room-frame-empty";
+        const icon = document.createElement("i");
+        icon.className = "ti ti-disc";
+        icon.setAttribute("aria-hidden", "true");
+        placeholder.appendChild(icon);
+        el.appendChild(placeholder);
+      }
+    } else {
+      const placeholder = document.createElement("div");
+      placeholder.className = "room-frame-empty";
+      const icon = document.createElement("i");
+      icon.className = "ti ti-photo-plus";
+      icon.setAttribute("aria-hidden", "true");
+      placeholder.appendChild(icon);
+      placeholder.title = "Favorite an album from your collection to display it here";
+      el.appendChild(placeholder);
+    }
+
+    container.appendChild(el);
+  });
+}
+
+function renderRoomNowPlaying(theme) {
+  const wrap = document.getElementById("roomNowPlaying");
+  const textEl = document.getElementById("roomNowPlayingText");
+
+  wrap.style.left = `${theme.nowPlaying.left}%`;
+  wrap.style.top = `${theme.nowPlaying.top}%`;
+  wrap.style.width = `${theme.nowPlaying.width}%`;
+  wrap.style.height = `${theme.nowPlaying.height}%`;
+
+  // Placeholder for Stage 4 (user-selected "now playing" record)
+  wrap.hidden = true;
+  textEl.textContent = "";
 }
 
 function openRoomThemeModal() {

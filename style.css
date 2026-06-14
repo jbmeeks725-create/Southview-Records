@@ -784,6 +784,82 @@ header {
   display: block;
 }
 
+.room-frames {
+  position: absolute;
+  inset: 0;
+}
+
+.room-frame {
+  position: absolute;
+  overflow: hidden;
+  transition: outline-color 0.15s ease;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.room-frame[type="button"] {
+  cursor: pointer;
+}
+
+.room-frame[type="button"]:hover,
+.room-frame[type="button"]:focus-visible {
+  outline-color: #caa15a;
+}
+
+.room-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.room-frame-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.room-frame-empty i {
+  font-size: 22px;
+  color: rgba(202, 161, 90, 0.5);
+}
+
+.room-now-playing {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6%;
+  text-align: center;
+}
+
+.room-now-playing[hidden] {
+  display: none;
+}
+
+.room-now-playing-text {
+  margin: 0;
+  font-family: "Jost", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 600;
+  color: #2b1d10;
+  font-size: clamp(0.7rem, 1.4vw, 1.05rem);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .room-frame-empty i {
+    font-size: 16px;
+  }
+}
+
 /* Room theme picker */
 .room-theme-grid {
   display: grid;
