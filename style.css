@@ -765,6 +765,12 @@ header {
   margin: 0;
 }
 
+.room-page-header-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
 .room-scene {
   position: relative;
   width: 100%;
@@ -908,6 +914,44 @@ header {
 .room-theme-option-label {
   font-size: 0.85rem;
   color: #e5e7eb;
+}
+
+/* Arrange wall modal */
+.arrange-wall-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.arrange-wall-slot {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.arrange-wall-slot-label {
+  flex-shrink: 0;
+  width: 70px;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.arrange-wall-slot select {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid #374151;
+  background: #0b1220;
+  color: #e5e7eb;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.arrange-wall-slot select:focus {
+  outline: none;
+  border-color: #caa15a;
 }
 
 @media (max-width: 640px) {

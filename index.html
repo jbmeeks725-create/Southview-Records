@@ -597,7 +597,10 @@
     <div class="room-page">
       <div class="room-page-header">
         <h2>My Room</h2>
-        <button type="button" id="changeRoomThemeBtn" class="btn-secondary">Change room style</button>
+        <div class="room-page-header-actions">
+          <button type="button" id="arrangeWallBtn" class="btn-secondary">Arrange wall</button>
+          <button type="button" id="changeRoomThemeBtn" class="btn-secondary">Change room style</button>
+        </div>
       </div>
 
       <div id="roomScene" class="room-scene">
@@ -619,6 +622,22 @@
       <div id="roomThemeGrid" class="room-theme-grid"></div>
 
       <div id="roomThemeStatus" class="form-status"></div>
+    </div>
+  </div>
+
+  <!-- Arrange wall modal -->
+  <div id="arrangeWallOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="arrangeWallTitle">
+      <div class="modal-header">
+        <h2 id="arrangeWallTitle">Arrange your wall</h2>
+        <button type="button" id="closeArrangeWallBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <p class="field-hint">Choose which favorite album goes in each frame, left to right.</p>
+
+      <div id="arrangeWallSlots" class="arrange-wall-slots"></div>
+
+      <div id="arrangeWallStatus" class="form-status"></div>
     </div>
   </div>
 

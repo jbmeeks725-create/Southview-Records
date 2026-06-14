@@ -1547,15 +1547,28 @@ function renderRoom() {
   renderRoomNowPlaying(theme);
 }
 
+function getRoomWallAlbums() {
+  const favoriteAlbums = currentProfile?.favorite_albums || [];
+  const wallAlbums = currentProfile?.room_wall_albums || [];
+
+  // If the user has configured a wall arrangement, use it as-is
+  // (it may include empty strings for intentionally blank frames).
+  // Otherwise, fall back to the first 5 favorites in order.
+  if (wallAlbums.length > 0) {
+    return [0, 1, 2, 3, 4].map((i) => wallAlbums[i] || "");
+  }
+  return [0, 1, 2, 3, 4].map((i) => favoriteAlbums[i] || "");
+}
+
 function renderRoomFrames(theme) {
   const container = document.getElementById("roomFrames");
   container.innerHTML = "";
 
-  const favoriteAlbums = currentProfile?.favorite_albums || [];
+  const wallAlbums = getRoomWallAlbums();
   const meta = currentProfile?.favorite_albums_meta || {};
 
   theme.frames.forEach((frame, i) => {
-    const albumName = favoriteAlbums[i];
+    const albumName = wallAlbums[i];
     const albumMeta = albumName ? meta[albumName] : null;
 
     const el = document.createElement(albumName ? "button" : "div");
@@ -1708,6 +1721,95 @@ function setupRoom() {
   document.getElementById("roomThemeOverlay").addEventListener("click", (e) => {
     if (e.target.id === "roomThemeOverlay") closeRoomThemeModal();
   });
+
+  document.getElementById("arrangeWallBtn").addEventListener("click", () => openArrangeWallModal());
+  document.getElementById("closeArrangeWallBtn").addEventListener("click", () => closeArrangeWallModal());
+
+  document.getElementById("arrangeWallOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "arrangeWallOverlay") closeArrangeWallModal();
+  });
+}
+
+function openArrangeWallModal() {
+  const overlay = document.getElementById("arrangeWallOverlay");
+  const statusEl = document.getElementById("arrangeWallStatus");
+  statusEl.textContent = "";
+  statusEl.className = "form-status";
+
+  const container = document.getElementById("arrangeWallSlots");
+  container.innerHTML = "";
+
+  const favoriteAlbums = currentProfile?.favorite_albums || [];
+  const meta = currentProfile?.favorite_albums_meta || {};
+  const wallAlbums = getRoomWallAlbums();
+
+  if (favoriteAlbums.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-hint";
+    empty.textContent = "Favorite some albums from your collection first, then come back here to arrange them on your wall.";
+    container.appendChild(empty);
+    overlay.hidden = false;
+    return;
+  }
+
+  for (let i = 0; i < 5; i++) {
+    const row = document.createElement("div");
+    row.className = "arrange-wall-slot";
+
+    const label = document.createElement("span");
+    label.className = "arrange-wall-slot-label";
+    label.textContent = `Frame ${i + 1}`;
+
+    const select = document.createElement("select");
+    select.dataset.slotIndex = String(i);
+
+    const emptyOption = document.createElement("option");
+    emptyOption.value = "";
+    emptyOption.textContent = "Empty";
+    select.appendChild(emptyOption);
+
+    favoriteAlbums.forEach((albumName) => {
+      const option = document.createElement("option");
+      option.value = albumName;
+      const artist = meta[albumName]?.artist;
+      option.textContent = artist ? `${artist} — ${albumName}` : albumName;
+      select.appendChild(option);
+    });
+
+    select.value = wallAlbums[i] || "";
+    select.addEventListener("change", () => saveRoomWallArrangement());
+
+    row.appendChild(label);
+    row.appendChild(select);
+    container.appendChild(row);
+  }
+
+  overlay.hidden = false;
+}
+
+function closeArrangeWallModal() {
+  document.getElementById("arrangeWallOverlay").hidden = true;
+}
+
+async function saveRoomWallArrangement() {
+  const statusEl = document.getElementById("arrangeWallStatus");
+  const selects = document.querySelectorAll("#arrangeWallSlots select");
+
+  const wallAlbums = Array.from(selects).map((s) => s.value || "");
+
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    await saveProfileFields({ room_wall_albums: wallAlbums });
+    renderRoomFrames(getRoomTheme());
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  }
 }
 
 function resetSessionUiState() {
