@@ -1054,18 +1054,28 @@ h1 {
 }
 
 .landing-logo {
-  width: 140px;
-  height: 140px;
+  width: 200px;
+  height: 200px;
   border-radius: 22%;
   margin-bottom: 1rem;
 }
 
 .landing-title {
   margin: 0;
-  font-size: 3.2rem;
+  font-size: 3.6rem;
   font-weight: 700;
   letter-spacing: 0.25em;
   color: #f9fafb;
+  line-height: 1.1;
+}
+
+.landing-title-sub {
+  display: block;
+  font-size: 1.4rem;
+  font-weight: 500;
+  letter-spacing: 0.5em;
+  color: #caa15a;
+  margin-top: 0.5rem;
 }
 
 .landing-tagline {
@@ -1190,13 +1200,19 @@ h1 {
   }
 
   .landing-logo {
-    width: 96px;
-    height: 96px;
+    width: 120px;
+    height: 120px;
     margin-bottom: 0.75rem;
   }
 
   .landing-title {
     font-size: 2.4rem;
+  }
+
+  .landing-title-sub {
+    font-size: 1rem;
+    letter-spacing: 0.4em;
+    margin-top: 0.35rem;
   }
 
   .landing-tagline {
