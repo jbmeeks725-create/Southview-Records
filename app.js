@@ -4154,8 +4154,16 @@ async function loadLandingNowPlaying() {
 
     coverImg.src = meta.cover_url || "icon-512.png";
     coverImg.alt = albumName;
-    artistEl.textContent = meta.artist || "";
     albumEl.textContent = albumName;
+
+    if (meta.artist) {
+      artistEl.textContent = meta.artist;
+      artistEl.hidden = false;
+    } else {
+      artistEl.textContent = "";
+      artistEl.hidden = true;
+    }
+
     wrap.hidden = false;
   } catch (err) {
     console.error(err);
