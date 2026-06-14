@@ -4090,7 +4090,7 @@ const LANDING_VIDEOS = {
   right: ["right-1.mp4", "right-2.mp4", "right-3.mp4"],
 };
 
-const LANDING_VIDEO_PLAYBACK_RATE = 0.5;
+const LANDING_VIDEO_PLAYBACK_RATE = 0.8;
 
 function setupLandingVideoCarousel(videoEl, files) {
   if (!videoEl || files.length === 0) return;
