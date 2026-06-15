@@ -1465,7 +1465,13 @@ const ROOM_THEMES = [
       { left: 57.88, top: 13.67, width: 9.7, height: 19.82 },
       { left: 70.96, top: 13.67, width: 9.7, height: 19.82 },
     ],
-    nowPlaying: { left: 76.5, top: 47.36, width: 9.77, height: 16.11 },
+    nowPlaying: {
+      left: 77.669,
+      top: 48.047,
+      width: 10.938,
+      height: 13.867,
+      clipPath: "polygon(14.29% 0%, 100% 9.15%, 87.5% 100%, 0% 80.99%)",
+    },
   },
   {
     id: "modern",
@@ -1629,6 +1635,7 @@ function renderRoomNowPlaying(theme) {
   wrap.style.top = `${theme.nowPlaying.top}%`;
   wrap.style.width = `${theme.nowPlaying.width}%`;
   wrap.style.height = `${theme.nowPlaying.height}%`;
+  wrap.style.clipPath = theme.nowPlaying.clipPath || "";
 
   wrap.innerHTML = "";
 
