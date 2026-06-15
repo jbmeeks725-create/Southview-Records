@@ -941,8 +941,82 @@
     </div>
   </div>
 
+  <!-- Wishlist item detail modal -->
+  <div id="wishlistDetailOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="wishlistDetailTitle">
+      <div class="modal-header">
+        <h2 id="wishlistDetailTitle">Wishlist item</h2>
+        <button type="button" id="closeWishlistDetailBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="detail-cover-wrap">
+        <img id="wishlistDetailCoverImg" class="detail-cover-img" alt="" hidden />
+        <div id="wishlistDetailCoverPlaceholder" class="cover-placeholder detail-cover-placeholder">
+          <img src="icon-512.png" alt="" />
+        </div>
+      </div>
+
+      <div class="cover-upload-controls">
+        <button type="button" id="wishlistDetailDiscogsBtn" class="btn-secondary">Check Discogs</button>
+      </div>
+      <div id="wishlistDetailDiscogsStatus" class="form-status"></div>
+
+      <form id="wishlistDetailForm">
+        <div class="form-row">
+          <label for="wishlistDetailArtist">Artist *</label>
+          <input type="text" id="wishlistDetailArtist" required />
+        </div>
+
+        <div class="form-row">
+          <label for="wishlistDetailAlbum">Album *</label>
+          <input type="text" id="wishlistDetailAlbum" required />
+        </div>
+
+        <div class="form-row">
+          <label for="wishlistDetailYear">Year</label>
+          <input type="number" id="wishlistDetailYear" min="1900" max="2100" />
+        </div>
+
+        <div class="form-row">
+          <label for="wishlistDetailLabel">Label</label>
+          <input type="text" id="wishlistDetailLabel" />
+        </div>
+
+        <div class="form-row form-row-split">
+          <div>
+            <label for="wishlistDetailGenre">Genre</label>
+            <input type="text" id="wishlistDetailGenre" list="genreOptions" placeholder="e.g. Jazz" />
+          </div>
+          <div>
+            <label for="wishlistDetailSubgenre">Subgenre</label>
+            <input type="text" id="wishlistDetailSubgenre" list="subgenreOptions" placeholder="e.g. Modal Jazz" />
+          </div>
+        </div>
+        <p class="field-hint">
+          Pick from the list or type a new one — new genres/subgenres will be created automatically.
+        </p>
+
+        <div class="form-row">
+          <label for="wishlistDetailNotes">Notes</label>
+          <textarea id="wishlistDetailNotes" rows="2"></textarea>
+        </div>
+
+        <div id="wishlistDetailStatus" class="form-status"></div>
+
+        <div class="form-actions form-actions-split">
+          <button type="button" id="removeWishlistDetailBtn" class="btn-danger">Remove from wishlist</button>
+          <div class="form-actions">
+            <button type="button" id="cancelWishlistDetailBtn" class="btn-secondary">Cancel</button>
+            <button type="submit" id="saveWishlistDetailBtn" class="btn-primary">Save changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Barcode scanning -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
 
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

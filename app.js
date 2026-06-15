@@ -2858,6 +2858,7 @@ function renderWishlist() {
   wishlist.forEach((w) => {
     const card = document.createElement("div");
     card.className = "record-card wishlist-card";
+    card.addEventListener("click", () => openWishlistDetailModal(w.id));
 
     const coverWrap = document.createElement("div");
     coverWrap.className = "cover-wrap";
@@ -3058,6 +3059,34 @@ async function lookupDiscogsByArtistAlbum(artist, album) {
   return result;
 }
 
+async function buildWishlistUpdatesFromDiscogs(item, result) {
+  const updates = {
+    discogs_release_id: result.discogs_release_id || null,
+    cover_url: item.cover_url || result.cover_url || null,
+  };
+
+  if (!item.year && result.year) {
+    updates.year = result.year;
+  }
+
+  if (!item.label && result.label) {
+    updates.label = result.label;
+  }
+
+  if (!item.genre_id && result.genre) {
+    const genreId = await getOrCreateGenreId(result.genre);
+    if (genreId) {
+      updates.genre_id = genreId;
+      if (!item.subgenre_id && result.style) {
+        const subgenreId = await getOrCreateSubgenreId(result.style, genreId);
+        if (subgenreId) updates.subgenre_id = subgenreId;
+      }
+    }
+  }
+
+  return updates;
+}
+
 async function findWishlistDiscogsMatch(wishlistId) {
   const item = wishlist.find((w) => w.id === wishlistId);
   if (!item) return;
@@ -3073,10 +3102,7 @@ async function findWishlistDiscogsMatch(wishlistId) {
       return;
     }
 
-    const updates = {
-      discogs_release_id: result.discogs_release_id || null,
-      cover_url: item.cover_url || result.cover_url || null,
-    };
+    const updates = await buildWishlistUpdatesFromDiscogs(item, result);
 
     const { error } = await supabaseClient
       .from("wishlist")
@@ -3086,6 +3112,8 @@ async function findWishlistDiscogsMatch(wishlistId) {
     if (error) throw error;
 
     Object.assign(item, updates);
+    item.genre_name = genreNameById(item.genre_id);
+    item.subgenre_name = subgenreNameById(item.subgenre_id);
     render();
     setStatus(`Found a Discogs match for "${item.album}" by ${item.artist}.`);
   } catch (err) {
@@ -3116,10 +3144,7 @@ async function findAllWishlistDiscogsMatches() {
       const result = await lookupDiscogsByArtistAlbum(item.artist, item.album);
 
       if (result.found) {
-        const updates = {
-          discogs_release_id: result.discogs_release_id || null,
-          cover_url: item.cover_url || result.cover_url || null,
-        };
+        const updates = await buildWishlistUpdatesFromDiscogs(item, result);
 
         const { error } = await supabaseClient
           .from("wishlist")
@@ -3128,6 +3153,8 @@ async function findAllWishlistDiscogsMatches() {
 
         if (!error) {
           Object.assign(item, updates);
+          item.genre_name = genreNameById(item.genre_id);
+          item.subgenre_name = subgenreNameById(item.subgenre_id);
           found++;
         }
       } else {
@@ -3146,6 +3173,193 @@ async function findAllWishlistDiscogsMatches() {
 
   if (btn) btn.disabled = false;
   setStatus(`Done. Matched ${found}, no match for ${notFound}.`);
+}
+
+// ------------ Wishlist item detail modal ------------
+
+let activeDetailWishlistId = null;
+
+function setWishlistDetailCoverPreview(url) {
+  const coverImg = document.getElementById("wishlistDetailCoverImg");
+  const coverPlaceholder = document.getElementById("wishlistDetailCoverPlaceholder");
+  if (url) {
+    coverImg.src = url;
+    coverImg.hidden = false;
+    coverPlaceholder.hidden = true;
+  } else {
+    coverImg.hidden = true;
+    coverPlaceholder.hidden = false;
+  }
+}
+
+function openWishlistDetailModal(wishlistId) {
+  const item = wishlist.find((w) => w.id === wishlistId);
+  if (!item) return;
+
+  activeDetailWishlistId = wishlistId;
+
+  document.getElementById("wishlistDetailArtist").value = item.artist || "";
+  document.getElementById("wishlistDetailAlbum").value = item.album || "";
+  document.getElementById("wishlistDetailYear").value = item.year ?? "";
+  document.getElementById("wishlistDetailLabel").value = item.label || "";
+  document.getElementById("wishlistDetailGenre").value = item.genre_name || "";
+  document.getElementById("wishlistDetailSubgenre").value = item.subgenre_name || "";
+  populateSubgenreOptionsForGenre(item.genre_name || "");
+  document.getElementById("wishlistDetailNotes").value = item.notes || "";
+
+  setWishlistDetailCoverPreview(item.cover_url || null);
+
+  document.getElementById("wishlistDetailStatus").textContent = "";
+  document.getElementById("wishlistDetailStatus").className = "form-status";
+  document.getElementById("wishlistDetailDiscogsStatus").textContent = "";
+  document.getElementById("wishlistDetailDiscogsStatus").className = "form-status";
+
+  document.getElementById("wishlistDetailOverlay").hidden = false;
+}
+
+function closeWishlistDetailModal() {
+  document.getElementById("wishlistDetailOverlay").hidden = true;
+  activeDetailWishlistId = null;
+}
+
+async function handleWishlistDetailSubmit(event) {
+  event.preventDefault();
+  if (activeDetailWishlistId === null) return;
+
+  const statusEl = document.getElementById("wishlistDetailStatus");
+  const saveBtn = document.getElementById("saveWishlistDetailBtn");
+
+  const artist = document.getElementById("wishlistDetailArtist").value.trim();
+  const album = document.getElementById("wishlistDetailAlbum").value.trim();
+
+  if (!artist || !album) {
+    statusEl.textContent = "Artist and Album are required.";
+    statusEl.className = "form-status form-status-error";
+    return;
+  }
+
+  const yearVal = parseYearInput(document.getElementById("wishlistDetailYear").value);
+  const label = document.getElementById("wishlistDetailLabel").value.trim() || null;
+  const genreInput = document.getElementById("wishlistDetailGenre").value.trim();
+  const subgenreInput = document.getElementById("wishlistDetailSubgenre").value.trim();
+  const notes = document.getElementById("wishlistDetailNotes").value.trim() || null;
+
+  saveBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    const genreId = await getOrCreateGenreId(genreInput);
+    const subgenreId = subgenreInput
+      ? await getOrCreateSubgenreId(subgenreInput, genreId)
+      : null;
+
+    const updates = {
+      artist,
+      album,
+      year: yearVal,
+      label,
+      genre_id: genreId,
+      subgenre_id: subgenreId,
+      notes,
+    };
+
+    const { error } = await supabaseClient
+      .from("wishlist")
+      .update(updates)
+      .eq("id", activeDetailWishlistId);
+
+    if (error) throw error;
+
+    const item = wishlist.find((w) => w.id === activeDetailWishlistId);
+    if (item) {
+      Object.assign(item, updates);
+      item.genre_name = genreNameById(genreId);
+      item.subgenre_name = subgenreNameById(subgenreId);
+    }
+
+    renderFilters();
+    render();
+
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+
+    setTimeout(() => {
+      closeWishlistDetailModal();
+    }, 700);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save changes. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+async function handleWishlistDetailDiscogsCheck() {
+  if (activeDetailWishlistId === null) return;
+
+  const item = wishlist.find((w) => w.id === activeDetailWishlistId);
+  if (!item) return;
+
+  const statusEl = document.getElementById("wishlistDetailDiscogsStatus");
+  const btn = document.getElementById("wishlistDetailDiscogsBtn");
+
+  btn.disabled = true;
+  statusEl.textContent = "Searching Discogs...";
+  statusEl.className = "form-status";
+
+  try {
+    const result = await lookupDiscogsByArtistAlbum(item.artist, item.album);
+    console.log("Discogs lookup debug:", result.debug, result);
+
+    if (!result.found) {
+      statusEl.textContent = "No Discogs match found.";
+      statusEl.className = "form-status form-status-error";
+      return;
+    }
+
+    const updates = await buildWishlistUpdatesFromDiscogs(item, result);
+
+    const { error } = await supabaseClient
+      .from("wishlist")
+      .update(updates)
+      .eq("id", activeDetailWishlistId);
+
+    if (error) throw error;
+
+    Object.assign(item, updates);
+    item.genre_name = genreNameById(item.genre_id);
+    item.subgenre_name = subgenreNameById(item.subgenre_id);
+
+    // Reflect any newly-filled fields in the open form
+    document.getElementById("wishlistDetailYear").value = item.year ?? "";
+    document.getElementById("wishlistDetailLabel").value = item.label || "";
+    document.getElementById("wishlistDetailGenre").value = item.genre_name || "";
+    document.getElementById("wishlistDetailSubgenre").value = item.subgenre_name || "";
+    populateSubgenreOptionsForGenre(item.genre_name || "");
+    setWishlistDetailCoverPreview(item.cover_url || null);
+
+    render();
+
+    statusEl.textContent = "Found a Discogs match.";
+    statusEl.className = "form-status form-status-success";
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't search Discogs. See console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function handleRemoveWishlistDetail() {
+  if (activeDetailWishlistId === null) return;
+  const wishlistId = activeDetailWishlistId;
+  await removeWishlistItem(wishlistId);
+  if (!wishlist.find((w) => w.id === wishlistId)) {
+    closeWishlistDetailModal();
+  }
 }
 
 function openAddWishlistModal() {
@@ -4035,7 +4249,7 @@ function setupEvents() {
 
   // Make the subgenre suggestions in Add Record / Add Wishlist / Edit forms
   // depend on whatever genre name has been typed in that same form.
-  ["fieldGenre", "wishGenre", "detailGenre"].forEach((id) => {
+  ["fieldGenre", "wishGenre", "detailGenre", "wishlistDetailGenre"].forEach((id) => {
     document.getElementById(id).addEventListener("input", (e) => {
       populateSubgenreOptionsForGenre(e.target.value);
     });
@@ -4255,6 +4469,35 @@ function setupEvents() {
     .addEventListener("click", (e) => {
       if (e.target.id === "recordDetailOverlay") {
         closeRecordDetailModal();
+      }
+    });
+
+  // Wishlist item detail modal
+  document
+    .getElementById("closeWishlistDetailBtn")
+    .addEventListener("click", () => closeWishlistDetailModal());
+
+  document
+    .getElementById("cancelWishlistDetailBtn")
+    .addEventListener("click", () => closeWishlistDetailModal());
+
+  document
+    .getElementById("wishlistDetailForm")
+    .addEventListener("submit", handleWishlistDetailSubmit);
+
+  document
+    .getElementById("removeWishlistDetailBtn")
+    .addEventListener("click", () => handleRemoveWishlistDetail());
+
+  document
+    .getElementById("wishlistDetailDiscogsBtn")
+    .addEventListener("click", () => handleWishlistDetailDiscogsCheck());
+
+  document
+    .getElementById("wishlistDetailOverlay")
+    .addEventListener("click", (e) => {
+      if (e.target.id === "wishlistDetailOverlay") {
+        closeWishlistDetailModal();
       }
     });
 }
