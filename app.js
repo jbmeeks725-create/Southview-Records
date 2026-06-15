@@ -1484,7 +1484,13 @@ const ROOM_THEMES = [
       { left: 59.11, top: 13.77, width: 9.05, height: 20.02 },
       { left: 71.22, top: 13.87, width: 9.05, height: 19.92 },
     ],
-    nowPlaying: { left: 77.15, top: 48.34, width: 9.77, height: 15.62 },
+    nowPlaying: {
+      left: 79.232,
+      top: 48.633,
+      width: 10.221,
+      height: 13.477,
+      clipPath: "polygon(12.74% 0%, 100% 7.25%, 87.90% 100%, 0% 85.51%)",
+    },
   },
   {
     id: "retro",
@@ -1497,7 +1503,13 @@ const ROOM_THEMES = [
       { left: 58.27, top: 11.23, width: 8.98, height: 22.27 },
       { left: 70.12, top: 11.23, width: 9.11, height: 22.27 },
     ],
-    nowPlaying: { left: 77.8, top: 49.8, width: 9.77, height: 15.14 },
+    nowPlaying: {
+      left: 80.534,
+      top: 50.391,
+      width: 10.938,
+      height: 15.918,
+      clipPath: "polygon(11.31% 0%, 100% 9.20%, 89.88% 100%, 0% 83.44%)",
+    },
   },
   {
     id: "rock",
@@ -1510,7 +1522,13 @@ const ROOM_THEMES = [
       { left: 56.32, top: 11.52, width: 8.53, height: 21.48 },
       { left: 67.51, top: 11.62, width: 8.4, height: 21.29 },
     ],
-    nowPlaying: { left: 79.1, top: 49.8, width: 10.09, height: 14.65 },
+    nowPlaying: {
+      left: 78.906,
+      top: 49.023,
+      width: 10.807,
+      height: 17.383,
+      clipPath: "polygon(12.65% 0%, 100% 9.55%, 87.35% 100%, 0% 83.71%)",
+    },
   },
   {
     id: "punk",
@@ -1523,7 +1541,13 @@ const ROOM_THEMES = [
       { left: 54.75, top: 11.82, width: 7.94, height: 24.61 },
       { left: 65.1, top: 11.82, width: 7.94, height: 24.51 },
     ],
-    nowPlaying: { left: 76.82, top: 47.36, width: 9.44, height: 16.11 },
+    nowPlaying: {
+      left: 76.042,
+      top: 49.023,
+      width: 9.896,
+      height: 14.746,
+      clipPath: "polygon(11.18% 0%, 100% 7.95%, 90.13% 100%, 0% 83.44%)",
+    },
   },
   {
     id: "store",
@@ -1536,7 +1560,13 @@ const ROOM_THEMES = [
       { left: 56.18, top: 13.18, width: 8.53, height: 21.58 },
       { left: 67.45, top: 13.18, width: 8.53, height: 21.58 },
     ],
-    nowPlaying: { left: 76.17, top: 47.36, width: 9.77, height: 16.11 },
+    nowPlaying: {
+      left: 75.326,
+      top: 48.145,
+      width: 9.701,
+      height: 15.918,
+      clipPath: "polygon(14.77% 0%, 100% 7.98%, 87.92% 100%, 0% 84.05%)",
+    },
   },
 ];
 
