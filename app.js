@@ -186,6 +186,53 @@ function populateSubgenreFilterOptions() {
   }
 }
 
+function sortItems(items, sortValue, isWishlist) {
+  const sorted = items.slice();
+
+  const cmpText = (a, b) => a.localeCompare(b, undefined, { sensitivity: "base" });
+  const cmpYear = (a, b) => {
+    if (a.year === null || a.year === undefined) return 1;
+    if (b.year === null || b.year === undefined) return -1;
+    return a.year - b.year;
+  };
+  const cmpAdded = (a, b) => {
+    if (isWishlist) {
+      return new Date(a.added_at).getTime() - new Date(b.added_at).getTime();
+    }
+    return (a.id ?? 0) - (b.id ?? 0);
+  };
+
+  switch (sortValue) {
+    case "artist-desc":
+      sorted.sort((a, b) => cmpText(b.artist, a.artist) || cmpText(a.album, b.album));
+      break;
+    case "album-asc":
+      sorted.sort((a, b) => cmpText(a.album, b.album) || cmpText(a.artist, b.artist));
+      break;
+    case "album-desc":
+      sorted.sort((a, b) => cmpText(b.album, a.album) || cmpText(a.artist, b.artist));
+      break;
+    case "year-asc":
+      sorted.sort((a, b) => cmpYear(a, b) || cmpText(a.artist, b.artist));
+      break;
+    case "year-desc":
+      sorted.sort((a, b) => cmpYear(b, a) || cmpText(a.artist, b.artist));
+      break;
+    case "added-desc":
+      sorted.sort((a, b) => cmpAdded(b, a));
+      break;
+    case "added-asc":
+      sorted.sort((a, b) => cmpAdded(a, b));
+      break;
+    case "artist-asc":
+    default:
+      sorted.sort((a, b) => cmpText(a.artist, b.artist) || cmpText(a.album, b.album));
+      break;
+  }
+
+  return sorted;
+}
+
 function getFilteredRecords() {
   const searchText = document
     .getElementById("searchInput")
@@ -240,6 +287,47 @@ function getFilteredRecords() {
       (r) => r.year && r.year >= yearFilter.start && r.year <= yearFilter.end
     );
   }
+
+  if (!artistFilter) {
+    const sortVal = document.getElementById("sortSelect").value;
+    filtered = sortItems(filtered, sortVal, false);
+  }
+
+  return filtered;
+}
+
+function getFilteredWishlist() {
+  const searchText = document
+    .getElementById("searchInput")
+    .value.trim()
+    .toLowerCase();
+
+  const genreFilterVal = document.getElementById("genreFilter").value;
+  const subgenreFilterVal = document.getElementById("subgenreFilter").value;
+
+  let filtered = wishlist.slice();
+
+  if (searchText) {
+    filtered = filtered.filter((w) => {
+      return (
+        w.artist.toLowerCase().includes(searchText) ||
+        w.album.toLowerCase().includes(searchText)
+      );
+    });
+  }
+
+  if (genreFilterVal) {
+    filtered = filtered.filter((w) => w.genre_id === Number(genreFilterVal));
+  }
+
+  if (subgenreFilterVal) {
+    filtered = filtered.filter(
+      (w) => w.subgenre_id === Number(subgenreFilterVal)
+    );
+  }
+
+  const sortVal = document.getElementById("sortSelect").value;
+  filtered = sortItems(filtered, sortVal, true);
 
   return filtered;
 }
@@ -2185,10 +2273,12 @@ function renderActiveFilters() {
   const bar = document.getElementById("activeFiltersBar");
   bar.innerHTML = "";
 
-  if (currentPage !== "collection") {
+  if (currentPage !== "collection" && currentPage !== "wishlist") {
     bar.hidden = true;
     return;
   }
+
+  const isWishlist = currentPage === "wishlist";
 
   const chips = [];
 
@@ -2226,28 +2316,30 @@ function renderActiveFilters() {
     });
   }
 
-  const ratingVal = document.getElementById("ratingFilter").value;
-  if (ratingVal) {
-    chips.push({
-      label: `Rating: ${RATING_LABELS[ratingVal] || ratingVal}`,
-      onClear: () => {
-        document.getElementById("ratingFilter").value = "";
-        render();
-      },
-    });
+  if (!isWishlist) {
+    const ratingVal = document.getElementById("ratingFilter").value;
+    if (ratingVal) {
+      chips.push({
+        label: `Rating: ${RATING_LABELS[ratingVal] || ratingVal}`,
+        onClear: () => {
+          document.getElementById("ratingFilter").value = "";
+          render();
+        },
+      });
+    }
+
+    if (artistFilter) {
+      chips.push({
+        label: `Artist: ${artistFilter}`,
+        onClear: () => {
+          artistFilter = null;
+          render();
+        },
+      });
+    }
   }
 
-  if (artistFilter) {
-    chips.push({
-      label: `Artist: ${artistFilter}`,
-      onClear: () => {
-        artistFilter = null;
-        render();
-      },
-    });
-  }
-
-  if (yearFilter) {
+  if (!isWishlist && yearFilter) {
     chips.push({
       label: `Decade: ${yearFilter.start}s`,
       onClear: () => {
@@ -2352,9 +2444,10 @@ function render() {
   }
 
   if (currentPage === "wishlist") {
-    renderWishlist();
-    document.getElementById("activeFiltersBar").hidden = true;
-    setStatus(`${wishlist.length} item${wishlist.length === 1 ? "" : "s"} on your wishlist`);
+    const filteredWishlist = getFilteredWishlist();
+    renderWishlist(filteredWishlist);
+    renderActiveFilters();
+    setStatus(`Showing ${filteredWishlist.length} of ${wishlist.length} wishlist item${wishlist.length === 1 ? "" : "s"}`);
     return;
   }
 
@@ -2407,9 +2500,10 @@ function setPage(page) {
   atAGlanceSection.hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
-  filterControls.hidden = !isCollection;
+  filterControls.hidden = !(isCollection || isWishlist);
+  document.getElementById("ratingFilter").hidden = !isCollection;
   statusSection.hidden = isHome || isProfile || isRoom;
-  gridDensity.hidden = isHome || isProfile || isRoom;
+  gridDensity.hidden = !isCollection;
   pageNav.hidden = isProfile;
 
   document.getElementById("addRecordBtn").hidden = !isCollection;
@@ -2843,7 +2937,7 @@ function formatPrice(value, currency) {
   }
 }
 
-function renderWishlist() {
+function renderWishlist(filtered) {
   const grid = document.getElementById("wishlistGrid");
   grid.innerHTML = "";
 
@@ -2855,7 +2949,15 @@ function renderWishlist() {
     return;
   }
 
-  wishlist.forEach((w) => {
+  if (filtered.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "field-hint";
+    empty.textContent = "No wishlist items match your filters.";
+    grid.appendChild(empty);
+    return;
+  }
+
+  filtered.forEach((w) => {
     const card = document.createElement("div");
     card.className = "record-card wishlist-card";
     card.addEventListener("click", () => openWishlistDetailModal(w.id));
@@ -4271,6 +4373,10 @@ function setupEvents() {
 
   document
     .getElementById("ratingFilter")
+    .addEventListener("change", () => render());
+
+  document
+    .getElementById("sortSelect")
     .addEventListener("change", () => render());
 
   document
