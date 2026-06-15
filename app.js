@@ -2462,7 +2462,6 @@ function render() {
 function setPage(page) {
   currentPage = page;
 
-  const homeBtn = document.getElementById("homePageBtn");
   const collectionBtn = document.getElementById("collectionPageBtn");
   const wishlistBtn = document.getElementById("wishlistPageBtn");
   const roomBtn = document.getElementById("roomPageBtn");
@@ -2485,7 +2484,6 @@ function setPage(page) {
   const isRoom = page === "room";
 
   [
-    [homeBtn, isHome],
     [collectionBtn, isCollection],
     [wishlistBtn, isWishlist],
     [roomBtn, isRoom],
@@ -4380,7 +4378,7 @@ function setupEvents() {
     .addEventListener("change", () => render());
 
   document
-    .getElementById("homePageBtn")
+    .getElementById("brandHomeBtn")
     .addEventListener("click", () => setPage("home"));
 
   function makeKeyboardClickable(el) {
