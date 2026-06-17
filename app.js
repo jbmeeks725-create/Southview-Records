@@ -512,11 +512,13 @@ function renderSpotlight() {
   const wikiWrap = document.getElementById("spotlightWikiWrap");
   const artistWikiWrap = document.getElementById("spotlightArtistWikiWrap");
   const labelWikiWrap = document.getElementById("spotlightLabelWikiWrap");
+  const descriptionWrap = document.getElementById("spotlightDescriptionWrap");
   content.innerHTML = "";
   songWrap.innerHTML = "";
   wikiWrap.innerHTML = "";
   artistWikiWrap.innerHTML = "";
   labelWikiWrap.innerHTML = "";
+  descriptionWrap.innerHTML = "";
 
   if (allRecords.length === 0) {
     const empty = document.createElement("p");
@@ -567,13 +569,6 @@ function renderSpotlight() {
   }
 
   info.appendChild(buildRatingControls(record));
-
-  if (record.description) {
-    const descEl = document.createElement("div");
-    descEl.className = "spotlight-description";
-    descEl.textContent = record.description;
-    info.appendChild(descEl);
-  }
 
   content.appendChild(coverWrap);
   content.appendChild(info);
@@ -634,6 +629,13 @@ function renderSpotlight() {
     });
     labelWikiWrap.appendChild(labelWikiBtn);
   }
+
+  if (record.description) {
+    const descEl = document.createElement("div");
+    descEl.className = "spotlight-description";
+    descEl.textContent = record.description;
+    descriptionWrap.appendChild(descEl);
+  }
 }
 
 async function fetchNotableSong(artist, album) {
@@ -691,7 +693,7 @@ async function findSpotlightSong(record, wrap, btn) {
   }
 }
 
-async function fetchWikipediaSummary(query) {
+async function fetchWikipediaSummary(query, { maxChars = 6000 } = {}) {
   const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
 
   const searchResp = await fetch(searchUrl);
@@ -704,16 +706,58 @@ async function fetchWikipediaSummary(query) {
   }
 
   const title = results[0].title;
-  const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-  const summaryResp = await fetch(summaryUrl);
-  if (!summaryResp.ok) throw new Error(`Wikipedia summary failed (${summaryResp.status})`);
-  const summaryData = await summaryResp.json();
 
-  if (!summaryData.extract) {
-    throw new Error("No summary available");
+  const extractUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=plain&titles=${encodeURIComponent(title)}&format=json&origin=*`;
+  const extractResp = await fetch(extractUrl);
+  if (!extractResp.ok) throw new Error(`Wikipedia article fetch failed (${extractResp.status})`);
+  const extractData = await extractResp.json();
+
+  const pages = extractData?.query?.pages || {};
+  const page = Object.values(pages)[0];
+  let extract = page?.extract || "";
+
+  if (!extract) {
+    throw new Error("No article text available");
   }
 
-  return summaryData;
+  // Drop common trailing boilerplate sections that add length without value.
+  const cutSections = ["\nSee also", "\nReferences", "\nExternal links", "\nNotes\n", "\nFurther reading"];
+  for (const marker of cutSections) {
+    const idx = extract.indexOf(marker);
+    if (idx !== -1) extract = extract.slice(0, idx);
+  }
+
+  extract = extract.trim();
+
+  let truncated = false;
+  if (extract.length > maxChars) {
+    const slice = extract.slice(0, maxChars);
+    const lastBreak = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf(".\n"));
+    extract = (lastBreak > maxChars * 0.6 ? slice.slice(0, lastBreak + 1) : slice).trim();
+    truncated = true;
+  }
+
+  const pageUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, "_"))}`;
+
+  return {
+    title,
+    extract,
+    truncated,
+    content_urls: { desktop: { page: pageUrl } },
+  };
+}
+
+function appendWikiExtractParagraphs(container, extract) {
+  const paragraphs = extract
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  paragraphs.forEach((p) => {
+    const para = document.createElement("p");
+    para.textContent = p;
+    container.appendChild(para);
+  });
 }
 
 async function findSpotlightWiki(record, wrap, btn) {
@@ -728,9 +772,7 @@ async function findSpotlightWiki(record, wrap, btn) {
     const resultBox = document.createElement("div");
     resultBox.className = "spotlight-wiki-result";
 
-    const extractEl = document.createElement("p");
-    extractEl.textContent = summaryData.extract;
-    resultBox.appendChild(extractEl);
+    appendWikiExtractParagraphs(resultBox, summaryData.extract);
 
     const pageUrl = summaryData.content_urls?.desktop?.page;
 
@@ -742,7 +784,9 @@ async function findSpotlightWiki(record, wrap, btn) {
       link.href = pageUrl;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = `Read more: ${summaryData.title} ↗`;
+      link.textContent = summaryData.truncated
+        ? `Read the full article: ${summaryData.title} ↗`
+        : `Read more: ${summaryData.title} ↗`;
       link.addEventListener("click", (e) => e.stopPropagation());
       actions.appendChild(link);
     }
@@ -790,16 +834,14 @@ async function findEntityWiki({ query, wrap, btn, idleLabel }) {
   btn.textContent = "Looking up...";
 
   try {
-    const summaryData = await fetchWikipediaSummary(query);
+    const summaryData = await fetchWikipediaSummary(query, { maxChars: 3000 });
 
     wrap.innerHTML = "";
 
     const resultBox = document.createElement("div");
     resultBox.className = "spotlight-wiki-result";
 
-    const extractEl = document.createElement("p");
-    extractEl.textContent = summaryData.extract;
-    resultBox.appendChild(extractEl);
+    appendWikiExtractParagraphs(resultBox, summaryData.extract);
 
     const pageUrl = summaryData.content_urls?.desktop?.page;
 
@@ -811,7 +853,9 @@ async function findEntityWiki({ query, wrap, btn, idleLabel }) {
       link.href = pageUrl;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = `Read more: ${summaryData.title} ↗`;
+      link.textContent = summaryData.truncated
+        ? `Read the full article: ${summaryData.title} ↗`
+        : `Read more: ${summaryData.title} ↗`;
       link.addEventListener("click", (e) => e.stopPropagation());
       actions.appendChild(link);
 

@@ -2209,6 +2209,19 @@ h1 {
   line-height: 1.4;
 }
 
+.spotlight-description-wrap {
+  margin-top: 1rem;
+}
+
+.spotlight-description-wrap .spotlight-description {
+  margin-top: 0;
+  font-size: 0.9rem;
+  color: #c2c8d2;
+  line-height: 1.55;
+  white-space: pre-line;
+  max-width: 70ch;
+}
+
 .home-recent {
   grid-area: recent;
 }
@@ -2258,6 +2271,16 @@ h1 {
   font-size: 0.85rem;
   color: #d1d5db;
   line-height: 1.4;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.spotlight-wiki-result p {
+  margin: 0 0 0.65rem 0;
+}
+
+.spotlight-wiki-result p:last-of-type {
+  margin-bottom: 0;
 }
 
 .spotlight-wiki-result a {
