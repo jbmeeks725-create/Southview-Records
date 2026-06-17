@@ -502,17 +502,21 @@ function renderStats() {
 }
 
 function getSpotlightPool() {
-  const favorites = allRecords.filter((r) => r.rating === "love" || r.rating === "like");
-  return favorites.length > 0 ? favorites : allRecords;
+  const eligible = allRecords.filter((r) => r.rating !== "dislike");
+  return eligible.length > 0 ? eligible : allRecords;
 }
 
 function renderSpotlight() {
   const content = document.getElementById("spotlightContent");
   const songWrap = document.getElementById("spotlightSongWrap");
   const wikiWrap = document.getElementById("spotlightWikiWrap");
+  const artistWikiWrap = document.getElementById("spotlightArtistWikiWrap");
+  const labelWikiWrap = document.getElementById("spotlightLabelWikiWrap");
   content.innerHTML = "";
   songWrap.innerHTML = "";
   wikiWrap.innerHTML = "";
+  artistWikiWrap.innerHTML = "";
+  labelWikiWrap.innerHTML = "";
 
   if (allRecords.length === 0) {
     const empty = document.createElement("p");
@@ -554,6 +558,14 @@ function renderSpotlight() {
   info.appendChild(artistEl);
   info.appendChild(albumEl);
   if (metaParts.length) info.appendChild(metaEl);
+
+  if (record.label) {
+    const labelEl = document.createElement("div");
+    labelEl.className = "spotlight-label";
+    labelEl.textContent = `Label: ${record.label}`;
+    info.appendChild(labelEl);
+  }
+
   info.appendChild(buildRatingControls(record));
 
   if (record.description) {
@@ -590,6 +602,38 @@ function renderSpotlight() {
     findSpotlightWiki(record, wikiWrap, wikiBtn);
   });
   wikiWrap.appendChild(wikiBtn);
+
+  const artistWikiBtn = document.createElement("button");
+  artistWikiBtn.type = "button";
+  artistWikiBtn.className = "btn-secondary";
+  artistWikiBtn.textContent = `Learn more about ${record.artist}`;
+  artistWikiBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    findEntityWiki({
+      query: `${record.artist} musician band`,
+      wrap: artistWikiWrap,
+      btn: artistWikiBtn,
+      idleLabel: `Learn more about ${record.artist}`,
+    });
+  });
+  artistWikiWrap.appendChild(artistWikiBtn);
+
+  if (record.label) {
+    const labelWikiBtn = document.createElement("button");
+    labelWikiBtn.type = "button";
+    labelWikiBtn.className = "btn-secondary";
+    labelWikiBtn.textContent = `Learn more about ${record.label}`;
+    labelWikiBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      findEntityWiki({
+        query: `${record.label} record label`,
+        wrap: labelWikiWrap,
+        btn: labelWikiBtn,
+        idleLabel: `Learn more about ${record.label}`,
+      });
+    });
+    labelWikiWrap.appendChild(labelWikiBtn);
+  }
 }
 
 async function fetchNotableSong(artist, album) {
@@ -647,32 +691,37 @@ async function findSpotlightSong(record, wrap, btn) {
   }
 }
 
+async function fetchWikipediaSummary(query) {
+  const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
+
+  const searchResp = await fetch(searchUrl);
+  if (!searchResp.ok) throw new Error(`Wikipedia search failed (${searchResp.status})`);
+  const searchData = await searchResp.json();
+  const results = searchData?.query?.search || [];
+
+  if (results.length === 0) {
+    throw new Error("No Wikipedia article found");
+  }
+
+  const title = results[0].title;
+  const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+  const summaryResp = await fetch(summaryUrl);
+  if (!summaryResp.ok) throw new Error(`Wikipedia summary failed (${summaryResp.status})`);
+  const summaryData = await summaryResp.json();
+
+  if (!summaryData.extract) {
+    throw new Error("No summary available");
+  }
+
+  return summaryData;
+}
+
 async function findSpotlightWiki(record, wrap, btn) {
   btn.disabled = true;
   btn.textContent = "Looking up...";
 
   try {
-    const query = `${record.album} ${record.artist} album`;
-    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
-
-    const searchResp = await fetch(searchUrl);
-    if (!searchResp.ok) throw new Error(`Wikipedia search failed (${searchResp.status})`);
-    const searchData = await searchResp.json();
-    const results = searchData?.query?.search || [];
-
-    if (results.length === 0) {
-      throw new Error("No Wikipedia article found");
-    }
-
-    const title = results[0].title;
-    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-    const summaryResp = await fetch(summaryUrl);
-    if (!summaryResp.ok) throw new Error(`Wikipedia summary failed (${summaryResp.status})`);
-    const summaryData = await summaryResp.json();
-
-    if (!summaryData.extract) {
-      throw new Error("No summary available");
-    }
+    const summaryData = await fetchWikipediaSummary(`${record.album} ${record.artist} album`);
 
     wrap.innerHTML = "";
 
@@ -729,6 +778,51 @@ async function findSpotlightWiki(record, wrap, btn) {
     console.error(err);
     btn.disabled = false;
     btn.textContent = "Look up on Wikipedia";
+    const errEl = document.createElement("p");
+    errEl.className = "spotlight-error";
+    errEl.textContent = `Couldn't find a Wikipedia summary (${err.message || err}).`;
+    wrap.appendChild(errEl);
+  }
+}
+
+async function findEntityWiki({ query, wrap, btn, idleLabel }) {
+  btn.disabled = true;
+  btn.textContent = "Looking up...";
+
+  try {
+    const summaryData = await fetchWikipediaSummary(query);
+
+    wrap.innerHTML = "";
+
+    const resultBox = document.createElement("div");
+    resultBox.className = "spotlight-wiki-result";
+
+    const extractEl = document.createElement("p");
+    extractEl.textContent = summaryData.extract;
+    resultBox.appendChild(extractEl);
+
+    const pageUrl = summaryData.content_urls?.desktop?.page;
+
+    if (pageUrl) {
+      const actions = document.createElement("div");
+      actions.className = "spotlight-wiki-actions";
+
+      const link = document.createElement("a");
+      link.href = pageUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = `Read more: ${summaryData.title} ↗`;
+      link.addEventListener("click", (e) => e.stopPropagation());
+      actions.appendChild(link);
+
+      resultBox.appendChild(actions);
+    }
+
+    wrap.appendChild(resultBox);
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = idleLabel;
     const errEl = document.createElement("p");
     errEl.className = "spotlight-error";
     errEl.textContent = `Couldn't find a Wikipedia summary (${err.message || err}).`;

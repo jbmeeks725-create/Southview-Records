@@ -2196,6 +2196,12 @@ h1 {
   color: #9ca3af;
 }
 
+.spotlight-label {
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
 .spotlight-description {
   margin-top: 0.6rem;
   font-size: 0.85rem;
