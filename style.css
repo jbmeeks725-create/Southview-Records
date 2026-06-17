@@ -1793,6 +1793,37 @@ h1 {
   gap: 1rem;
 }
 
+.superlatives-wrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.superlatives-wrap[hidden] {
+  display: none;
+}
+
+.superlative-card {
+  background: #0b1220;
+  border: 1px solid #2d2410;
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+}
+
+.superlative-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #caa15a;
+}
+
+.superlative-detail {
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  line-height: 1.4;
+}
+
 .chart-card {
   background: #020617;
   border: 1px solid #1f2937;

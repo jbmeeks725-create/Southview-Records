@@ -2599,6 +2599,252 @@ async function loadMoreLikeThis(record, wrap, btn) {
 
 
 
+// ------------ Collection superlatives ------------
+
+function computeCollectionStats() {
+  const total = allRecords.length;
+
+  const genreCounts = {};
+  const labelCounts = {};
+  const artistCounts = {};
+  const decadeCounts = {};
+  const ratingCounts = { love: 0, like: 0, neutral: 0, dislike: 0, unrated: 0 };
+  let storyCount = 0;
+
+  allRecords.forEach((r) => {
+    if (r.genre_name) genreCounts[r.genre_name] = (genreCounts[r.genre_name] || 0) + 1;
+    if (r.label) labelCounts[r.label] = (labelCounts[r.label] || 0) + 1;
+    if (r.artist) artistCounts[r.artist] = (artistCounts[r.artist] || 0) + 1;
+    if (r.year) {
+      const decade = Math.floor(r.year / 10) * 10;
+      decadeCounts[decade] = (decadeCounts[decade] || 0) + 1;
+    }
+    if (r.rating && ratingCounts.hasOwnProperty(r.rating)) {
+      ratingCounts[r.rating]++;
+    } else {
+      ratingCounts.unrated++;
+    }
+    if (r.acquired_date || r.acquired_location || r.listening_notes || r.personal_story) {
+      storyCount++;
+    }
+  });
+
+  const topEntry = (counts) => {
+    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return entries.length ? { name: entries[0][0], count: entries[0][1] } : null;
+  };
+
+  const topGenre = topEntry(genreCounts);
+  const topLabel = topEntry(labelCounts);
+  const topArtist = topEntry(artistCounts);
+
+  const distinctGenres = Object.keys(genreCounts).length;
+  const distinctLabels = Object.keys(labelCounts).length;
+  const distinctDecades = Object.keys(decadeCounts).length;
+
+  return {
+    total,
+    topGenre,
+    topGenreShare: topGenre && total ? topGenre.count / total : 0,
+    topLabel,
+    topLabelShare: topLabel && total ? topLabel.count / total : 0,
+    topArtist,
+    distinctGenres,
+    distinctLabels,
+    distinctDecades,
+    ratingCounts,
+    ratedCount: total - ratingCounts.unrated,
+    storyCount,
+    storyShare: total ? storyCount / total : 0,
+  };
+}
+
+// Curated genre/label -> evocative title overrides. Falls back to a generic
+// "{Name} Devotee" pattern when nothing more specific is defined.
+const GENRE_SUPERLATIVES = {
+  Jazz: "Jazz Explorer",
+  Blues: "Blues Traveler",
+  Rock: "Arena Rocker",
+  "Hard Rock": "Arena Rocker",
+  Metal: "Headbanger",
+  Punk: "Basement Show Regular",
+  "Hip Hop": "Crate Digger",
+  Hip: "Crate Digger",
+  Soul: "Soul Searcher",
+  Funk: "Funk Disciple",
+  Reggae: "Skank Enthusiast",
+  Electronic: "Synth Voyager",
+  Classical: "Concert Hall Regular",
+  Folk: "Front Porch Picker",
+  Country: "Backroads Wanderer",
+  "R&B": "Late Night Soul",
+  Disco: "Dance Floor Veteran",
+  Pop: "Pop Connoisseur",
+  Indie: "Indie Tastemaker",
+  World: "Global Listener",
+};
+
+const LABEL_SUPERLATIVES = {
+  "Blue Note": "Blue Note Connoisseur",
+  Verve: "Verve Devotee",
+  Atlantic: "Atlantic Loyalist",
+  Motown: "Motown Faithful",
+  "Sub Pop": "Sub Pop Disciple",
+  Stax: "Stax Soul Patrol",
+  Impulse: "Impulse! Acolyte",
+  "Impulse!": "Impulse! Acolyte",
+  Columbia: "Columbia Regular",
+  Prestige: "Prestige Purist",
+};
+
+function titleForGenre(name) {
+  return GENRE_SUPERLATIVES[name] || `${name} Devotee`;
+}
+
+function titleForLabel(name) {
+  return LABEL_SUPERLATIVES[name] || `${name} Loyalist`;
+}
+
+function buildSuperlatives() {
+  const stats = computeCollectionStats();
+  const candidates = [];
+
+  if (stats.total === 0) return [];
+
+  // Genre concentration - needs a meaningful share to be worth claiming.
+  if (stats.topGenre && stats.topGenreShare >= 0.25) {
+    candidates.push({
+      title: titleForGenre(stats.topGenre.name),
+      detail: `${Math.round(stats.topGenreShare * 100)}% of your collection is ${stats.topGenre.name}`,
+      strength: stats.topGenreShare,
+    });
+  }
+
+  // Genre diversity - opposite signal, only when there's no strong genre lock-in.
+  if (stats.distinctGenres >= 6 && stats.topGenreShare < 0.25 && stats.total >= 15) {
+    candidates.push({
+      title: "Genre Omnivore",
+      detail: `${stats.distinctGenres} different genres across your shelves`,
+      strength: Math.min(stats.distinctGenres / 12, 1),
+    });
+  }
+
+  // Label loyalty
+  if (stats.topLabel && stats.topLabelShare >= 0.15 && stats.topLabel.count >= 3) {
+    candidates.push({
+      title: titleForLabel(stats.topLabel.name),
+      detail: `${stats.topLabel.count} records on ${stats.topLabel.name}`,
+      strength: stats.topLabelShare,
+    });
+  }
+
+  // Label variety
+  if (stats.distinctLabels >= 10 && stats.topLabelShare < 0.12 && stats.total >= 15) {
+    candidates.push({
+      title: "Crate Variety",
+      detail: `${stats.distinctLabels} different labels represented`,
+      strength: Math.min(stats.distinctLabels / 20, 1),
+    });
+  }
+
+  // Decade spread
+  if (stats.distinctDecades >= 5) {
+    candidates.push({
+      title: "Time Traveler",
+      detail: `Spanning ${stats.distinctDecades} decades of music`,
+      strength: Math.min(stats.distinctDecades / 7, 1),
+    });
+  }
+
+  // Artist depth (completist)
+  if (stats.topArtist && stats.topArtist.count >= 5) {
+    candidates.push({
+      title: "Completist",
+      detail: `${stats.topArtist.count} albums by ${stats.topArtist.name}`,
+      strength: Math.min(stats.topArtist.count / 12, 1),
+    });
+  }
+
+  // Taste patterns
+  if (stats.ratedCount >= 10) {
+    const loveLikeShare = (stats.ratingCounts.love + stats.ratingCounts.like) / stats.ratedCount;
+    const toughShare = (stats.ratingCounts.dislike + stats.ratingCounts.neutral) / stats.ratedCount;
+
+    if (loveLikeShare >= 0.8) {
+      candidates.push({
+        title: "Easy to Please",
+        detail: `You've rated ${Math.round(loveLikeShare * 100)}% of your collection Love or Like`,
+        strength: loveLikeShare,
+      });
+    } else if (toughShare >= 0.5) {
+      candidates.push({
+        title: "Tough Critic",
+        detail: `Plenty of Neutral and Dislike ratings in the mix`,
+        strength: toughShare,
+      });
+    }
+  }
+
+  // Storytelling
+  if (stats.storyCount >= 5 && stats.storyShare >= 0.15) {
+    candidates.push({
+      title: "Storyteller",
+      detail: `You've added personal stories to ${stats.storyCount} records`,
+      strength: stats.storyShare,
+    });
+  }
+
+  // Always-available fallback so there's at least something to show.
+  candidates.push({
+    title: "Record Collector",
+    detail: `${stats.total} record${stats.total === 1 ? "" : "s"} and counting`,
+    strength: 0,
+  });
+
+  candidates.sort((a, b) => b.strength - a.strength);
+
+  const seen = new Set();
+  const deduped = [];
+  for (const c of candidates) {
+    if (seen.has(c.title)) continue;
+    seen.add(c.title);
+    deduped.push(c);
+  }
+
+  return deduped.slice(0, 4);
+}
+
+function renderSuperlatives() {
+  const wrap = document.getElementById("superlativesWrap");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+
+  const superlatives = buildSuperlatives();
+  if (superlatives.length === 0) {
+    wrap.hidden = true;
+    return;
+  }
+
+  wrap.hidden = false;
+
+  superlatives.forEach((s) => {
+    const card = document.createElement("div");
+    card.className = "superlative-card";
+
+    const titleEl = document.createElement("div");
+    titleEl.className = "superlative-title";
+    titleEl.textContent = s.title;
+
+    const detailEl = document.createElement("div");
+    detailEl.className = "superlative-detail";
+    detailEl.textContent = s.detail;
+
+    card.appendChild(titleEl);
+    card.appendChild(detailEl);
+    wrap.appendChild(card);
+  });
+}
+
 function computeGenreCounts() {
   const counts = {};
   allRecords.forEach((r) => {
@@ -2876,6 +3122,7 @@ function render() {
   const filtered = getFilteredRecords();
   renderCards(filtered);
   renderCharts();
+  renderSuperlatives();
   renderActiveFilters();
 
   setStatus(`Showing ${filtered.length} of ${allRecords.length} records`);
