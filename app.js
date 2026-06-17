@@ -513,12 +513,16 @@ function renderSpotlight() {
   const artistWikiWrap = document.getElementById("spotlightArtistWikiWrap");
   const labelWikiWrap = document.getElementById("spotlightLabelWikiWrap");
   const descriptionWrap = document.getElementById("spotlightDescriptionWrap");
+  const moreLikeThisWrap = document.getElementById("spotlightMoreLikeThisWrap");
+  const moreLikeThisResults = document.getElementById("spotlightMoreLikeThisResults");
   content.innerHTML = "";
   songWrap.innerHTML = "";
   wikiWrap.innerHTML = "";
   artistWikiWrap.innerHTML = "";
   labelWikiWrap.innerHTML = "";
   descriptionWrap.innerHTML = "";
+  moreLikeThisWrap.innerHTML = "";
+  moreLikeThisResults.innerHTML = "";
 
   if (allRecords.length === 0) {
     const empty = document.createElement("p");
@@ -631,6 +635,16 @@ function renderSpotlight() {
     });
     labelWikiWrap.appendChild(labelWikiBtn);
   }
+
+  const moreLikeThisBtn = document.createElement("button");
+  moreLikeThisBtn.type = "button";
+  moreLikeThisBtn.className = "btn-secondary";
+  moreLikeThisBtn.textContent = "More like this";
+  moreLikeThisBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    loadMoreLikeThis(record, moreLikeThisResults, moreLikeThisBtn);
+  });
+  moreLikeThisWrap.appendChild(moreLikeThisBtn);
 
   if (record.description) {
     descriptionWrap.appendChild(buildDescriptionDisplay(record.description));
@@ -2351,6 +2365,153 @@ async function addRecommendationToWishlist(artist, album, btn) {
   }
 }
 
+// ------------ "More like this" recommendations (shared) ------------
+
+function isAlbumOwned(artist, album) {
+  const a = (artist || "").trim().toLowerCase();
+  const b = (album || "").trim().toLowerCase();
+  if (!a || !b) return false;
+  return allRecords.some(
+    (r) => (r.artist || "").trim().toLowerCase() === a && (r.album || "").trim().toLowerCase() === b
+  );
+}
+
+async function fetchMoreLikeThis(artist, album, label) {
+  const response = await fetch(RECOMMENDATIONS_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ mode: "similar", artist, album, label: label || null }),
+  });
+
+  const result = await response.json();
+  console.log("More like this debug:", result);
+
+  if (!response.ok) {
+    throw new Error(result.error || `Request failed (${response.status})`);
+  }
+
+  return result;
+}
+
+function buildMoreLikeThisCard(suggestion) {
+  const card = document.createElement("div");
+  card.className = "recommendation-card";
+
+  const owned = isAlbumOwned(suggestion.artist, suggestion.album);
+
+  const artistEl = document.createElement("div");
+  artistEl.className = "recommendation-artist";
+  artistEl.textContent = suggestion.artist;
+
+  const albumEl = document.createElement("div");
+  albumEl.className = "recommendation-album";
+  albumEl.textContent = suggestion.album;
+
+  const reasonEl = document.createElement("div");
+  reasonEl.className = "recommendation-reason";
+  reasonEl.textContent = suggestion.reason || "";
+
+  card.appendChild(artistEl);
+  card.appendChild(albumEl);
+  card.appendChild(reasonEl);
+
+  if (owned) {
+    const ownedEl = document.createElement("div");
+    ownedEl.className = "recommendation-owned-tag";
+    ownedEl.textContent = "Already in your collection";
+    card.appendChild(ownedEl);
+  } else {
+    const actions = document.createElement("div");
+    actions.className = "recommendation-actions";
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "btn-secondary";
+    addBtn.textContent = "Add to Wishlist";
+    addBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      addRecommendationToWishlist(suggestion.artist, suggestion.album, addBtn);
+    });
+
+    const songBtn = document.createElement("button");
+    songBtn.type = "button";
+    songBtn.className = "btn-secondary";
+    songBtn.textContent = "Find a notable track";
+
+    const songWrap = document.createElement("div");
+    songWrap.className = "recommendation-song-wrap";
+
+    songBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      findRecommendationSong(suggestion, songWrap, songBtn);
+    });
+
+    actions.appendChild(addBtn);
+    actions.appendChild(songBtn);
+    card.appendChild(actions);
+    card.appendChild(songWrap);
+  }
+
+  return card;
+}
+
+function buildMoreLikeThisBucket(title, items) {
+  const bucket = document.createElement("div");
+  bucket.className = "more-like-this-bucket";
+
+  const heading = document.createElement("h4");
+  heading.className = "more-like-this-heading";
+  heading.textContent = title;
+  bucket.appendChild(heading);
+
+  if (!items || items.length === 0) {
+    const emptyEl = document.createElement("p");
+    emptyEl.className = "empty-hint";
+    emptyEl.textContent = "Nothing to suggest here yet.";
+    bucket.appendChild(emptyEl);
+    return bucket;
+  }
+
+  const grid = document.createElement("div");
+  grid.className = "more-like-this-grid";
+  items.forEach((s) => grid.appendChild(buildMoreLikeThisCard(s)));
+  bucket.appendChild(grid);
+
+  return bucket;
+}
+
+async function loadMoreLikeThis(record, wrap, btn) {
+  btn.disabled = true;
+  btn.textContent = "Finding similar albums...";
+  wrap.innerHTML = "";
+
+  try {
+    const result = await fetchMoreLikeThis(record.artist, record.album, record.label);
+
+    wrap.innerHTML = "";
+    wrap.appendChild(buildMoreLikeThisBucket(`More like "${record.album}"`, result.similarAlbums));
+    wrap.appendChild(buildMoreLikeThisBucket(`More from ${record.artist}`, result.moreFromArtist));
+    if (record.label) {
+      wrap.appendChild(buildMoreLikeThisBucket(`Also on ${record.label}`, result.labelPicks));
+    }
+
+    btn.textContent = "Refresh suggestions";
+    btn.disabled = false;
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = "More like this";
+    const errEl = document.createElement("p");
+    errEl.className = "spotlight-error";
+    errEl.textContent = `Couldn't load suggestions (${err.message || err}).`;
+    wrap.appendChild(errEl);
+  }
+}
+
 
 
 function computeGenreCounts() {
@@ -3490,6 +3651,20 @@ function openWishlistDetailModal(wishlistId) {
   document.getElementById("wishlistDetailDiscogsStatus").textContent = "";
   document.getElementById("wishlistDetailDiscogsStatus").className = "form-status";
 
+  const moreLikeThisWrap = document.getElementById("wishlistDetailMoreLikeThisWrap");
+  const moreLikeThisResults = document.getElementById("wishlistDetailMoreLikeThisResults");
+  moreLikeThisWrap.innerHTML = "";
+  moreLikeThisResults.innerHTML = "";
+
+  const moreLikeThisBtn = document.createElement("button");
+  moreLikeThisBtn.type = "button";
+  moreLikeThisBtn.className = "btn-secondary";
+  moreLikeThisBtn.textContent = "More like this";
+  moreLikeThisBtn.addEventListener("click", () => {
+    loadMoreLikeThis(item, moreLikeThisResults, moreLikeThisBtn);
+  });
+  moreLikeThisWrap.appendChild(moreLikeThisBtn);
+
   document.getElementById("wishlistDetailOverlay").hidden = false;
 }
 
@@ -4288,6 +4463,20 @@ function openRecordDetailModal(recordId) {
   document.getElementById("recordDetailStatus").className = "form-status";
   document.getElementById("coverUploadStatus").textContent = "";
   document.getElementById("coverUploadStatus").className = "form-status";
+
+  const moreLikeThisWrap = document.getElementById("detailMoreLikeThisWrap");
+  const moreLikeThisResults = document.getElementById("detailMoreLikeThisResults");
+  moreLikeThisWrap.innerHTML = "";
+  moreLikeThisResults.innerHTML = "";
+
+  const moreLikeThisBtn = document.createElement("button");
+  moreLikeThisBtn.type = "button";
+  moreLikeThisBtn.className = "btn-secondary";
+  moreLikeThisBtn.textContent = "More like this";
+  moreLikeThisBtn.addEventListener("click", () => {
+    loadMoreLikeThis(record, moreLikeThisResults, moreLikeThisBtn);
+  });
+  moreLikeThisWrap.appendChild(moreLikeThisBtn);
 
   document.getElementById("recordDetailOverlay").hidden = false;
 }

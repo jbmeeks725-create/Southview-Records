@@ -2452,6 +2452,49 @@ h1 {
   padding: 0.3rem 0.6rem;
 }
 
+.recommendation-owned-tag {
+  font-size: 0.75rem;
+  color: #caa15a;
+  font-weight: 600;
+}
+
+.more-like-this-results:not(:empty) {
+  margin-top: 1.25rem;
+}
+
+.more-like-this-bucket {
+  margin-bottom: 1.25rem;
+}
+
+.more-like-this-bucket:last-child {
+  margin-bottom: 0;
+}
+
+.more-like-this-heading {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #d1d5db;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.more-like-this-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.6rem;
+}
+
+.detail-more-like-this .more-like-this-grid {
+  grid-template-columns: 1fr;
+}
+
+.detail-more-like-this {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #1f2937;
+}
+
 @media (max-width: 640px) {
   header {
     padding: 0.75rem 1rem;
