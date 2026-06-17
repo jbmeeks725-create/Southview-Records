@@ -609,6 +609,7 @@ function renderSpotlight() {
       wrap: artistWikiWrap,
       btn: artistWikiBtn,
       idleLabel: `Learn more about ${record.artist}`,
+      primaryTerm: record.artist,
     });
   });
   artistWikiWrap.appendChild(artistWikiBtn);
@@ -625,6 +626,7 @@ function renderSpotlight() {
         wrap: labelWikiWrap,
         btn: labelWikiBtn,
         idleLabel: `Learn more about ${record.label}`,
+        primaryTerm: record.label,
       });
     });
     labelWikiWrap.appendChild(labelWikiBtn);
@@ -693,19 +695,49 @@ async function findSpotlightSong(record, wrap, btn) {
   }
 }
 
-async function fetchWikipediaSummary(query, { maxChars = 6000 } = {}) {
-  const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=1`;
+function wikiTitleMatchScore(title, primaryTerm) {
+  const normTitle = title.toLowerCase().replace(/\s*\(.*?\)\s*/g, " ").trim();
+  const normTerm = (primaryTerm || "").toLowerCase().trim();
+  if (!normTerm) return 0;
+  if (normTitle === normTerm) return 2;
+  if (normTitle.startsWith(normTerm) || normTerm.startsWith(normTitle)) return 1;
+  return 0;
+}
 
+async function wikiSearch(query, limit = 5) {
+  const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=${limit}`;
   const searchResp = await fetch(searchUrl);
   if (!searchResp.ok) throw new Error(`Wikipedia search failed (${searchResp.status})`);
   const searchData = await searchResp.json();
-  const results = searchData?.query?.search || [];
+  return searchData?.query?.search || [];
+}
+
+async function fetchWikipediaSummary(query, { maxChars = 6000, primaryTerm = null } = {}) {
+  // Bias toward an exact title match first (helps when the plain-text query
+  // would otherwise be dominated by a more "famous" same-artist result),
+  // falling back to a normal relevance search if that comes up empty.
+  let results = primaryTerm ? await wikiSearch(`intitle:"${primaryTerm}" ${query}`) : [];
+  if (results.length === 0) {
+    results = await wikiSearch(query);
+  }
 
   if (results.length === 0) {
     throw new Error("No Wikipedia article found");
   }
 
-  const title = results[0].title;
+  let best = results[0];
+  if (primaryTerm) {
+    let bestScore = -1;
+    for (const r of results) {
+      const score = wikiTitleMatchScore(r.title, primaryTerm);
+      if (score > bestScore) {
+        bestScore = score;
+        best = r;
+      }
+    }
+  }
+
+  const title = best.title;
 
   const extractUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=plain&titles=${encodeURIComponent(title)}&format=json&origin=*`;
   const extractResp = await fetch(extractUrl);
@@ -765,7 +797,9 @@ async function findSpotlightWiki(record, wrap, btn) {
   btn.textContent = "Looking up...";
 
   try {
-    const summaryData = await fetchWikipediaSummary(`${record.album} ${record.artist} album`);
+    const summaryData = await fetchWikipediaSummary(`${record.album} ${record.artist} album`, {
+      primaryTerm: record.album,
+    });
 
     wrap.innerHTML = "";
 
@@ -829,12 +863,12 @@ async function findSpotlightWiki(record, wrap, btn) {
   }
 }
 
-async function findEntityWiki({ query, wrap, btn, idleLabel }) {
+async function findEntityWiki({ query, wrap, btn, idleLabel, primaryTerm }) {
   btn.disabled = true;
   btn.textContent = "Looking up...";
 
   try {
-    const summaryData = await fetchWikipediaSummary(query, { maxChars: 3000 });
+    const summaryData = await fetchWikipediaSummary(query, { maxChars: 3000, primaryTerm });
 
     wrap.innerHTML = "";
 
