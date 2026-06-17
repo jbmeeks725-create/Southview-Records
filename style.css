@@ -2225,6 +2225,20 @@ h1 {
   white-space: pre-line;
 }
 
+.spotlight-description-source {
+  margin: 0.75rem 0 0 0;
+  font-size: 0.85rem;
+}
+
+.spotlight-description-source a {
+  color: #caa15a;
+  text-decoration: none;
+}
+
+.spotlight-description-source a:hover {
+  color: #e8d4a8;
+}
+
 .home-recent {
   grid-area: recent;
 }

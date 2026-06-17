@@ -591,10 +591,10 @@ function renderSpotlight() {
   const wikiBtn = document.createElement("button");
   wikiBtn.type = "button";
   wikiBtn.className = "btn-secondary";
-  wikiBtn.textContent = "Look up on Wikipedia";
+  wikiBtn.textContent = "Grab description from Wikipedia";
   wikiBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    findSpotlightWiki(record, wikiWrap, wikiBtn);
+    grabSpotlightDescription(record, wikiWrap, wikiBtn);
   });
   wikiWrap.appendChild(wikiBtn);
 
@@ -633,11 +633,42 @@ function renderSpotlight() {
   }
 
   if (record.description) {
-    const descEl = document.createElement("div");
-    descEl.className = "spotlight-description";
-    descEl.textContent = record.description;
-    descriptionWrap.appendChild(descEl);
+    descriptionWrap.appendChild(buildDescriptionDisplay(record.description));
   }
+}
+
+function buildDescriptionDisplay(description) {
+  const descEl = document.createElement("div");
+  descEl.className = "spotlight-description";
+
+  const sourceLineMatch = description.match(/\n\nFull article: (.+) — (https?:\/\/\S+)\s*$/);
+
+  if (!sourceLineMatch) {
+    descEl.textContent = description;
+    return descEl;
+  }
+
+  const mainText = description.slice(0, sourceLineMatch.index);
+  const [, title, url] = sourceLineMatch;
+
+  const textNode = document.createElement("span");
+  textNode.textContent = mainText;
+  descEl.appendChild(textNode);
+
+  const sourcePara = document.createElement("p");
+  sourcePara.className = "spotlight-description-source";
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = `Full article: ${title} ↗`;
+  link.addEventListener("click", (e) => e.stopPropagation());
+
+  sourcePara.appendChild(link);
+  descEl.appendChild(sourcePara);
+
+  return descEl;
 }
 
 async function fetchNotableSong(artist, album) {
@@ -792,73 +823,46 @@ function appendWikiExtractParagraphs(container, extract) {
   });
 }
 
-async function findSpotlightWiki(record, wrap, btn) {
+async function grabSpotlightDescription(record, wrap, btn) {
   btn.disabled = true;
-  btn.textContent = "Looking up...";
+  btn.textContent = "Fetching from Wikipedia...";
 
   try {
     const summaryData = await fetchWikipediaSummary(`${record.album} ${record.artist} album`, {
       primaryTerm: record.album,
     });
 
-    wrap.innerHTML = "";
-
-    const resultBox = document.createElement("div");
-    resultBox.className = "spotlight-wiki-result";
-
-    appendWikiExtractParagraphs(resultBox, summaryData.extract);
-
     const pageUrl = summaryData.content_urls?.desktop?.page;
+    const sourceLine = pageUrl ? `Full article: ${summaryData.title} — ${pageUrl}` : null;
+    const fullText = sourceLine ? `${summaryData.extract}\n\n${sourceLine}` : summaryData.extract;
 
-    const actions = document.createElement("div");
-    actions.className = "spotlight-wiki-actions";
+    const { error } = await supabaseClient
+      .from("records")
+      .update({ description: fullText })
+      .eq("id", record.id);
 
-    if (pageUrl) {
-      const link = document.createElement("a");
-      link.href = pageUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      link.textContent = summaryData.truncated
-        ? `Read the full article: ${summaryData.title} ↗`
-        : `Read more: ${summaryData.title} ↗`;
-      link.addEventListener("click", (e) => e.stopPropagation());
-      actions.appendChild(link);
+    if (error) throw error;
+
+    record.description = fullText;
+
+    // Also reflect this immediately if the record's detail modal happens to be open.
+    if (activeDetailRecordId === record.id) {
+      const detailField = document.getElementById("detailDescription");
+      if (detailField) detailField.value = fullText;
     }
 
-    const saveBtn = document.createElement("button");
-    saveBtn.type = "button";
-    saveBtn.className = "btn-secondary";
-    saveBtn.textContent = "Save as description";
-    saveBtn.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      saveBtn.disabled = true;
-      saveBtn.textContent = "Saving...";
-      try {
-        const { error } = await supabaseClient
-          .from("records")
-          .update({ description: summaryData.extract })
-          .eq("id", record.id);
-        if (error) throw error;
-        record.description = summaryData.extract;
-        saveBtn.textContent = "Saved \u2713";
-        renderSpotlight();
-      } catch (err) {
-        console.error(err);
-        saveBtn.disabled = false;
-        saveBtn.textContent = "Save as description";
-      }
-    });
-    actions.appendChild(saveBtn);
-
-    resultBox.appendChild(actions);
-    wrap.appendChild(resultBox);
+    wrap.innerHTML = "";
+    btn.disabled = false;
+    btn.textContent = "Grab description from Wikipedia";
+    renderSpotlight();
   } catch (err) {
     console.error(err);
     btn.disabled = false;
-    btn.textContent = "Look up on Wikipedia";
+    btn.textContent = "Grab description from Wikipedia";
+    wrap.innerHTML = "";
     const errEl = document.createElement("p");
     errEl.className = "spotlight-error";
-    errEl.textContent = `Couldn't find a Wikipedia summary (${err.message || err}).`;
+    errEl.textContent = `Couldn't fetch a Wikipedia description (${err.message || err}).`;
     wrap.appendChild(errEl);
   }
 }
