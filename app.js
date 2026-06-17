@@ -506,6 +506,88 @@ function getSpotlightPool() {
   return eligible.length > 0 ? eligible : allRecords;
 }
 
+function formatAcquiredDate(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + "T00:00:00");
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+}
+
+function buildSpotlightStoryPanel(record) {
+  const panel = document.createElement("div");
+  panel.className = "spotlight-story-panel";
+
+  const hasStory =
+    record.acquired_date || record.acquired_location || record.listening_notes || record.personal_story;
+
+  const heading = document.createElement("div");
+  heading.className = "spotlight-story-heading";
+  heading.textContent = "Your Story";
+  panel.appendChild(heading);
+
+  if (!hasStory) {
+    const empty = document.createElement("p");
+    empty.className = "spotlight-story-empty";
+    empty.textContent = "You haven't added a story for this one yet — when did you get it, and what does it mean to you?";
+    panel.appendChild(empty);
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "btn-secondary";
+    addBtn.textContent = "Add your story";
+    addBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openRecordDetailModal(record.id, "story");
+    });
+    panel.appendChild(addBtn);
+
+    return panel;
+  }
+
+  const acquiredLine = [];
+  const formattedDate = formatAcquiredDate(record.acquired_date);
+  if (formattedDate) acquiredLine.push(formattedDate);
+  if (record.acquired_location) acquiredLine.push(record.acquired_location);
+
+  if (acquiredLine.length) {
+    const acquiredEl = document.createElement("p");
+    acquiredEl.className = "spotlight-story-acquired";
+    acquiredEl.textContent = `Acquired ${acquiredLine.join(" — ")}`;
+    panel.appendChild(acquiredEl);
+  }
+
+  if (record.personal_story) {
+    const storyEl = document.createElement("p");
+    storyEl.className = "spotlight-story-text";
+    storyEl.textContent = record.personal_story;
+    panel.appendChild(storyEl);
+  }
+
+  if (record.listening_notes) {
+    const notesLabel = document.createElement("p");
+    notesLabel.className = "spotlight-story-subheading";
+    notesLabel.textContent = "Listening notes";
+    panel.appendChild(notesLabel);
+
+    const notesEl = document.createElement("p");
+    notesEl.className = "spotlight-story-text";
+    notesEl.textContent = record.listening_notes;
+    panel.appendChild(notesEl);
+  }
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "btn-secondary spotlight-story-edit-btn";
+  editBtn.textContent = "Edit your story";
+  editBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openRecordDetailModal(record.id, "story");
+  });
+  panel.appendChild(editBtn);
+
+  return panel;
+}
+
 function renderSpotlight() {
   const content = document.getElementById("spotlightContent");
   const songWrap = document.getElementById("spotlightSongWrap");
@@ -574,8 +656,11 @@ function renderSpotlight() {
 
   info.appendChild(buildRatingControls(record));
 
+  const storyPanel = buildSpotlightStoryPanel(record);
+
   content.appendChild(coverWrap);
   content.appendChild(info);
+  content.appendChild(storyPanel);
   content.style.cursor = "pointer";
   content.onclick = (e) => {
     if (e.target.closest("a, button")) return;
@@ -3219,6 +3304,10 @@ async function handleAddRecordSubmit(event) {
         sleeve_grade,
         notes,
         quantity,
+        acquired_date,
+        acquired_location,
+        listening_notes,
+        personal_story,
         genres ( name ),
         subgenres ( name )
       `
@@ -3999,6 +4088,10 @@ async function moveWishlistItemToCollection(wishlistId) {
         sleeve_grade,
         notes,
         quantity,
+        acquired_date,
+        acquired_location,
+        listening_notes,
+        personal_story,
         genres ( name ),
         subgenres ( name )
       `
@@ -4433,7 +4526,7 @@ function handleRemoveCover() {
 }
 
 
-function openRecordDetailModal(recordId) {
+function openRecordDetailModal(recordId, startTab = "details") {
   const record = allRecords.find((r) => r.id === recordId);
   if (!record) return;
 
@@ -4452,6 +4545,15 @@ function openRecordDetailModal(recordId) {
   document.getElementById("detailSleeveGrade").value = record.sleeve_grade || "";
   document.getElementById("detailDescription").value = record.description || "";
   document.getElementById("detailNotes").value = record.notes || "";
+
+  document.getElementById("storyAcquiredDate").value = record.acquired_date || "";
+  document.getElementById("storyAcquiredLocation").value = record.acquired_location || "";
+  document.getElementById("storyListeningNotes").value = record.listening_notes || "";
+  document.getElementById("storyPersonalStory").value = record.personal_story || "";
+  document.getElementById("recordStoryStatus").textContent = "";
+  document.getElementById("recordStoryStatus").className = "form-status";
+
+  switchDetailTab(startTab);
 
   setCoverPreview(record.cover_url || null);
 
@@ -4484,6 +4586,74 @@ function openRecordDetailModal(recordId) {
 function closeRecordDetailModal() {
   document.getElementById("recordDetailOverlay").hidden = true;
   activeDetailRecordId = null;
+}
+
+function switchDetailTab(tab) {
+  const detailsBtn = document.getElementById("detailTabDetailsBtn");
+  const storyBtn = document.getElementById("detailTabStoryBtn");
+  const detailsPanel = document.getElementById("detailTabDetailsPanel");
+  const storyPanel = document.getElementById("detailTabStoryPanel");
+
+  const showStory = tab === "story";
+
+  detailsBtn.classList.toggle("active", !showStory);
+  detailsBtn.setAttribute("aria-selected", String(!showStory));
+  storyBtn.classList.toggle("active", showStory);
+  storyBtn.setAttribute("aria-selected", String(showStory));
+
+  detailsPanel.hidden = showStory;
+  storyPanel.hidden = !showStory;
+}
+
+async function handleRecordStorySubmit(event) {
+  event.preventDefault();
+  if (activeDetailRecordId === null) return;
+
+  const statusEl = document.getElementById("recordStoryStatus");
+  const saveBtn = document.getElementById("saveRecordStoryBtn");
+
+  const acquiredDate = document.getElementById("storyAcquiredDate").value || null;
+  const acquiredLocation = document.getElementById("storyAcquiredLocation").value.trim() || null;
+  const listeningNotes = document.getElementById("storyListeningNotes").value.trim() || null;
+  const personalStory = document.getElementById("storyPersonalStory").value.trim() || null;
+
+  saveBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    const updates = {
+      acquired_date: acquiredDate,
+      acquired_location: acquiredLocation,
+      listening_notes: listeningNotes,
+      personal_story: personalStory,
+    };
+
+    const { error } = await supabaseClient
+      .from("records")
+      .update(updates)
+      .eq("id", activeDetailRecordId);
+
+    if (error) throw error;
+
+    const record = allRecords.find((r) => r.id === activeDetailRecordId);
+    if (record) Object.assign(record, updates);
+
+    if (currentPage === "home") renderSpotlight();
+
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+
+    setTimeout(() => {
+      closeRecordDetailModal();
+    }, 700);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save your story. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    saveBtn.disabled = false;
+  }
 }
 
 async function handleRecordDetailSubmit(event) {
@@ -4651,6 +4821,10 @@ async function loadData() {
         sleeve_grade,
         notes,
         quantity,
+        acquired_date,
+        acquired_location,
+        listening_notes,
+        personal_story,
         genres ( name ),
         subgenres ( name )
       `
@@ -4932,6 +5106,22 @@ function setupEvents() {
   document
     .getElementById("removeCoverBtn")
     .addEventListener("click", () => handleRemoveCover());
+
+  document
+    .getElementById("detailTabDetailsBtn")
+    .addEventListener("click", () => switchDetailTab("details"));
+
+  document
+    .getElementById("detailTabStoryBtn")
+    .addEventListener("click", () => switchDetailTab("story"));
+
+  document
+    .getElementById("recordStoryForm")
+    .addEventListener("submit", handleRecordStorySubmit);
+
+  document
+    .getElementById("cancelRecordStoryBtn")
+    .addEventListener("click", () => closeRecordDetailModal());
 
   document
     .getElementById("recordDetailOverlay")

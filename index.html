@@ -864,98 +864,141 @@
         <button type="button" id="closeRecordDetailBtn" class="modal-close" aria-label="Close">&times;</button>
       </div>
 
-      <div class="detail-cover-wrap">
-        <img id="detailCoverImg" class="detail-cover-img" alt="" hidden />
-        <div id="detailCoverPlaceholder" class="cover-placeholder detail-cover-placeholder">
-          <img src="icon-512.png" alt="" />
+      <div class="detail-tabs" role="tablist" aria-label="Record sections">
+        <button type="button" id="detailTabDetailsBtn" class="detail-tab active" role="tab" aria-selected="true">Details</button>
+        <button type="button" id="detailTabStoryBtn" class="detail-tab" role="tab" aria-selected="false">Your Story</button>
+      </div>
+
+      <div id="detailTabDetailsPanel" class="detail-tab-panel">
+        <div class="detail-cover-wrap">
+          <img id="detailCoverImg" class="detail-cover-img" alt="" hidden />
+          <div id="detailCoverPlaceholder" class="cover-placeholder detail-cover-placeholder">
+            <img src="icon-512.png" alt="" />
+          </div>
+        </div>
+
+        <div class="cover-upload-controls">
+          <label for="detailCoverFile" class="btn-secondary cover-upload-label">Change cover</label>
+          <input type="file" id="detailCoverFile" accept="image/*" hidden />
+          <button type="button" id="removeCoverBtn" class="btn-secondary">Remove cover</button>
+        </div>
+        <div id="coverUploadStatus" class="form-status"></div>
+
+        <div id="detailRatingControls" class="detail-rating-controls"></div>
+
+        <form id="recordDetailForm">
+          <div class="form-row">
+            <label for="detailArtist">Artist *</label>
+            <input type="text" id="detailArtist" required />
+          </div>
+
+          <div class="form-row">
+            <label for="detailAlbum">Album *</label>
+            <input type="text" id="detailAlbum" required />
+          </div>
+
+          <div class="form-row form-row-split">
+            <div>
+              <label for="detailYear">Year</label>
+              <input type="number" id="detailYear" min="1900" max="2100" />
+            </div>
+            <div>
+              <label for="detailQuantity">Quantity</label>
+              <input type="number" id="detailQuantity" min="1" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label for="detailLabel">Label</label>
+            <input type="text" id="detailLabel" />
+          </div>
+
+          <div class="form-row form-row-split">
+            <div>
+              <label for="detailGenre">Genre</label>
+              <input type="text" id="detailGenre" list="genreOptions" placeholder="e.g. Jazz" />
+            </div>
+            <div>
+              <label for="detailSubgenre">Subgenre</label>
+              <input type="text" id="detailSubgenre" list="subgenreOptions" placeholder="e.g. Modal Jazz" />
+            </div>
+          </div>
+          <p class="field-hint">
+            Pick from the list or type a new one — new genres/subgenres will be created automatically.
+          </p>
+
+          <div class="form-row form-row-split">
+            <div>
+              <label for="detailVinylGrade">Vinyl grade</label>
+              <input type="text" id="detailVinylGrade" list="gradeOptions" placeholder="e.g. VG+" />
+            </div>
+            <div>
+              <label for="detailSleeveGrade">Sleeve grade</label>
+              <input type="text" id="detailSleeveGrade" list="gradeOptions" placeholder="e.g. VG+" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label for="detailDescription">Description</label>
+            <textarea id="detailDescription" rows="2"></textarea>
+          </div>
+
+          <div class="form-row">
+            <label for="detailNotes">Notes</label>
+            <textarea id="detailNotes" rows="2"></textarea>
+          </div>
+
+          <div id="recordDetailStatus" class="form-status"></div>
+
+          <div class="form-actions form-actions-split">
+            <button type="button" id="deleteRecordBtn" class="btn-danger">Delete record</button>
+            <div class="form-actions">
+              <button type="button" id="cancelRecordDetailBtn" class="btn-secondary">Cancel</button>
+              <button type="submit" id="saveRecordDetailBtn" class="btn-primary">Save changes</button>
+            </div>
+          </div>
+        </form>
+
+        <div class="detail-more-like-this">
+          <div id="detailMoreLikeThisWrap" class="spotlight-action-wrap"></div>
+          <div id="detailMoreLikeThisResults" class="more-like-this-results"></div>
         </div>
       </div>
 
-      <div class="cover-upload-controls">
-        <label for="detailCoverFile" class="btn-secondary cover-upload-label">Change cover</label>
-        <input type="file" id="detailCoverFile" accept="image/*" hidden />
-        <button type="button" id="removeCoverBtn" class="btn-secondary">Remove cover</button>
-      </div>
-      <div id="coverUploadStatus" class="form-status"></div>
+      <div id="detailTabStoryPanel" class="detail-tab-panel" hidden>
+        <form id="recordStoryForm">
+          <p class="field-hint story-tab-intro">
+            This is your space — when and where you got it, what it sounds like to you, why it matters.
+          </p>
 
-      <div id="detailRatingControls" class="detail-rating-controls"></div>
-
-      <form id="recordDetailForm">
-        <div class="form-row">
-          <label for="detailArtist">Artist *</label>
-          <input type="text" id="detailArtist" required />
-        </div>
-
-        <div class="form-row">
-          <label for="detailAlbum">Album *</label>
-          <input type="text" id="detailAlbum" required />
-        </div>
-
-        <div class="form-row form-row-split">
-          <div>
-            <label for="detailYear">Year</label>
-            <input type="number" id="detailYear" min="1900" max="2100" />
+          <div class="form-row form-row-split">
+            <div>
+              <label for="storyAcquiredDate">Date acquired</label>
+              <input type="date" id="storyAcquiredDate" />
+            </div>
+            <div>
+              <label for="storyAcquiredLocation">Where you got it</label>
+              <input type="text" id="storyAcquiredLocation" placeholder="e.g. a record shop in Asheville" />
+            </div>
           </div>
-          <div>
-            <label for="detailQuantity">Quantity</label>
-            <input type="number" id="detailQuantity" min="1" />
+
+          <div class="form-row">
+            <label for="storyListeningNotes">Listening notes</label>
+            <textarea id="storyListeningNotes" rows="3" placeholder="How does this album sound to you? When do you reach for it?"></textarea>
           </div>
-        </div>
 
-        <div class="form-row">
-          <label for="detailLabel">Label</label>
-          <input type="text" id="detailLabel" />
-        </div>
-
-        <div class="form-row form-row-split">
-          <div>
-            <label for="detailGenre">Genre</label>
-            <input type="text" id="detailGenre" list="genreOptions" placeholder="e.g. Jazz" />
+          <div class="form-row">
+            <label for="storyPersonalStory">Why it's special to you</label>
+            <textarea id="storyPersonalStory" rows="4" placeholder="The story behind this one, and how it makes you feel."></textarea>
           </div>
-          <div>
-            <label for="detailSubgenre">Subgenre</label>
-            <input type="text" id="detailSubgenre" list="subgenreOptions" placeholder="e.g. Modal Jazz" />
-          </div>
-        </div>
-        <p class="field-hint">
-          Pick from the list or type a new one — new genres/subgenres will be created automatically.
-        </p>
 
-        <div class="form-row form-row-split">
-          <div>
-            <label for="detailVinylGrade">Vinyl grade</label>
-            <input type="text" id="detailVinylGrade" list="gradeOptions" placeholder="e.g. VG+" />
-          </div>
-          <div>
-            <label for="detailSleeveGrade">Sleeve grade</label>
-            <input type="text" id="detailSleeveGrade" list="gradeOptions" placeholder="e.g. VG+" />
-          </div>
-        </div>
+          <div id="recordStoryStatus" class="form-status"></div>
 
-        <div class="form-row">
-          <label for="detailDescription">Description</label>
-          <textarea id="detailDescription" rows="2"></textarea>
-        </div>
-
-        <div class="form-row">
-          <label for="detailNotes">Notes</label>
-          <textarea id="detailNotes" rows="2"></textarea>
-        </div>
-
-        <div id="recordDetailStatus" class="form-status"></div>
-
-        <div class="form-actions form-actions-split">
-          <button type="button" id="deleteRecordBtn" class="btn-danger">Delete record</button>
           <div class="form-actions">
-            <button type="button" id="cancelRecordDetailBtn" class="btn-secondary">Cancel</button>
-            <button type="submit" id="saveRecordDetailBtn" class="btn-primary">Save changes</button>
+            <button type="button" id="cancelRecordStoryBtn" class="btn-secondary">Cancel</button>
+            <button type="submit" id="saveRecordStoryBtn" class="btn-primary">Save your story</button>
           </div>
-        </div>
-      </form>
-
-      <div class="detail-more-like-this">
-        <div id="detailMoreLikeThisWrap" class="spotlight-action-wrap"></div>
-        <div id="detailMoreLikeThisResults" class="more-like-this-results"></div>
+        </form>
       </div>
     </div>
   </div>

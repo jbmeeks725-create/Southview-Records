@@ -1158,6 +1158,44 @@ h1 {
   padding: 0;
 }
 
+.detail-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #1f2937;
+}
+
+.detail-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #9ca3af;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.5rem 0.25rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.detail-tab:hover {
+  color: #d1d5db;
+}
+
+.detail-tab.active {
+  color: #caa15a;
+  border-bottom-color: #caa15a;
+}
+
+.detail-tab-panel[hidden] {
+  display: none;
+}
+
+.story-tab-intro {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
 .modal-close:hover {
   color: #e5e7eb;
 }
@@ -2173,12 +2211,71 @@ h1 {
 
 .spotlight-info {
   font-size: 1.1rem;
-  flex: 1;
+  flex: 1 1 220px;
   min-width: 200px;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0.5rem;
+}
+
+.spotlight-story-panel {
+  flex: 1 1 260px;
+  min-width: 240px;
+  background: #0b1220;
+  border: 1px solid #2d2410;
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.spotlight-story-heading {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #caa15a;
+}
+
+.spotlight-story-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  line-height: 1.45;
+}
+
+.spotlight-story-acquired {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #caa15a;
+  font-weight: 600;
+}
+
+.spotlight-story-subheading {
+  margin: 0.4rem 0 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
+.spotlight-story-text {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #d1d5db;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.spotlight-story-edit-btn,
+.spotlight-story-panel > .btn-secondary {
+  align-self: flex-start;
+  margin-top: 0.3rem;
 }
 
 .spotlight-artist {
