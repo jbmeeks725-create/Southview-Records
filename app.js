@@ -3498,6 +3498,7 @@ function renderGenreEvolution(opts = {}) {
   if (card) card.hidden = false;
 
   const axisOrder = computeGenreEvolutionAxisOrder();
+  const axisIndex = new Map(axisOrder.map((name, i) => [name, i]));
 
   if (!opts.skipRebuildSelect) {
     const select = document.getElementById("genreEvolutionArtistSelect");
@@ -3525,7 +3526,11 @@ function renderGenreEvolution(opts = {}) {
 
     return {
       label: t.artist,
-      data: t.points.map((p) => ({ x: p.year, y: p.genre, _album: p.album })),
+      // y is the genre/subgenre's numeric index in axisOrder, not the string
+      // itself - this avoids relying on Chart.js's category-scale string
+      // resolution, which proved unreliable and could plot points on the
+      // wrong row entirely.
+      data: t.points.map((p) => ({ x: p.year, y: axisIndex.get(p.genre) ?? axisOrder.length, _album: p.album, _genre: p.genre })),
       borderColor: color,
       backgroundColor: color,
       pointBackgroundColor: color,
@@ -3555,10 +3560,15 @@ function renderGenreEvolution(opts = {}) {
           title: { display: true, text: "Release year", color: "#9ca3af" },
         },
         y: {
-          type: "category",
-          labels: axisOrder,
+          type: "linear",
+          min: 0,
+          max: axisOrder.length - 1,
           reverse: false,
-          ticks: { color: "#d1d5db" },
+          ticks: {
+            color: "#d1d5db",
+            stepSize: 1,
+            callback: (value) => axisOrder[value] ?? "",
+          },
           grid: { color: "#1f2937" },
           title: { display: true, text: "Style / subgenre", color: "#9ca3af" },
         },
@@ -3570,7 +3580,7 @@ function renderGenreEvolution(opts = {}) {
             title: (items) => items[0]?.dataset.label || "",
             label: (item) => {
               const point = item.raw;
-              return `${point._album} (${point.x}) — ${point.y}`;
+              return `${point._album} (${point.x}) — ${point._genre}`;
             },
           },
         },
