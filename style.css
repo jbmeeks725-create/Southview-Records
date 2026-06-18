@@ -1864,34 +1864,109 @@ h1 {
 
 .taste-profile-page {
   padding: 1rem 1.5rem 2rem;
-  max-width: 900px;
+  max-width: 1240px;
   margin: 0 auto;
 }
 
+.taste-profile-layout {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+}
+
 .taste-profile-header {
-  text-align: center;
-  margin-bottom: 1.25rem;
+  flex: 1 1 320px;
+  min-width: 280px;
+  max-width: 420px;
 }
 
 .taste-profile-header h2 {
-  margin: 0 0 0.4rem;
-  font-size: 1.3rem;
+  margin: 0 0 0.75rem;
+  font-size: 2.1rem;
+  font-weight: 800;
   color: #f9fafb;
+  letter-spacing: -0.01em;
+}
+
+.taste-profile-intro {
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: #d1d5db;
+  margin: 0 0 1rem;
+}
+
+.taste-profile-header .field-hint {
+  font-size: 0.9rem;
+}
+
+.taste-profile-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 1.5rem;
+}
+
+.taste-profile-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: #d1d5db;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.35rem 0.5rem;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.taste-profile-legend-item:hover,
+.taste-profile-legend-item:focus-visible {
+  background: #111827;
+  border-color: #1f2937;
+  outline: none;
+}
+
+.taste-profile-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.taste-profile-legend-name {
+  font-weight: 600;
+}
+
+.taste-profile-legend-share {
+  color: #6b7280;
+  margin-left: auto;
+  font-size: 0.85rem;
 }
 
 .taste-profile-radar-card {
+  flex: 1 1 560px;
   background: #0b1220;
   border: 1px solid #1f2937;
-  border-radius: 10px;
-  padding: 1.5rem;
+  border-radius: 14px;
+  padding: 1.75rem;
+  aspect-ratio: 1 / 1;
+  max-width: 640px;
+  display: flex;
 }
 
 .taste-profile-canvas-wrap {
-  height: 420px;
+  height: auto;
+  width: 100%;
+  position: relative;
+  flex: 1;
 }
 
 .taste-profile-genre-detail {
-  margin-top: 1.25rem;
+  margin-top: 2rem;
   background: #0b1220;
   border: 1px solid #2d2410;
   border-radius: 10px;
@@ -1967,6 +2042,32 @@ h1 {
 .taste-profile-detail-list li {
   font-size: 0.88rem;
   color: #d1d5db;
+}
+
+@media (max-width: 900px) {
+  .taste-profile-layout {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+  }
+
+  .taste-profile-header {
+    max-width: none;
+    text-align: center;
+  }
+
+  .taste-profile-legend {
+    align-items: center;
+  }
+
+  .taste-profile-legend-item {
+    max-width: 320px;
+  }
+
+  .taste-profile-radar-card {
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
+  }
 }
 
 .active-filters-bar {
@@ -2859,10 +2960,19 @@ h1 {
 
   .taste-profile-radar-card {
     padding: 1rem;
+    aspect-ratio: auto;
   }
 
   .taste-profile-canvas-wrap {
     height: 320px;
+  }
+
+  .taste-profile-header h2 {
+    font-size: 1.6rem;
+  }
+
+  .taste-profile-intro {
+    font-size: 0.95rem;
   }
 
   #cardSection,

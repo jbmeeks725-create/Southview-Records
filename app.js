@@ -3020,6 +3020,24 @@ function computeDecadeCounts() {
 const TASTE_PROFILE_AXIS_COUNT = 7;
 const RATING_SCORES = { love: 4, like: 3, neutral: 2, dislike: 1 };
 
+// One distinct, vivid color per axis position so the radar reads as a
+// colorful map of taste diversity rather than a single-tone shape.
+const TASTE_PROFILE_PALETTE = [
+  "#caa15a", // gold (brand accent, reserved for the top genre)
+  "#e0566e", // rose
+  "#5ab0c9", // teal
+  "#9b7fe0", // violet
+  "#6fc77a", // green
+  "#e0944a", // amber
+  "#e0567e", // pink
+];
+const TASTE_PROFILE_OTHER_COLOR = "#6b7280"; // neutral gray for the catch-all bucket
+
+function colorForAxisIndex(index, isOtherBucket) {
+  if (isOtherBucket) return TASTE_PROFILE_OTHER_COLOR;
+  return TASTE_PROFILE_PALETTE[index % TASTE_PROFILE_PALETTE.length];
+}
+
 let tasteProfileRadarChartInstance = null;
 let tasteProfileSelectedGenre = null;
 
@@ -3118,11 +3136,47 @@ function buildTasteProfileSnapshot(axis) {
   return lines;
 }
 
+function renderTasteProfileLegend(axes) {
+  const legend = document.getElementById("tasteProfileLegend");
+  if (!legend) return;
+  legend.innerHTML = "";
+
+  axes.forEach((axis) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "taste-profile-legend-item";
+
+    const swatch = document.createElement("span");
+    swatch.className = "taste-profile-legend-swatch";
+    swatch.style.backgroundColor = axis.color;
+
+    const name = document.createElement("span");
+    name.className = "taste-profile-legend-name";
+    name.textContent = axis.name;
+
+    const share = document.createElement("span");
+    share.className = "taste-profile-legend-share";
+    share.textContent = `${Math.round(axis.share * 100)}%`;
+
+    item.appendChild(swatch);
+    item.appendChild(name);
+    item.appendChild(share);
+    item.addEventListener("click", () => renderTasteProfileGenreDetail(axis));
+
+    legend.appendChild(item);
+  });
+}
+
 function renderTasteProfile() {
   if (typeof Chart === "undefined") return;
 
-  const axes = computeTasteProfileAxes();
+  const axes = computeTasteProfileAxes().map((axis, index) => ({
+    ...axis,
+    color: colorForAxisIndex(index, axis.isOtherBucket),
+  }));
   const detailWrap = document.getElementById("tasteProfileGenreDetail");
+
+  renderTasteProfileLegend(axes);
 
   if (axes.length === 0) {
     detailWrap.hidden = true;
@@ -3135,12 +3189,15 @@ function renderTasteProfile() {
 
   const labels = axes.map((a) => a.name);
   const data = axes.map((a) => Math.round(a.share * 1000) / 10);
+  const pointColors = axes.map((a) => a.color);
 
   const canvas = document.getElementById("tasteProfileRadarChart");
 
   if (tasteProfileRadarChartInstance) {
     tasteProfileRadarChartInstance.data.labels = labels;
     tasteProfileRadarChartInstance.data.datasets[0].data = data;
+    tasteProfileRadarChartInstance.data.datasets[0].pointBackgroundColor = pointColors;
+    tasteProfileRadarChartInstance.options.scales.r.pointLabels.color = pointColors;
     tasteProfileRadarChartInstance.config._axes = axes;
     tasteProfileRadarChartInstance.update();
   } else {
@@ -3152,13 +3209,13 @@ function renderTasteProfile() {
           {
             label: "Share of collection",
             data,
-            backgroundColor: "rgba(202, 161, 90, 0.25)",
+            backgroundColor: "rgba(202, 161, 90, 0.18)",
             borderColor: "#caa15a",
-            pointBackgroundColor: "#caa15a",
+            pointBackgroundColor: pointColors,
             pointBorderColor: "#0b1220",
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            borderWidth: 2,
+            pointRadius: 7,
+            pointHoverRadius: 10,
+            borderWidth: 2.5,
           },
         ],
       },
@@ -3169,7 +3226,10 @@ function renderTasteProfile() {
           r: {
             angleLines: { color: "#1f2937" },
             grid: { color: "#1f2937" },
-            pointLabels: { color: "#d1d5db", font: { size: 12 } },
+            pointLabels: {
+              color: pointColors,
+              font: { size: 15, weight: "600" },
+            },
             ticks: {
               color: "#6b7280",
               backdropColor: "transparent",
@@ -3220,12 +3280,14 @@ function renderTasteProfileGenreDetail(axis) {
   const wrap = document.getElementById("tasteProfileGenreDetail");
   wrap.innerHTML = "";
   wrap.hidden = false;
+  wrap.style.borderColor = axis.color || "#2d2410";
 
   const detail = computeGenreDetail(axis.name, axis);
 
   const heading = document.createElement("h3");
   heading.className = "taste-profile-detail-heading";
   heading.textContent = axis.isOtherBucket ? "Other Genres" : axis.name;
+  heading.style.color = axis.color || "#caa15a";
   wrap.appendChild(heading);
 
   if (axis.isOtherBucket && axis.otherGenres?.length) {

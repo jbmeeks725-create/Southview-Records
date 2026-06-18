@@ -633,14 +633,21 @@
 
   <section id="tasteProfileSection" hidden>
     <div class="taste-profile-page">
-      <div class="taste-profile-header">
-        <h2>My Taste Profile</h2>
-        <p class="field-hint">Hover a point for a quick snapshot, or click it for the full breakdown.</p>
-      </div>
+      <div class="taste-profile-layout">
+        <div class="taste-profile-header">
+          <h2>My Taste Profile</h2>
+          <p class="taste-profile-intro">
+            Every genre in your collection pulls this shape in its own direction. The bigger
+            the reach toward an edge, the more that sound defines your shelves.
+          </p>
+          <p class="field-hint">Hover a point for a quick snapshot, or click it for the full breakdown.</p>
+          <div id="tasteProfileLegend" class="taste-profile-legend"></div>
+        </div>
 
-      <div class="taste-profile-radar-card">
-        <div class="chart-canvas-wrap taste-profile-canvas-wrap">
-          <canvas id="tasteProfileRadarChart"></canvas>
+        <div class="taste-profile-radar-card">
+          <div class="chart-canvas-wrap taste-profile-canvas-wrap">
+            <canvas id="tasteProfileRadarChart"></canvas>
+          </div>
         </div>
       </div>
 
