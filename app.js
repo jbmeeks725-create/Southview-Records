@@ -3396,7 +3396,7 @@ let genreEvolutionFocusedArtist = null;
 function computeGenreEvolutionAxisOrder() {
   const counts = {};
   allRecords.forEach((r) => {
-    const name = r.genre_name || "Unspecified";
+    const name = r.subgenre_name || r.genre_name || "Unspecified";
     counts[name] = (counts[name] || 0) + 1;
   });
   return Object.entries(counts)
@@ -3404,14 +3404,17 @@ function computeGenreEvolutionAxisOrder() {
     .map(([name]) => name);
 }
 
+const GENRE_EVOLUTION_EXCLUDED_ARTISTS = new Set(["Various Artists", "Various", "V/A"]);
+
 function computeArtistGenreTimelines() {
   const byArtist = {};
   allRecords.forEach((r) => {
     if (!r.artist || !r.year) return;
+    if (GENRE_EVOLUTION_EXCLUDED_ARTISTS.has(r.artist.trim())) return;
     if (!byArtist[r.artist]) byArtist[r.artist] = [];
     byArtist[r.artist].push({
       year: r.year,
-      genre: r.genre_name || "Unspecified",
+      genre: r.subgenre_name || r.genre_name || "Unspecified",
       album: r.album,
       id: r.id,
     });
@@ -3557,6 +3560,7 @@ function renderGenreEvolution(opts = {}) {
           reverse: false,
           ticks: { color: "#d1d5db" },
           grid: { color: "#1f2937" },
+          title: { display: true, text: "Style / subgenre", color: "#9ca3af" },
         },
       },
       plugins: {
