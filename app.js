@@ -4036,14 +4036,27 @@ function renderGenreEvolution(opts = {}) {
   renderGenreEvolutionLegend(timelines);
 }
 
-function upsertBarChart(instance, canvasId, labels, data, onBarClick) {
+function upsertBarChart(instance, canvasId, labels, data, onBarClick, highlightIndex = -1, onAnimationComplete = null) {
   const canvas = document.getElementById(canvasId);
   if (!canvas || typeof Chart === "undefined") return instance;
+
+  // The top bar gets a brighter, more saturated gold; the rest recede to a
+  // muted tone so the chart reads as "here's what defines your collection"
+  // rather than a flat, undifferentiated bar chart.
+  const colors = data.map((_, i) => (i === highlightIndex ? "#e8b96a" : "#6b5530"));
+  const hoverColors = data.map((_, i) => (i === highlightIndex ? "#f3ca85" : "#85714a"));
 
   if (instance) {
     instance.data.labels = labels;
     instance.data.datasets[0].data = data;
+    instance.data.datasets[0].backgroundColor = colors;
+    instance.data.datasets[0].hoverBackgroundColor = hoverColors;
     instance.update();
+    if (onAnimationComplete) {
+      // No animation runs on a plain .update() in most cases, but resize/data
+      // changes can still animate - defer one frame so bar positions settle.
+      requestAnimationFrame(onAnimationComplete);
+    }
     return instance;
   }
 
@@ -4054,7 +4067,8 @@ function upsertBarChart(instance, canvasId, labels, data, onBarClick) {
       datasets: [
         {
           data,
-          backgroundColor: "#caa15a",
+          backgroundColor: colors,
+          hoverBackgroundColor: hoverColors,
           borderRadius: 4,
         },
       ],
@@ -4062,6 +4076,11 @@ function upsertBarChart(instance, canvasId, labels, data, onBarClick) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: {
+        duration: 700,
+        easing: "easeOutQuart",
+        onComplete: onAnimationComplete || undefined,
+      },
       plugins: { legend: { display: false } },
       scales: {
         x: {
@@ -4212,12 +4231,113 @@ function renderActiveFilters() {
   bar.hidden = false;
 }
 
+// ------------ Chart personalization (headlines + cover art) ------------
+
+function buildGenreChartHeadline(genreData) {
+  if (genreData.length === 0) return "";
+  const total = allRecords.length;
+  const [topName, topCount] = genreData[0];
+  const share = total ? Math.round((topCount / total) * 100) : 0;
+
+  if (genreData.length === 1) {
+    return `${topName} is the whole story so far — every record you own.`;
+  }
+  if (share >= 50) {
+    return `${topName} has been your home base — ${share}% of your collection.`;
+  }
+  if (share >= 25) {
+    return `${topName} leads the way, with ${genreData.length - 1} other genre${genreData.length - 1 === 1 ? "" : "s"} keeping things interesting.`;
+  }
+  return `A genuine mix — ${topName} edges out the rest, but no single sound dominates.`;
+}
+
+function buildArtistChartHeadline(artistData) {
+  if (artistData.length === 0) return "";
+  const [topName, topCount] = artistData[0];
+  const second = artistData[1];
+
+  if (!second) {
+    return `${topName} is the only name on the board so far, with ${topCount} record${topCount === 1 ? "" : "s"}.`;
+  }
+  const lead = topCount - second[1];
+  if (lead >= Math.max(5, topCount * 0.4)) {
+    return `No one comes close to ${topName} in your collection.`;
+  }
+  if (lead <= 1) {
+    return `${topName} and ${second[0]} are neck and neck at the top.`;
+  }
+  return `${topName} leads your most-collected artists, just ahead of ${second[0]}.`;
+}
+
+function buildDecadeChartHeadline(decadeData) {
+  if (decadeData.length === 0) return "";
+  const peak = decadeData.slice().sort((a, b) => b[1] - a[1])[0];
+  const sorted = decadeData.slice().sort((a, b) => a[0] - b[0]);
+  const span = sorted.length;
+  const earliest = sorted[0][0];
+
+  if (span === 1) {
+    return `Every record you own comes from the ${peak[0]}s.`;
+  }
+  return `The ${peak[0]}s defined your collection — ${peak[1]} record${peak[1] === 1 ? "" : "s"} and counting, spanning back to the ${earliest}s.`;
+}
+
+function buildChartCoverMosaic(wrapId, genreName, limit = 4) {
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.innerHTML = "";
+
+  if (!genreName) return;
+
+  const covers = allRecords
+    .filter((r) => (r.genre_name || "Unspecified") === genreName && r.cover_url)
+    .slice(0, limit);
+
+  if (covers.length === 0) return;
+
+  covers.forEach((r) => {
+    const img = document.createElement("img");
+    img.src = r.cover_url;
+    img.alt = `${r.album} cover`;
+    img.className = "chart-cover-mosaic-img";
+    wrap.appendChild(img);
+  });
+}
+
+function renderArtistChartCovers(artistData) {
+  const wrap = document.getElementById("artistChartCovers");
+  if (!wrap || !artistChart) return;
+  wrap.innerHTML = "";
+
+  const meta = artistChart.getDatasetMeta(0);
+  if (!meta || !meta.data) return;
+
+  artistData.forEach(([artistName], i) => {
+    const bar = meta.data[i];
+    if (!bar) return;
+
+    const record = allRecords.find((r) => r.artist === artistName && r.cover_url);
+    if (!record) return;
+
+    const img = document.createElement("img");
+    img.src = record.cover_url;
+    img.alt = `${artistName} cover`;
+    img.className = "chart-bar-cover-img";
+    img.style.left = `${bar.x}px`;
+    wrap.appendChild(img);
+  });
+}
+
 function renderCharts() {
   if (typeof Chart === "undefined") return;
 
   const genreData = computeGenreCounts();
   const artistData = computeArtistCounts();
   const decadeData = computeDecadeCounts();
+
+  // --- By Genre ---
+  document.getElementById("genreChartHeadline").textContent = buildGenreChartHeadline(genreData);
+  buildChartCoverMosaic("genreChartMosaic", genreData[0]?.[0] || null);
 
   genreChart = upsertBarChart(
     genreChart,
@@ -4230,8 +4350,12 @@ function renderCharts() {
       document.getElementById("genreFilter").value = String(g.id);
       populateSubgenreFilterOptions();
       render();
-    }
+    },
+    0 // top genre is always first since computeGenreCounts is sorted desc
   );
+
+  // --- Top Artists ---
+  document.getElementById("artistChartHeadline").textContent = buildArtistChartHeadline(artistData);
 
   artistChart = upsertBarChart(
     artistChart,
@@ -4242,8 +4366,18 @@ function renderCharts() {
       artistFilter = artistFilter === label ? null : label;
       yearFilter = null;
       render();
-    }
+    },
+    0, // top artist is always first since computeArtistCounts is sorted desc
+    () => renderArtistChartCovers(artistData)
   );
+
+  // --- By Decade ---
+  document.getElementById("decadeChartHeadline").textContent = buildDecadeChartHeadline(decadeData);
+
+  const peakDecadeIndex =
+    decadeData.length > 0
+      ? decadeData.reduce((bestIdx, entry, i, arr) => (entry[1] > arr[bestIdx][1] ? i : bestIdx), 0)
+      : -1;
 
   decadeChart = upsertBarChart(
     decadeChart,
@@ -4259,7 +4393,8 @@ function renderCharts() {
       }
       artistFilter = null;
       render();
-    }
+    },
+    peakDecadeIndex
   );
 }
 

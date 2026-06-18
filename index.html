@@ -591,14 +591,21 @@
     <div class="charts-grid">
       <div class="chart-card">
         <h3>By Genre</h3>
+        <p id="genreChartHeadline" class="chart-headline"></p>
         <div class="chart-canvas-wrap"><canvas id="genreChart"></canvas></div>
+        <div id="genreChartMosaic" class="chart-cover-mosaic"></div>
       </div>
       <div class="chart-card">
         <h3>Top Artists</h3>
-        <div class="chart-canvas-wrap"><canvas id="artistChart"></canvas></div>
+        <p id="artistChartHeadline" class="chart-headline"></p>
+        <div class="chart-canvas-wrap chart-canvas-wrap-with-covers">
+          <div id="artistChartCovers" class="chart-bar-covers"></div>
+          <canvas id="artistChart"></canvas>
+        </div>
       </div>
       <div class="chart-card">
         <h3>By Decade</h3>
+        <p id="decadeChartHeadline" class="chart-headline"></p>
         <div class="chart-canvas-wrap"><canvas id="decadeChart"></canvas></div>
       </div>
     </div>
