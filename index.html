@@ -250,8 +250,9 @@
     <nav id="pageNav" role="group" aria-label="Page">
       <button type="button" id="collectionPageBtn" class="view-btn" aria-pressed="false">My Collection</button>
       <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
-      <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Room</button>
       <button type="button" id="tasteProfilePageBtn" class="view-btn" aria-pressed="false">My Taste Profile</button>
+      <button type="button" id="genreEvolutionPageBtn" class="view-btn" aria-pressed="false">Genre Evolution</button>
+      <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Room</button>
     </nav>
     <div id="collectionFilters" hidden>
       <input
@@ -652,6 +653,37 @@
       </div>
 
       <div id="tasteProfileGenreDetail" class="taste-profile-genre-detail" hidden></div>
+    </div>
+  </section>
+
+  <section id="genreEvolutionSection" hidden>
+    <div class="genre-evolution-page">
+      <div class="genre-evolution-header">
+        <h2>Genre Evolution</h2>
+        <p class="taste-profile-intro">
+          How an artist's sound moved across genres over the years, based on the albums you
+          own. Each line follows one artist's catalog in release-year order.
+        </p>
+        <div class="genre-evolution-controls">
+          <label for="genreEvolutionArtistSelect">Focus on an artist</label>
+          <select id="genreEvolutionArtistSelect">
+            <option value="">All deep-catalog artists</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="genre-evolution-chart-card">
+        <div class="chart-canvas-wrap genre-evolution-canvas-wrap">
+          <canvas id="genreEvolutionChart"></canvas>
+        </div>
+      </div>
+
+      <div id="genreEvolutionLegend" class="genre-evolution-legend"></div>
+
+      <div id="genreEvolutionEmpty" class="empty-hint" hidden>
+        Once you have a few artists with 5 or more albums spanning different genres, their
+        evolution will show up here.
+      </div>
     </div>
   </section>
 

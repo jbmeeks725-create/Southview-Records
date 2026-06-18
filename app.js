@@ -3089,12 +3089,14 @@ function computeGenreDetail(genreName, axis) {
 
   const artistCounts = {};
   const labelCounts = {};
+  const subgenreCounts = {};
   const years = [];
   const ratingScores = [];
 
   records.forEach((r) => {
     if (r.artist) artistCounts[r.artist] = (artistCounts[r.artist] || 0) + 1;
     if (r.label) labelCounts[r.label] = (labelCounts[r.label] || 0) + 1;
+    if (r.subgenre_name) subgenreCounts[r.subgenre_name] = (subgenreCounts[r.subgenre_name] || 0) + 1;
     if (r.year) years.push(r.year);
     if (r.rating && RATING_SCORES[r.rating]) ratingScores.push(RATING_SCORES[r.rating]);
   });
@@ -3123,6 +3125,7 @@ function computeGenreDetail(genreName, axis) {
   return {
     total,
     topArtists: topN(artistCounts, 5),
+    topSubgenres: topN(subgenreCounts, 5),
     topLabels: topN(labelCounts, 5),
     decadeRange,
     avgRatingLabel,
@@ -3352,6 +3355,7 @@ function renderTasteProfileGenreDetail(axis) {
   };
 
   listsWrap.appendChild(buildList("Top Artists", detail.topArtists));
+  listsWrap.appendChild(buildList("Top Sub-Genres", detail.topSubgenres));
   listsWrap.appendChild(buildList("Top Labels", detail.topLabels));
   wrap.appendChild(listsWrap);
 
@@ -3372,6 +3376,221 @@ function renderTasteProfileGenreDetail(axis) {
   }
 
   wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// ------------ Genre evolution (spaghetti chart) ------------
+
+const GENRE_EVOLUTION_MIN_ALBUMS = 5;
+
+// A larger, high-contrast palette for artist lines, since a deep collection
+// can easily have a dozen-plus qualifying artists on screen at once.
+const GENRE_EVOLUTION_PALETTE = [
+  "#caa15a", "#e0566e", "#5ab0c9", "#9b7fe0", "#6fc77a",
+  "#e0944a", "#e0567e", "#4ad6c7", "#d6c34a", "#7e9be0",
+  "#c97ab0", "#80c9a0", "#e07a7a", "#a0a8e0", "#c9a05a",
+];
+
+let genreEvolutionChartInstance = null;
+let genreEvolutionFocusedArtist = null;
+
+function computeGenreEvolutionAxisOrder() {
+  const counts = {};
+  allRecords.forEach((r) => {
+    const name = r.genre_name || "Unspecified";
+    counts[name] = (counts[name] || 0) + 1;
+  });
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([name]) => name);
+}
+
+function computeArtistGenreTimelines() {
+  const byArtist = {};
+  allRecords.forEach((r) => {
+    if (!r.artist || !r.year) return;
+    if (!byArtist[r.artist]) byArtist[r.artist] = [];
+    byArtist[r.artist].push({
+      year: r.year,
+      genre: r.genre_name || "Unspecified",
+      album: r.album,
+      id: r.id,
+    });
+  });
+
+  const deepCatalog = Object.entries(byArtist)
+    .filter(([, points]) => points.length >= GENRE_EVOLUTION_MIN_ALBUMS)
+    .map(([artist, points]) => ({
+      artist,
+      points: points.slice().sort((a, b) => a.year - b.year),
+    }))
+    .sort((a, b) => b.points.length - a.points.length);
+
+  return deepCatalog;
+}
+
+function renderGenreEvolutionLegend(timelines) {
+  const legend = document.getElementById("genreEvolutionLegend");
+  if (!legend) return;
+  legend.innerHTML = "";
+
+  timelines.forEach((t, index) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "genre-evolution-legend-item";
+    item.classList.toggle(
+      "active",
+      genreEvolutionFocusedArtist === t.artist || !genreEvolutionFocusedArtist
+    );
+
+    const swatch = document.createElement("span");
+    swatch.className = "taste-profile-legend-swatch";
+    swatch.style.backgroundColor = GENRE_EVOLUTION_PALETTE[index % GENRE_EVOLUTION_PALETTE.length];
+
+    const name = document.createElement("span");
+    name.className = "taste-profile-legend-name";
+    name.textContent = t.artist;
+
+    const count = document.createElement("span");
+    count.className = "taste-profile-legend-share";
+    count.textContent = `${t.points.length} albums`;
+
+    item.appendChild(swatch);
+    item.appendChild(name);
+    item.appendChild(count);
+    item.addEventListener("click", () => {
+      const next = genreEvolutionFocusedArtist === t.artist ? null : t.artist;
+      setGenreEvolutionFocus(next);
+    });
+
+    legend.appendChild(item);
+  });
+}
+
+function setGenreEvolutionFocus(artistName) {
+  genreEvolutionFocusedArtist = artistName || null;
+  const select = document.getElementById("genreEvolutionArtistSelect");
+  if (select) select.value = genreEvolutionFocusedArtist || "";
+  renderGenreEvolution({ skipRebuildSelect: true });
+}
+
+function renderGenreEvolution(opts = {}) {
+  if (typeof Chart === "undefined") return;
+
+  const emptyEl = document.getElementById("genreEvolutionEmpty");
+  const card = document.querySelector(".genre-evolution-chart-card");
+  const timelines = computeArtistGenreTimelines();
+
+  if (timelines.length === 0) {
+    if (emptyEl) emptyEl.hidden = false;
+    if (card) card.hidden = true;
+    document.getElementById("genreEvolutionLegend").innerHTML = "";
+    if (genreEvolutionChartInstance) {
+      genreEvolutionChartInstance.destroy();
+      genreEvolutionChartInstance = null;
+    }
+    return;
+  }
+
+  if (emptyEl) emptyEl.hidden = true;
+  if (card) card.hidden = false;
+
+  const axisOrder = computeGenreEvolutionAxisOrder();
+
+  if (!opts.skipRebuildSelect) {
+    const select = document.getElementById("genreEvolutionArtistSelect");
+    const previousValue = select.value;
+    select.innerHTML = '<option value="">All deep-catalog artists</option>';
+    timelines.forEach((t) => {
+      const opt = document.createElement("option");
+      opt.value = t.artist;
+      opt.textContent = `${t.artist} (${t.points.length})`;
+      select.appendChild(opt);
+    });
+    if (timelines.some((t) => t.artist === previousValue)) {
+      select.value = previousValue;
+    }
+  }
+
+  const visibleTimelines = genreEvolutionFocusedArtist
+    ? timelines.filter((t) => t.artist === genreEvolutionFocusedArtist)
+    : timelines;
+
+  const datasets = visibleTimelines.map((t) => {
+    const originalIndex = timelines.indexOf(t);
+    const color = GENRE_EVOLUTION_PALETTE[originalIndex % GENRE_EVOLUTION_PALETTE.length];
+    const isFocused = !!genreEvolutionFocusedArtist;
+
+    return {
+      label: t.artist,
+      data: t.points.map((p) => ({ x: p.year, y: p.genre, _album: p.album })),
+      borderColor: color,
+      backgroundColor: color,
+      pointBackgroundColor: color,
+      pointRadius: isFocused ? 5 : 3.5,
+      pointHoverRadius: 7,
+      borderWidth: isFocused ? 3 : 2,
+      tension: 0,
+      fill: false,
+      spanGaps: true,
+    };
+  });
+
+  const canvas = document.getElementById("genreEvolutionChart");
+
+  const config = {
+    type: "line",
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      parsing: { xAxisKey: "x", yAxisKey: "y" },
+      scales: {
+        x: {
+          type: "linear",
+          ticks: { color: "#9ca3af", stepSize: 5, precision: 0 },
+          grid: { color: "#1f2937" },
+          title: { display: true, text: "Release year", color: "#9ca3af" },
+        },
+        y: {
+          type: "category",
+          labels: axisOrder,
+          reverse: false,
+          ticks: { color: "#d1d5db" },
+          grid: { color: "#1f2937" },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => items[0]?.dataset.label || "",
+            label: (item) => {
+              const point = item.raw;
+              return `${point._album} (${point.x}) — ${point.y}`;
+            },
+          },
+        },
+      },
+      onClick: (evt, elements) => {
+        if (!elements.length) return;
+        const dataset = datasets[elements[0].datasetIndex];
+        if (dataset) {
+          const next = genreEvolutionFocusedArtist === dataset.label ? null : dataset.label;
+          setGenreEvolutionFocus(next);
+        }
+      },
+      onHover: (evt, elements) => {
+        evt.native.target.style.cursor = elements.length ? "pointer" : "default";
+      },
+    },
+  };
+
+  if (genreEvolutionChartInstance) {
+    genreEvolutionChartInstance.destroy();
+  }
+  genreEvolutionChartInstance = new Chart(canvas, config);
+
+  renderGenreEvolutionLegend(timelines);
 }
 
 function upsertBarChart(instance, canvasId, labels, data, onBarClick) {
@@ -3633,11 +3852,13 @@ function setPage(page) {
   const wishlistBtn = document.getElementById("wishlistPageBtn");
   const roomBtn = document.getElementById("roomPageBtn");
   const tasteProfileBtn = document.getElementById("tasteProfilePageBtn");
+  const genreEvolutionBtn = document.getElementById("genreEvolutionPageBtn");
 
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
   const roomSection = document.getElementById("roomSection");
   const tasteProfileSection = document.getElementById("tasteProfileSection");
+  const genreEvolutionSection = document.getElementById("genreEvolutionSection");
   const collectionDnaSection = document.getElementById("collectionDnaSection");
   const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
@@ -3653,12 +3874,14 @@ function setPage(page) {
   const isProfile = page === "profile";
   const isRoom = page === "room";
   const isTasteProfile = page === "tasteProfile";
+  const isGenreEvolution = page === "genreEvolution";
 
   [
     [collectionBtn, isCollection],
     [wishlistBtn, isWishlist],
     [roomBtn, isRoom],
     [tasteProfileBtn, isTasteProfile],
+    [genreEvolutionBtn, isGenreEvolution],
   ].forEach(([btn, active]) => {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-pressed", String(active));
@@ -3668,20 +3891,21 @@ function setPage(page) {
   profileSection.hidden = !isProfile;
   roomSection.hidden = !isRoom;
   tasteProfileSection.hidden = !isTasteProfile;
+  genreEvolutionSection.hidden = !isGenreEvolution;
   collectionDnaSection.hidden = !isCollection;
   atAGlanceSection.hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
   filterControls.hidden = !(isCollection || isWishlist);
   document.getElementById("ratingFilter").hidden = !isCollection;
-  statusSection.hidden = isHome || isProfile || isRoom || isTasteProfile;
+  statusSection.hidden = isHome || isProfile || isRoom || isTasteProfile || isGenreEvolution;
   gridDensity.hidden = !isCollection;
   pageNav.hidden = isProfile;
 
   document.getElementById("addRecordBtn").hidden = !isCollection;
   document.getElementById("addWishlistBtn").hidden = !isWishlist;
   document.getElementById("findAllDiscogsBtn").hidden = !isWishlist;
-  document.getElementById("importBtn").hidden = isHome || isProfile || isRoom || isTasteProfile;
+  document.getElementById("importBtn").hidden = isHome || isProfile || isRoom || isTasteProfile || isGenreEvolution;
 
   if (isProfile) {
     renderProfile();
@@ -3695,6 +3919,11 @@ function setPage(page) {
 
   if (isTasteProfile) {
     renderTasteProfile();
+    return;
+  }
+
+  if (isGenreEvolution) {
+    renderGenreEvolution();
     return;
   }
 
@@ -5713,6 +5942,16 @@ function setupEvents() {
   document
     .getElementById("tasteProfilePageBtn")
     .addEventListener("click", () => setPage("tasteProfile"));
+
+  document
+    .getElementById("genreEvolutionPageBtn")
+    .addEventListener("click", () => setPage("genreEvolution"));
+
+  document
+    .getElementById("genreEvolutionArtistSelect")
+    .addEventListener("change", (e) => {
+      setGenreEvolutionFocus(e.target.value || null);
+    });
 
   document
     .getElementById("spotlightShuffleBtn")
