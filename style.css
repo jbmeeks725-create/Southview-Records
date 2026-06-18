@@ -3041,6 +3041,12 @@ h1 {
   animation: vinyl-spin 1.1s linear infinite, vinyl-glow-pulse 1.6s ease-in-out infinite;
 }
 
+.vinyl-spinner-wordmark {
+  font-family: "Berkshire Swash", "Jost", cursive;
+  font-size: 22px;
+  fill: #f3deb0;
+}
+
 .vinyl-spinner-label {
   font-size: 0.85rem;
   color: #9ca3af;

@@ -2843,33 +2843,25 @@ function buildVinylSpinner(label = "Finding similar albums...") {
   const wrap = document.createElement("div");
   wrap.className = "vinyl-spinner";
 
-  // SVG vinyl record: outer gold ring, grooves, center label circle.
-  // A couple of small off-center marks are included specifically so the
-  // spin animation is visually obvious - a perfectly concentric record
-  // looks identical at every rotation angle, which made the original
-  // version of this spinner impossible to tell was actually moving.
+  // SVG vinyl record: outer gold ring, grooves, and a center label bearing
+  // the Spin wordmark in the brand's script style - reads like a real LP
+  // label spinning on a turntable rather than a generic loading icon.
   wrap.innerHTML = `
-    <svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <!-- Outer edge / gold rim -->
-      <circle cx="48" cy="48" r="46" fill="#1a1208" stroke="#caa15a" stroke-width="2.5"/>
+      <circle cx="64" cy="64" r="61" fill="#1a1208" stroke="#caa15a" stroke-width="3"/>
       <!-- Grooves (concentric rings, slightly lighter than the base) -->
-      <circle cx="48" cy="48" r="42" fill="none" stroke="#2a2010" stroke-width="0.8"/>
-      <circle cx="48" cy="48" r="38" fill="none" stroke="#2a2010" stroke-width="0.8"/>
-      <circle cx="48" cy="48" r="34" fill="none" stroke="#2a2010" stroke-width="0.8"/>
-      <circle cx="48" cy="48" r="30" fill="none" stroke="#2a2010" stroke-width="0.8"/>
-      <circle cx="48" cy="48" r="26" fill="none" stroke="#2a2010" stroke-width="0.8"/>
-      <!-- Light glint/scuff marks - off-center so rotation is visible -->
-      <path d="M 48 6 A 42 42 0 0 1 78.7 17.3" fill="none" stroke="#e8c98a" stroke-width="1.4" stroke-linecap="round" opacity="0.55"/>
-      <circle cx="71" cy="29" r="1.6" fill="#f3deb0" opacity="0.7"/>
-      <circle cx="30" cy="68" r="1.2" fill="#f3deb0" opacity="0.5"/>
+      <circle cx="64" cy="64" r="55" fill="none" stroke="#2a2010" stroke-width="0.9"/>
+      <circle cx="64" cy="64" r="49" fill="none" stroke="#2a2010" stroke-width="0.9"/>
+      <circle cx="64" cy="64" r="43" fill="none" stroke="#2a2010" stroke-width="0.9"/>
+      <circle cx="64" cy="64" r="37" fill="none" stroke="#2a2010" stroke-width="0.9"/>
       <!-- Label area (center circle, golden) -->
-      <circle cx="48" cy="48" r="18" fill="#8a5a1a" stroke="#caa15a" stroke-width="1.5"/>
-      <!-- Subtle label ring detail -->
-      <circle cx="48" cy="48" r="14" fill="none" stroke="#caa15a" stroke-width="0.6" opacity="0.5"/>
-      <!-- A small notch on the label itself - the clearest rotation cue -->
-      <circle cx="48" cy="32" r="1.8" fill="#3a2810"/>
+      <circle cx="64" cy="64" r="30" fill="#8a5a1a" stroke="#caa15a" stroke-width="1.5"/>
+      <circle cx="64" cy="64" r="25" fill="none" stroke="#caa15a" stroke-width="0.6" opacity="0.5"/>
+      <!-- Spin wordmark on the label -->
+      <text x="64" y="70" text-anchor="middle" class="vinyl-spinner-wordmark">Spin</text>
       <!-- Spindle hole -->
-      <circle cx="48" cy="48" r="3" fill="#020617"/>
+      <circle cx="64" cy="64" r="3.5" fill="#020617"/>
     </svg>
     <span class="vinyl-spinner-label">${label}</span>
   `;
