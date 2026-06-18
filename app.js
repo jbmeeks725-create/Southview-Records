@@ -2711,10 +2711,39 @@ function buildMoreLikeThisBucket(title, items) {
   return bucket;
 }
 
+function buildVinylSpinner(label = "Finding similar albums...") {
+  const wrap = document.createElement("div");
+  wrap.className = "vinyl-spinner";
+
+  // SVG vinyl record: outer gold ring, grooves, center label circle
+  wrap.innerHTML = `
+    <svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- Outer edge / gold rim -->
+      <circle cx="48" cy="48" r="46" fill="#1a1208" stroke="#caa15a" stroke-width="2.5"/>
+      <!-- Grooves (concentric rings, slightly lighter than the base) -->
+      <circle cx="48" cy="48" r="42" fill="none" stroke="#2a2010" stroke-width="0.8"/>
+      <circle cx="48" cy="48" r="38" fill="none" stroke="#2a2010" stroke-width="0.8"/>
+      <circle cx="48" cy="48" r="34" fill="none" stroke="#2a2010" stroke-width="0.8"/>
+      <circle cx="48" cy="48" r="30" fill="none" stroke="#2a2010" stroke-width="0.8"/>
+      <circle cx="48" cy="48" r="26" fill="none" stroke="#2a2010" stroke-width="0.8"/>
+      <!-- Label area (center circle, golden) -->
+      <circle cx="48" cy="48" r="18" fill="#8a5a1a" stroke="#caa15a" stroke-width="1.5"/>
+      <!-- Subtle label ring detail -->
+      <circle cx="48" cy="48" r="14" fill="none" stroke="#caa15a" stroke-width="0.6" opacity="0.5"/>
+      <!-- Spindle hole -->
+      <circle cx="48" cy="48" r="3" fill="#020617"/>
+    </svg>
+    <span class="vinyl-spinner-label">${label}</span>
+  `;
+
+  return wrap;
+}
+
 async function loadMoreLikeThis(record, wrap, btn) {
   btn.disabled = true;
-  btn.textContent = "Finding similar albums...";
+  btn.textContent = "Loading...";
   wrap.innerHTML = "";
+  wrap.appendChild(buildVinylSpinner("Finding similar albums..."));
 
   try {
     const result = await fetchMoreLikeThis(record.artist, record.album, record.label);
@@ -2732,6 +2761,7 @@ async function loadMoreLikeThis(record, wrap, btn) {
     console.error(err);
     btn.disabled = false;
     btn.textContent = "More like this";
+    wrap.innerHTML = "";
     const errEl = document.createElement("p");
     errEl.className = "spotlight-error";
     errEl.textContent = `Couldn't load suggestions (${err.message || err}).`;
@@ -5745,18 +5775,25 @@ function closeRecordDetailModal() {
 function switchDetailTab(tab) {
   const detailsBtn = document.getElementById("detailTabDetailsBtn");
   const storyBtn = document.getElementById("detailTabStoryBtn");
+  const moreBtn = document.getElementById("detailTabMoreBtn");
   const detailsPanel = document.getElementById("detailTabDetailsPanel");
   const storyPanel = document.getElementById("detailTabStoryPanel");
+  const morePanel = document.getElementById("detailTabMorePanel");
 
+  const showDetails = tab === "details";
   const showStory = tab === "story";
+  const showMore = tab === "more";
 
-  detailsBtn.classList.toggle("active", !showStory);
-  detailsBtn.setAttribute("aria-selected", String(!showStory));
+  detailsBtn.classList.toggle("active", showDetails);
+  detailsBtn.setAttribute("aria-selected", String(showDetails));
   storyBtn.classList.toggle("active", showStory);
   storyBtn.setAttribute("aria-selected", String(showStory));
+  moreBtn.classList.toggle("active", showMore);
+  moreBtn.setAttribute("aria-selected", String(showMore));
 
-  detailsPanel.hidden = showStory;
+  detailsPanel.hidden = !showDetails;
   storyPanel.hidden = !showStory;
+  morePanel.hidden = !showMore;
 }
 
 async function handleRecordStorySubmit(event) {
@@ -6298,6 +6335,10 @@ function setupEvents() {
   document
     .getElementById("detailTabStoryBtn")
     .addEventListener("click", () => switchDetailTab("story"));
+
+  document
+    .getElementById("detailTabMoreBtn")
+    .addEventListener("click", () => switchDetailTab("more"));
 
   document
     .getElementById("recordStoryForm")

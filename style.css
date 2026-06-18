@@ -2958,6 +2958,39 @@ h1 {
   font-weight: 600;
 }
 
+/* ---- Spinning vinyl loader ---- */
+@keyframes vinyl-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.vinyl-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 0;
+}
+
+.vinyl-spinner svg {
+  animation: vinyl-spin 1.4s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(202, 161, 90, 0.4));
+}
+
+.vinyl-spinner-label {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+/* ---- More Like This tab panel ---- */
+.more-like-this-tab-intro {
+  padding: 0.5rem 0 0.75rem;
+}
+
+.more-like-this-tab-intro .field-hint {
+  margin: 0;
+}
+
 .more-like-this-results:not(:empty) {
   margin-top: 1.25rem;
 }

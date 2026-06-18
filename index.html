@@ -947,6 +947,7 @@
       <div class="detail-tabs" role="tablist" aria-label="Record sections">
         <button type="button" id="detailTabDetailsBtn" class="detail-tab active" role="tab" aria-selected="true">Details</button>
         <button type="button" id="detailTabStoryBtn" class="detail-tab" role="tab" aria-selected="false">Your Story</button>
+        <button type="button" id="detailTabMoreBtn" class="detail-tab" role="tab" aria-selected="false">More Like This</button>
       </div>
 
       <div id="detailTabDetailsPanel" class="detail-tab-panel">
@@ -1038,11 +1039,6 @@
             </div>
           </div>
         </form>
-
-        <div class="detail-more-like-this">
-          <div id="detailMoreLikeThisWrap" class="spotlight-action-wrap"></div>
-          <div id="detailMoreLikeThisResults" class="more-like-this-results"></div>
-        </div>
       </div>
 
       <div id="detailTabStoryPanel" class="detail-tab-panel" hidden>
@@ -1080,6 +1076,15 @@
           </div>
         </form>
       </div>
+
+      <div id="detailTabMorePanel" class="detail-tab-panel" hidden>
+        <div class="more-like-this-tab-intro">
+          <p class="field-hint">Suggestions based on this album's artist, sound, and label.</p>
+        </div>
+        <div id="detailMoreLikeThisWrap" class="spotlight-action-wrap"></div>
+        <div id="detailMoreLikeThisResults" class="more-like-this-results"></div>
+      </div>
+
     </div>
   </div>
 
