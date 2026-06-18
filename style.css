@@ -2446,11 +2446,24 @@ h1 {
   grid-template-columns: 2fr 1fr;
   grid-template-areas:
     "stats stats"
-    "spotlight recent"
-    "spotlight wishlist"
+    "spotlight side"
     "recommendations recommendations";
   gap: 1.25rem;
   padding: 1.25rem 1.5rem;
+}
+
+.home-side-column {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  height: 100%;
+}
+
+.home-side-column .home-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .home-card {
@@ -2705,11 +2718,11 @@ h1 {
 }
 
 .home-recent {
-  grid-area: recent;
+  /* Now a flex child of .home-side-column rather than a direct grid item. */
 }
 
 .home-wishlist-highlight {
-  grid-area: wishlist;
+  /* Now a flex child of .home-side-column rather than a direct grid item. */
 }
 
 .spotlight-actions {
@@ -3095,10 +3108,13 @@ h1 {
     grid-template-areas:
       "stats"
       "spotlight"
-      "recent"
-      "wishlist"
+      "side"
       "recommendations";
     padding: 0.75rem 1rem;
+  }
+
+  .home-side-column {
+    height: auto;
   }
 
   .spotlight-cover-wrap {
