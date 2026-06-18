@@ -911,16 +911,37 @@ async function fetchWikipediaSummary(query, { maxChars = 6000, primaryTerm = nul
     throw new Error("No article text available");
   }
 
-  // Final safety check: if we know the artist and their name is nowhere in
-  // the actual article body, this is almost certainly the wrong subject
-  // (e.g. a monument, a place, an unrelated person) rather than a genuine
-  // mismatch in how Wikipedia titles things. Better to say "not found" than
-  // hand back confidently-wrong content.
+  // Build a set of name variants to try: the full name, then progressively
+  // stripped versions — "The Bill Evans Trio" → "Bill Evans Trio" → "Bill Evans".
+  // Wikipedia articles tend to use the shortest commonly-known form, so the
+  // full group/ensemble name often won't appear verbatim but a sub-string will.
+  function artistVariants(name) {
+    if (!name) return [];
+    const base = name.toLowerCase().trim();
+    const variants = new Set([base]);
+    // Strip leading "The "
+    const noThe = base.replace(/^the\s+/, "");
+    if (noThe !== base) variants.add(noThe);
+    // Strip trailing ensemble words (Trio, Quartet, Quintet, Orchestra, Band, Ensemble, Group, Sextet, Septet)
+    const noEnsemble = noThe.replace(/\s+(trio|quartet|quintet|orchestra|band|ensemble|group|sextet|septet|big band)$/i, "").trim();
+    if (noEnsemble !== noThe) variants.add(noEnsemble);
+    // Also try stripping from the base (without prior "The" removal)
+    const noEnsembleBase = base.replace(/\s+(trio|quartet|quintet|orchestra|band|ensemble|group|sextet|septet|big band)$/i, "").trim();
+    if (noEnsembleBase !== base) variants.add(noEnsembleBase);
+    return [...variants];
+  }
+
+  // Final safety check: if we know the artist but no variant of their name
+  // appears anywhere in the article body, it's likely the wrong subject.
+  // However, instead of throwing outright (which loses the candidate entirely),
+  // return it flagged as uncertain so the caller can offer a "Paste anyway" option.
+  let uncertain = false;
   if (artistName) {
-    const normArtist = artistName.toLowerCase().trim();
     const firstChunk = extract.slice(0, 4000).toLowerCase();
-    if (normArtist && !firstChunk.includes(normArtist)) {
-      throw new Error(`Found "${title}" on Wikipedia, but it doesn't look like the right one for this artist`);
+    const variants = artistVariants(artistName);
+    const anyMatch = variants.some((v) => firstChunk.includes(v));
+    if (!anyMatch) {
+      uncertain = true;
     }
   }
 
@@ -947,6 +968,7 @@ async function fetchWikipediaSummary(query, { maxChars = 6000, primaryTerm = nul
     title,
     extract,
     truncated,
+    uncertain,
     content_urls: { desktop: { page: pageUrl } },
   };
 }
@@ -978,6 +1000,47 @@ async function grabSpotlightDescription(record, wrap, btn) {
     const sourceLine = pageUrl ? `Full article: ${summaryData.title} — ${pageUrl}` : null;
     const fullText = sourceLine ? `${summaryData.extract}\n\n${sourceLine}` : summaryData.extract;
 
+    if (summaryData.uncertain) {
+      // Found something but not confident — show the title and offer a choice
+      // rather than silently saving or silently failing.
+      btn.disabled = false;
+      btn.textContent = "Grab description from Wikipedia";
+      wrap.innerHTML = "";
+
+      const notice = document.createElement("p");
+      notice.className = "spotlight-error";
+      notice.textContent = `Found "${summaryData.title}" on Wikipedia — this might not be the right article. Use it anyway?`;
+      wrap.appendChild(notice);
+
+      const pasteBtn = document.createElement("button");
+      pasteBtn.type = "button";
+      pasteBtn.className = "btn-secondary";
+      pasteBtn.textContent = "Use it anyway";
+      pasteBtn.addEventListener("click", () => {
+        saveSpotlightDescription(record, fullText, wrap, pasteBtn);
+      });
+      wrap.appendChild(pasteBtn);
+      return;
+    }
+
+    await saveSpotlightDescription(record, fullText, wrap, btn);
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false;
+    btn.textContent = "Grab description from Wikipedia";
+    wrap.innerHTML = "";
+    const errEl = document.createElement("p");
+    errEl.className = "spotlight-error";
+    errEl.textContent = `Couldn't fetch a Wikipedia description (${err.message || err}).`;
+    wrap.appendChild(errEl);
+  }
+}
+
+async function saveSpotlightDescription(record, fullText, wrap, btn) {
+  const prevText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Saving...";
+  try {
     const { error } = await supabaseClient
       .from("records")
       .update({ description: fullText })
@@ -987,7 +1050,6 @@ async function grabSpotlightDescription(record, wrap, btn) {
 
     record.description = fullText;
 
-    // Also reflect this immediately if the record's detail modal happens to be open.
     if (activeDetailRecordId === record.id) {
       const detailField = document.getElementById("detailDescription");
       if (detailField) detailField.value = fullText;
@@ -1000,11 +1062,11 @@ async function grabSpotlightDescription(record, wrap, btn) {
   } catch (err) {
     console.error(err);
     btn.disabled = false;
-    btn.textContent = "Grab description from Wikipedia";
+    btn.textContent = prevText;
     wrap.innerHTML = "";
     const errEl = document.createElement("p");
     errEl.className = "spotlight-error";
-    errEl.textContent = `Couldn't fetch a Wikipedia description (${err.message || err}).`;
+    errEl.textContent = `Couldn't save the description (${err.message || err}).`;
     wrap.appendChild(errEl);
   }
 }
@@ -3436,12 +3498,25 @@ const GENRE_EVOLUTION_PALETTE = [
 let genreEvolutionChartInstance = null;
 let genreEvolutionFocusedArtist = null;
 
-function computeGenreEvolutionAxisOrder() {
+function computeGenreEvolutionAxisOrder(timelines) {
   const counts = {};
-  allRecords.forEach((r) => {
-    const name = r.subgenre_name || r.genre_name || "Unspecified";
-    counts[name] = (counts[name] || 0) + 1;
-  });
+
+  if (timelines && timelines.length > 0) {
+    // Scoped to whatever's actually being plotted (one artist, or the
+    // current overview set) - this keeps the axis tight and relevant
+    // instead of dragging in every style in the whole collection.
+    timelines.forEach((t) => {
+      t.points.forEach((p) => {
+        counts[p.genre] = (counts[p.genre] || 0) + 1;
+      });
+    });
+  } else {
+    allRecords.forEach((r) => {
+      const name = r.subgenre_name || r.genre_name || "Unspecified";
+      counts[name] = (counts[name] || 0) + 1;
+    });
+  }
+
   return Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
     .map(([name]) => name);
@@ -3540,7 +3615,15 @@ function renderGenreEvolution(opts = {}) {
   if (emptyEl) emptyEl.hidden = true;
   if (card) card.hidden = false;
 
-  const axisOrder = computeGenreEvolutionAxisOrder();
+  const visibleTimelines = genreEvolutionFocusedArtist
+    ? timelines.filter((t) => t.artist === genreEvolutionFocusedArtist)
+    : timelines;
+
+  // The axis should only include styles that are actually present among the
+  // artists currently on screen - showing every style in the whole
+  // collection (Christmas, Opera, etc.) when focused on one jazz artist
+  // crushes their real movement into a sliver of the chart.
+  const axisOrder = computeGenreEvolutionAxisOrder(visibleTimelines);
   const axisIndex = new Map(axisOrder.map((name, i) => [name, i]));
 
   if (!opts.skipRebuildSelect) {
@@ -3557,10 +3640,6 @@ function renderGenreEvolution(opts = {}) {
       select.value = previousValue;
     }
   }
-
-  const visibleTimelines = genreEvolutionFocusedArtist
-    ? timelines.filter((t) => t.artist === genreEvolutionFocusedArtist)
-    : timelines;
 
   const datasets = visibleTimelines.map((t) => {
     const originalIndex = timelines.indexOf(t);
@@ -3598,7 +3677,12 @@ function renderGenreEvolution(opts = {}) {
       scales: {
         x: {
           type: "linear",
-          ticks: { color: "#9ca3af", stepSize: 5, precision: 0 },
+          ticks: {
+            color: "#9ca3af",
+            stepSize: 5,
+            precision: 0,
+            callback: (value) => Math.round(value).toString(),
+          },
           grid: { color: "#1f2937" },
           title: { display: true, text: "Release year", color: "#9ca3af" },
         },
