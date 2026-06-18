@@ -3262,6 +3262,7 @@ function computeGenreDetail(genreName, axis) {
   const artistCounts = {};
   const labelCounts = {};
   const subgenreCounts = {};
+  const yearCounts = {};
   const years = [];
   const ratingScores = [];
 
@@ -3269,7 +3270,10 @@ function computeGenreDetail(genreName, axis) {
     if (r.artist) artistCounts[r.artist] = (artistCounts[r.artist] || 0) + 1;
     if (r.label) labelCounts[r.label] = (labelCounts[r.label] || 0) + 1;
     if (r.subgenre_name) subgenreCounts[r.subgenre_name] = (subgenreCounts[r.subgenre_name] || 0) + 1;
-    if (r.year) years.push(r.year);
+    if (r.year) {
+      years.push(r.year);
+      yearCounts[r.year] = (yearCounts[r.year] || 0) + 1;
+    }
     if (r.rating && RATING_SCORES[r.rating]) ratingScores.push(RATING_SCORES[r.rating]);
   });
 
@@ -3299,6 +3303,7 @@ function computeGenreDetail(genreName, axis) {
     topArtists: topN(artistCounts, 5),
     topSubgenres: topN(subgenreCounts, 5),
     topLabels: topN(labelCounts, 5),
+    topYears: topN(yearCounts, 5),
     decadeRange,
     avgRatingLabel,
   };
@@ -3529,6 +3534,7 @@ function renderTasteProfileGenreDetail(axis) {
   listsWrap.appendChild(buildList("Top Artists", detail.topArtists));
   listsWrap.appendChild(buildList("Top Sub-Genres", detail.topSubgenres));
   listsWrap.appendChild(buildList("Top Labels", detail.topLabels));
+  listsWrap.appendChild(buildList("Top Years", detail.topYears));
   wrap.appendChild(listsWrap);
 
   if (!axis.isOtherBucket) {
