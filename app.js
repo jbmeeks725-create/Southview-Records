@@ -112,10 +112,10 @@ function parseYearFlexible(value) {
 
 function renderFilters() {
   const genreSelect = document.getElementById("genreFilter");
+  const wishlistGenreSelect = document.getElementById("wishlistGenreFilter");
 
-  // Clear current options except first
+  // Collection genre filter
   genreSelect.length = 1;
-
   genres.forEach((g) => {
     const opt = document.createElement("option");
     opt.value = g.id;
@@ -123,7 +123,19 @@ function renderFilters() {
     genreSelect.appendChild(opt);
   });
 
+  // Wishlist genre filter — same options, separate element
+  if (wishlistGenreSelect) {
+    wishlistGenreSelect.length = 1;
+    genres.forEach((g) => {
+      const opt = document.createElement("option");
+      opt.value = g.id;
+      opt.textContent = g.name;
+      wishlistGenreSelect.appendChild(opt);
+    });
+  }
+
   populateSubgenreFilterOptions();
+  populateWishlistSubgenreOptions();
 
   // Populate datalists for the Add Record form
   const genreOptions = document.getElementById("genreOptions");
@@ -138,6 +150,34 @@ function renderFilters() {
   });
 
   populateSubgenreOptionsForGenre(null);
+}
+
+function populateWishlistSubgenreOptions() {
+  const genreSelect = document.getElementById("wishlistGenreFilter");
+  const subgenreSelect = document.getElementById("wishlistSubgenreFilter");
+  if (!genreSelect || !subgenreSelect) return;
+
+  const selectedGenreId = genreSelect.value ? Number(genreSelect.value) : null;
+  const previousValue = subgenreSelect.value;
+
+  subgenreSelect.length = 1;
+
+  const relevant = selectedGenreId
+    ? subgenres.filter((sg) => sg.genre_id === selectedGenreId)
+    : subgenres;
+
+  relevant.forEach((sg) => {
+    const opt = document.createElement("option");
+    opt.value = sg.id;
+    opt.textContent = sg.name;
+    subgenreSelect.appendChild(opt);
+  });
+
+  if (relevant.some((sg) => String(sg.id) === previousValue)) {
+    subgenreSelect.value = previousValue;
+  } else {
+    subgenreSelect.value = "";
+  }
 }
 
 function populateSubgenreOptionsForGenre(genreInputValue) {
@@ -297,13 +337,9 @@ function getFilteredRecords() {
 }
 
 function getFilteredWishlist() {
-  const searchText = document
-    .getElementById("searchInput")
-    .value.trim()
-    .toLowerCase();
-
-  const genreFilterVal = document.getElementById("genreFilter").value;
-  const subgenreFilterVal = document.getElementById("subgenreFilter").value;
+  const searchText = (document.getElementById("wishlistSearchInput")?.value || "").trim().toLowerCase();
+  const genreFilterVal = document.getElementById("wishlistGenreFilter")?.value || "";
+  const subgenreFilterVal = document.getElementById("wishlistSubgenreFilter")?.value || "";
 
   let filtered = wishlist.slice();
 
@@ -326,8 +362,9 @@ function getFilteredWishlist() {
     );
   }
 
-  const sortVal = document.getElementById("sortSelect").value;
-  filtered = sortItems(filtered, sortVal, true);
+  // Wishlist uses a simpler default sort (recently added first) rather than
+  // the collection's full sort dropdown.
+  filtered = sortItems(filtered, "added-desc", true);
 
   return filtered;
 }
@@ -4004,9 +4041,7 @@ function setPage(page) {
   const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
   const wishlistSection = document.getElementById("wishlistSection");
-  const filterControls = document.getElementById("collectionFilters");
   const statusSection = document.getElementById("status");
-  const gridDensity = document.getElementById("gridDensityControl");
   const pageNav = document.getElementById("pageNav");
 
   const isHome = page === "home";
@@ -4037,16 +4072,8 @@ function setPage(page) {
   atAGlanceSection.hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
-  filterControls.hidden = !(isCollection || isWishlist);
-  document.getElementById("ratingFilter").hidden = !isCollection;
   statusSection.hidden = isHome || isProfile || isRoom || isTasteProfile || isGenreEvolution;
-  gridDensity.hidden = !isCollection;
   pageNav.hidden = isProfile;
-
-  document.getElementById("addRecordBtn").hidden = !isCollection;
-  document.getElementById("addWishlistBtn").hidden = !isWishlist;
-  document.getElementById("findAllDiscogsBtn").hidden = !isWishlist;
-  document.getElementById("importBtn").hidden = isHome || isProfile || isRoom || isTasteProfile || isGenreEvolution;
 
   if (isProfile) {
     renderProfile();
@@ -6012,6 +6039,22 @@ function setupEvents() {
   document
     .getElementById("searchInput")
     .addEventListener("input", () => render());
+
+  // Wishlist-specific filter listeners
+  document
+    .getElementById("wishlistSearchInput")
+    .addEventListener("input", () => render());
+
+  document
+    .getElementById("wishlistGenreFilter")
+    .addEventListener("change", () => {
+      populateWishlistSubgenreOptions();
+      render();
+    });
+
+  document
+    .getElementById("wishlistSubgenreFilter")
+    .addEventListener("change", () => render());
 
   // Make the subgenre suggestions in Add Record / Add Wishlist / Edit forms
   // depend on whatever genre name has been typed in that same form.

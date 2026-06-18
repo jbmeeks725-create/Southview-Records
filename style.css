@@ -1006,23 +1006,42 @@ h1 {
 
 #controls {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   background: #020617;
   border-bottom: 1px solid #1f2937;
 }
 
-#collectionFilters {
+.page-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #020617;
+  border-bottom: 1px solid #1f2937;
+  margin-bottom: 0;
 }
 
-#controls input,
-#controls select {
+.page-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+#collectionFilters,
+#wishlistFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.page-toolbar input,
+.page-toolbar select {
   padding: 0.4rem 0.6rem;
   border-radius: 4px;
   border: 1px solid #374151;
@@ -1030,8 +1049,8 @@ h1 {
   color: #e5e7eb;
 }
 
-#controls input:focus,
-#controls select:focus {
+.page-toolbar input:focus,
+.page-toolbar select:focus {
   outline: none;
   border-color: #caa15a;
 }
@@ -1048,7 +1067,6 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  margin-left: auto;
   font-size: 0.85rem;
   color: #9ca3af;
 }
@@ -1788,6 +1806,14 @@ h1 {
 }
 
 .collection-dna-section {
+  display: block;
+}
+
+.collection-dna-section[hidden] {
+  display: none;
+}
+
+.dna-card {
   margin: 1rem 1.5rem 0;
   padding: 1.1rem 1.25rem;
   background: linear-gradient(160deg, rgba(202, 161, 90, 0.08), rgba(11, 18, 32, 0.4));
@@ -1796,11 +1822,7 @@ h1 {
   box-shadow: 0 0 0 1px rgba(202, 161, 90, 0.12);
 }
 
-.collection-dna-section[hidden] {
-  display: none;
-}
-
-.collection-dna-section h2 {
+.dna-card h2 {
   margin: 0 0 0.85rem;
   font-size: 1.1rem;
   font-weight: 700;

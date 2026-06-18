@@ -254,59 +254,10 @@
       <button type="button" id="genreEvolutionPageBtn" class="view-btn" aria-pressed="false">Genre Evolution</button>
       <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Room</button>
     </nav>
-    <div id="collectionFilters" hidden>
-      <input
-        type="text"
-        id="searchInput"
-        placeholder="Search by artist or album..."
-      />
-      <select id="genreFilter">
-        <option value="">All genres</option>
-      </select>
-      <select id="subgenreFilter">
-        <option value="">All subgenres</option>
-      </select>
-      <select id="ratingFilter">
-        <option value="">All ratings</option>
-        <option value="love">Love</option>
-        <option value="like">Like</option>
-        <option value="neutral">Neutral</option>
-        <option value="dislike">Dislike</option>
-        <option value="unrated">Unrated</option>
-      </select>
-      <select id="sortSelect">
-        <option value="artist-asc">Artist: A–Z</option>
-        <option value="artist-desc">Artist: Z–A</option>
-        <option value="album-asc">Album: A–Z</option>
-        <option value="album-desc">Album: Z–A</option>
-        <option value="year-desc">Year: Newest first</option>
-        <option value="year-asc">Year: Oldest first</option>
-        <option value="added-desc">Recently added</option>
-        <option value="added-asc">Oldest added</option>
-      </select>
-    </div>
-    <div id="gridDensityControl" hidden>
-      <label for="gridColsSelect">Per row</label>
-      <select id="gridColsSelect">
-        <option value="auto">Auto</option>
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-        <option value="6">6</option>
-        <option value="8">8</option>
-        <option value="10">10</option>
-      </select>
-    </div>
-    <button type="button" id="addRecordBtn" class="add-record-btn" hidden>+ Add Record</button>
-    <button type="button" id="addWishlistBtn" class="add-record-btn" hidden>+ Add to Wishlist</button>
-    <button type="button" id="findAllDiscogsBtn" class="btn-secondary" hidden>Find Discogs matches for all</button>
-    <button type="button" id="importBtn" class="btn-secondary" hidden>Import from spreadsheet</button>
   </section>
   <section id="status" hidden>
     <span id="statusMessage">Loading records…</span>
   </section>
-
-  <div id="activeFiltersBar" class="active-filters-bar" hidden></div>
 
   <section id="homeSection">
     <div class="home-grid">
@@ -581,8 +532,57 @@
   </div>
 
   <section id="collectionDnaSection" class="collection-dna-section" hidden>
-    <h2>Your Collection - By the Numbers</h2>
-    <div id="superlativesWrap" class="superlatives-wrap" hidden></div>
+    <div class="page-toolbar">
+      <div id="collectionFilters">
+        <input type="text" id="searchInput" placeholder="Search by artist or album..." />
+        <select id="genreFilter">
+          <option value="">All genres</option>
+        </select>
+        <select id="subgenreFilter">
+          <option value="">All subgenres</option>
+        </select>
+        <select id="ratingFilter">
+          <option value="">All ratings</option>
+          <option value="love">Love</option>
+          <option value="like">Like</option>
+          <option value="neutral">Neutral</option>
+          <option value="dislike">Dislike</option>
+          <option value="unrated">Unrated</option>
+        </select>
+        <select id="sortSelect">
+          <option value="artist-asc">Artist: A–Z</option>
+          <option value="artist-desc">Artist: Z–A</option>
+          <option value="album-asc">Album: A–Z</option>
+          <option value="album-desc">Album: Z–A</option>
+          <option value="year-desc">Year: Newest first</option>
+          <option value="year-asc">Year: Oldest first</option>
+          <option value="added-desc">Recently added</option>
+          <option value="added-asc">Oldest added</option>
+        </select>
+      </div>
+      <div class="page-toolbar-actions">
+        <div id="gridDensityControl">
+          <label for="gridColsSelect">Per row</label>
+          <select id="gridColsSelect">
+            <option value="auto">Auto</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <button type="button" id="addRecordBtn" class="add-record-btn">+ Add Record</button>
+        <button type="button" id="importBtn" class="btn-secondary">Import from spreadsheet</button>
+      </div>
+    </div>
+    <div id="activeFiltersBar" class="active-filters-bar" hidden></div>
+
+    <div class="dna-card">
+      <h2>Your Collection - By the Numbers</h2>
+      <div id="superlativesWrap" class="superlatives-wrap" hidden></div>
+    </div>
   </section>
 
   <section id="atAGlanceSection" hidden>
@@ -611,6 +611,21 @@
   </section>
 
   <section id="wishlistSection" hidden>
+    <div class="page-toolbar">
+      <div id="wishlistFilters">
+        <input type="text" id="wishlistSearchInput" placeholder="Search by artist or album..." />
+        <select id="wishlistGenreFilter">
+          <option value="">All genres</option>
+        </select>
+        <select id="wishlistSubgenreFilter">
+          <option value="">All subgenres</option>
+        </select>
+      </div>
+      <div class="page-toolbar-actions">
+        <button type="button" id="addWishlistBtn" class="add-record-btn">+ Add to Wishlist</button>
+        <button type="button" id="findAllDiscogsBtn" class="btn-secondary">Find Discogs matches for all</button>
+      </div>
+    </div>
     <div id="wishlistGrid">
       <!-- wishlist cards injected here -->
     </div>
