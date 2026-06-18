@@ -1579,10 +1579,11 @@ h1 {
 /* ------------ Wishlist ------------ */
 
 #wishlistSection {
-  padding: 0 1.5rem 1.5rem;
+  padding: 0;
 }
 
 #wishlistGrid {
+  padding: 0 1.5rem 1.5rem;
   display: grid;
   grid-template-columns: repeat(var(--grid-cols, auto-fill), minmax(var(--grid-min, 180px), 1fr));
   gap: 1.25rem;
@@ -3086,14 +3087,17 @@ h1 {
     text-align: center;
   }
 
-  #collectionFilters {
+  #collectionFilters,
+  #wishlistFilters {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
   }
 
   #collectionFilters input,
-  #collectionFilters select {
+  #collectionFilters select,
+  #wishlistFilters input,
+  #wishlistFilters select {
     width: 100%;
   }
 

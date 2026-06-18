@@ -362,9 +362,9 @@ function getFilteredWishlist() {
     );
   }
 
-  // Wishlist uses a simpler default sort (recently added first) rather than
-  // the collection's full sort dropdown.
-  filtered = sortItems(filtered, "added-desc", true);
+  // Wishlist sort is driven by its own dropdown.
+  const sortVal = document.getElementById("wishlistSortSelect")?.value || "added-desc";
+  filtered = sortItems(filtered, sortVal, true);
 
   return filtered;
 }
@@ -6097,6 +6097,10 @@ function setupEvents() {
 
   document
     .getElementById("wishlistSubgenreFilter")
+    .addEventListener("change", () => render());
+
+  document
+    .getElementById("wishlistSortSelect")
     .addEventListener("change", () => render());
 
   // Make the subgenre suggestions in Add Record / Add Wishlist / Edit forms
