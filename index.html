@@ -251,6 +251,7 @@
       <button type="button" id="collectionPageBtn" class="view-btn" aria-pressed="false">My Collection</button>
       <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
       <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Room</button>
+      <button type="button" id="tasteProfilePageBtn" class="view-btn" aria-pressed="false">My Taste Profile</button>
     </nav>
     <div id="collectionFilters" hidden>
       <input
@@ -627,6 +628,23 @@
         <div id="roomFrames" class="room-frames"></div>
         <div id="roomNowPlaying" class="room-now-playing" hidden></div>
       </div>
+    </div>
+  </section>
+
+  <section id="tasteProfileSection" hidden>
+    <div class="taste-profile-page">
+      <div class="taste-profile-header">
+        <h2>My Taste Profile</h2>
+        <p class="field-hint">Hover a point for a quick snapshot, or click it for the full breakdown.</p>
+      </div>
+
+      <div class="taste-profile-radar-card">
+        <div class="chart-canvas-wrap taste-profile-canvas-wrap">
+          <canvas id="tasteProfileRadarChart"></canvas>
+        </div>
+      </div>
+
+      <div id="tasteProfileGenreDetail" class="taste-profile-genre-detail" hidden></div>
     </div>
   </section>
 

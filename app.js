@@ -3015,6 +3015,303 @@ function computeDecadeCounts() {
     .sort((a, b) => a[0] - b[0]);
 }
 
+// ------------ Taste profile radar ------------
+
+const TASTE_PROFILE_AXIS_COUNT = 7;
+const RATING_SCORES = { love: 4, like: 3, neutral: 2, dislike: 1 };
+
+let tasteProfileRadarChartInstance = null;
+let tasteProfileSelectedGenre = null;
+
+function computeTasteProfileAxes() {
+  const total = allRecords.length;
+  if (total === 0) return [];
+
+  const genreCounts = {};
+  allRecords.forEach((r) => {
+    const name = r.genre_name || "Unspecified";
+    genreCounts[name] = (genreCounts[name] || 0) + 1;
+  });
+
+  const ranked = Object.entries(genreCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const top = ranked.slice(0, TASTE_PROFILE_AXIS_COUNT);
+  const rest = ranked.slice(TASTE_PROFILE_AXIS_COUNT);
+  const otherCount = rest.reduce((sum, g) => sum + g.count, 0);
+
+  const axes = top.map((g) => ({
+    name: g.name,
+    count: g.count,
+    share: g.count / total,
+    isOther: false,
+  }));
+
+  if (otherCount > 0) {
+    axes.push({
+      name: "Other",
+      count: otherCount,
+      share: otherCount / total,
+      isOther: false,
+      otherGenres: rest.map((g) => g.name),
+      isOtherBucket: true,
+    });
+  }
+
+  return axes;
+}
+
+function computeGenreDetail(genreName, axis) {
+  const records = axis?.isOtherBucket
+    ? allRecords.filter((r) => (axis.otherGenres || []).includes(r.genre_name || "Unspecified"))
+    : allRecords.filter((r) => (r.genre_name || "Unspecified") === genreName);
+
+  const total = records.length;
+
+  const artistCounts = {};
+  const labelCounts = {};
+  const years = [];
+  const ratingScores = [];
+
+  records.forEach((r) => {
+    if (r.artist) artistCounts[r.artist] = (artistCounts[r.artist] || 0) + 1;
+    if (r.label) labelCounts[r.label] = (labelCounts[r.label] || 0) + 1;
+    if (r.year) years.push(r.year);
+    if (r.rating && RATING_SCORES[r.rating]) ratingScores.push(RATING_SCORES[r.rating]);
+  });
+
+  const topN = (counts, n) =>
+    Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, n);
+
+  const decadeRange =
+    years.length > 0
+      ? `${Math.floor(Math.min(...years) / 10) * 10}s – ${Math.floor(Math.max(...years) / 10) * 10}s`
+      : "Unknown";
+
+  let avgRatingLabel = "Not enough rated records";
+  if (ratingScores.length > 0) {
+    const avg = ratingScores.reduce((a, b) => a + b, 0) / ratingScores.length;
+    const rounded = Math.round(avg * 10) / 10;
+    const nearest = RATING_OPTIONS.slice().sort(
+      (a, b) => Math.abs(RATING_SCORES[a.value] - avg) - Math.abs(RATING_SCORES[b.value] - avg)
+    )[0];
+    avgRatingLabel = `${rounded} / 4 — closest to "${nearest.label}"`;
+  }
+
+  return {
+    total,
+    topArtists: topN(artistCounts, 5),
+    topLabels: topN(labelCounts, 5),
+    decadeRange,
+    avgRatingLabel,
+  };
+}
+
+function buildTasteProfileSnapshot(axis) {
+  const detail = computeGenreDetail(axis.name, axis);
+  const lines = [`${axis.count} records (${Math.round(axis.share * 100)}% of your collection)`];
+  if (detail.topArtists[0]) lines.push(`Top artist: ${detail.topArtists[0].name}`);
+  return lines;
+}
+
+function renderTasteProfile() {
+  if (typeof Chart === "undefined") return;
+
+  const axes = computeTasteProfileAxes();
+  const detailWrap = document.getElementById("tasteProfileGenreDetail");
+
+  if (axes.length === 0) {
+    detailWrap.hidden = true;
+    if (tasteProfileRadarChartInstance) {
+      tasteProfileRadarChartInstance.destroy();
+      tasteProfileRadarChartInstance = null;
+    }
+    return;
+  }
+
+  const labels = axes.map((a) => a.name);
+  const data = axes.map((a) => Math.round(a.share * 1000) / 10);
+
+  const canvas = document.getElementById("tasteProfileRadarChart");
+
+  if (tasteProfileRadarChartInstance) {
+    tasteProfileRadarChartInstance.data.labels = labels;
+    tasteProfileRadarChartInstance.data.datasets[0].data = data;
+    tasteProfileRadarChartInstance.config._axes = axes;
+    tasteProfileRadarChartInstance.update();
+  } else {
+    tasteProfileRadarChartInstance = new Chart(canvas, {
+      type: "radar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Share of collection",
+            data,
+            backgroundColor: "rgba(202, 161, 90, 0.25)",
+            borderColor: "#caa15a",
+            pointBackgroundColor: "#caa15a",
+            pointBorderColor: "#0b1220",
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            borderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            angleLines: { color: "#1f2937" },
+            grid: { color: "#1f2937" },
+            pointLabels: { color: "#d1d5db", font: { size: 12 } },
+            ticks: {
+              color: "#6b7280",
+              backdropColor: "transparent",
+              callback: (value) => `${value}%`,
+            },
+            beginAtZero: true,
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => items[0]?.label || "",
+              label: (item) => {
+                const axis = tasteProfileRadarChartInstance.config._axes[item.dataIndex];
+                return axis ? buildTasteProfileSnapshot(axis) : "";
+              },
+            },
+          },
+        },
+        onClick: (evt, elements) => {
+          if (!elements.length) return;
+          const axis = tasteProfileRadarChartInstance.config._axes[elements[0].index];
+          if (axis) renderTasteProfileGenreDetail(axis);
+        },
+        onHover: (evt, elements) => {
+          evt.native.target.style.cursor = elements.length ? "pointer" : "default";
+        },
+      },
+    });
+    tasteProfileRadarChartInstance.config._axes = axes;
+  }
+
+  // Keep the detail panel in sync if a genre was already selected (e.g. data refreshed).
+  if (tasteProfileSelectedGenre) {
+    const stillThere = axes.find((a) => a.name === tasteProfileSelectedGenre);
+    if (stillThere) {
+      renderTasteProfileGenreDetail(stillThere);
+    } else {
+      detailWrap.hidden = true;
+      tasteProfileSelectedGenre = null;
+    }
+  }
+}
+
+function renderTasteProfileGenreDetail(axis) {
+  tasteProfileSelectedGenre = axis.name;
+  const wrap = document.getElementById("tasteProfileGenreDetail");
+  wrap.innerHTML = "";
+  wrap.hidden = false;
+
+  const detail = computeGenreDetail(axis.name, axis);
+
+  const heading = document.createElement("h3");
+  heading.className = "taste-profile-detail-heading";
+  heading.textContent = axis.isOtherBucket ? "Other Genres" : axis.name;
+  wrap.appendChild(heading);
+
+  if (axis.isOtherBucket && axis.otherGenres?.length) {
+    const subnote = document.createElement("p");
+    subnote.className = "field-hint";
+    subnote.textContent = `Includes: ${axis.otherGenres.join(", ")}`;
+    wrap.appendChild(subnote);
+  }
+
+  const statsGrid = document.createElement("div");
+  statsGrid.className = "taste-profile-detail-stats";
+
+  const statBlocks = [
+    { label: "Records", value: String(detail.total) },
+    { label: "Share of collection", value: `${Math.round(axis.share * 100)}%` },
+    { label: "Decade range", value: detail.decadeRange, isText: true },
+    { label: "Average rating", value: detail.avgRatingLabel, isText: true },
+  ];
+
+  statBlocks.forEach((s) => {
+    const block = document.createElement("div");
+    block.className = "taste-profile-stat-block";
+    const valueEl = document.createElement("div");
+    valueEl.className = s.isText
+      ? "taste-profile-stat-value taste-profile-stat-value-text"
+      : "taste-profile-stat-value";
+    valueEl.textContent = s.value;
+    const labelEl = document.createElement("div");
+    labelEl.className = "taste-profile-stat-label";
+    labelEl.textContent = s.label;
+    block.appendChild(valueEl);
+    block.appendChild(labelEl);
+    statsGrid.appendChild(block);
+  });
+
+  wrap.appendChild(statsGrid);
+
+  const listsWrap = document.createElement("div");
+  listsWrap.className = "taste-profile-detail-lists";
+
+  const buildList = (title, items) => {
+    const col = document.createElement("div");
+    col.className = "taste-profile-detail-list";
+    const h4 = document.createElement("h4");
+    h4.textContent = title;
+    col.appendChild(h4);
+    if (items.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "empty-hint";
+      empty.textContent = "Nothing here yet.";
+      col.appendChild(empty);
+    } else {
+      const ul = document.createElement("ul");
+      items.forEach((item) => {
+        const li = document.createElement("li");
+        li.textContent = `${item.name} (${item.count})`;
+        ul.appendChild(li);
+      });
+      col.appendChild(ul);
+    }
+    return col;
+  };
+
+  listsWrap.appendChild(buildList("Top Artists", detail.topArtists));
+  listsWrap.appendChild(buildList("Top Labels", detail.topLabels));
+  wrap.appendChild(listsWrap);
+
+  if (!axis.isOtherBucket) {
+    const viewBtn = document.createElement("button");
+    viewBtn.type = "button";
+    viewBtn.className = "btn-secondary";
+    viewBtn.textContent = `View all ${axis.name} records`;
+    viewBtn.addEventListener("click", () => {
+      const matchedGenre = genres.find((g) => g.name === axis.name);
+      if (matchedGenre) {
+        document.getElementById("genreFilter").value = String(matchedGenre.id);
+        populateSubgenreFilterOptions();
+      }
+      setPage("collection");
+    });
+    wrap.appendChild(viewBtn);
+  }
+
+  wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
 function upsertBarChart(instance, canvasId, labels, data, onBarClick) {
   const canvas = document.getElementById(canvasId);
   if (!canvas || typeof Chart === "undefined") return instance;
@@ -3273,10 +3570,12 @@ function setPage(page) {
   const collectionBtn = document.getElementById("collectionPageBtn");
   const wishlistBtn = document.getElementById("wishlistPageBtn");
   const roomBtn = document.getElementById("roomPageBtn");
+  const tasteProfileBtn = document.getElementById("tasteProfilePageBtn");
 
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
   const roomSection = document.getElementById("roomSection");
+  const tasteProfileSection = document.getElementById("tasteProfileSection");
   const collectionDnaSection = document.getElementById("collectionDnaSection");
   const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
@@ -3291,11 +3590,13 @@ function setPage(page) {
   const isWishlist = page === "wishlist";
   const isProfile = page === "profile";
   const isRoom = page === "room";
+  const isTasteProfile = page === "tasteProfile";
 
   [
     [collectionBtn, isCollection],
     [wishlistBtn, isWishlist],
     [roomBtn, isRoom],
+    [tasteProfileBtn, isTasteProfile],
   ].forEach(([btn, active]) => {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-pressed", String(active));
@@ -3304,20 +3605,21 @@ function setPage(page) {
   homeSection.hidden = !isHome;
   profileSection.hidden = !isProfile;
   roomSection.hidden = !isRoom;
+  tasteProfileSection.hidden = !isTasteProfile;
   collectionDnaSection.hidden = !isCollection;
   atAGlanceSection.hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
   filterControls.hidden = !(isCollection || isWishlist);
   document.getElementById("ratingFilter").hidden = !isCollection;
-  statusSection.hidden = isHome || isProfile || isRoom;
+  statusSection.hidden = isHome || isProfile || isRoom || isTasteProfile;
   gridDensity.hidden = !isCollection;
   pageNav.hidden = isProfile;
 
   document.getElementById("addRecordBtn").hidden = !isCollection;
   document.getElementById("addWishlistBtn").hidden = !isWishlist;
   document.getElementById("findAllDiscogsBtn").hidden = !isWishlist;
-  document.getElementById("importBtn").hidden = isHome || isProfile || isRoom;
+  document.getElementById("importBtn").hidden = isHome || isProfile || isRoom || isTasteProfile;
 
   if (isProfile) {
     renderProfile();
@@ -3326,6 +3628,11 @@ function setPage(page) {
 
   if (isRoom) {
     renderRoom();
+    return;
+  }
+
+  if (isTasteProfile) {
+    renderTasteProfile();
     return;
   }
 
@@ -5340,6 +5647,10 @@ function setupEvents() {
   document
     .getElementById("roomPageBtn")
     .addEventListener("click", () => setPage("room"));
+
+  document
+    .getElementById("tasteProfilePageBtn")
+    .addEventListener("click", () => setPage("tasteProfile"));
 
   document
     .getElementById("spotlightShuffleBtn")
