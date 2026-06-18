@@ -4291,6 +4291,7 @@ function render() {
 function setPage(page) {
   currentPage = page;
 
+  const homeBtn = document.getElementById("homePageBtn");
   const collectionBtn = document.getElementById("collectionPageBtn");
   const wishlistBtn = document.getElementById("wishlistPageBtn");
   const roomBtn = document.getElementById("roomPageBtn");
@@ -4318,6 +4319,7 @@ function setPage(page) {
   const isGenreEvolution = page === "genreEvolution";
 
   [
+    [homeBtn, isHome],
     [collectionBtn, isCollection],
     [wishlistBtn, isWishlist],
     [roomBtn, isRoom],
@@ -6387,6 +6389,10 @@ function setupEvents() {
   statWishlistBox.addEventListener("click", () => setPage("wishlist"));
 
   [statRecordsBox, statGenresBox, statDecadeBox, statWishlistBox].forEach(makeKeyboardClickable);
+
+  document
+    .getElementById("homePageBtn")
+    .addEventListener("click", () => setPage("home"));
 
   document
     .getElementById("collectionPageBtn")
