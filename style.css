@@ -1806,6 +1806,21 @@ h1 {
   color: #f9fafb;
 }
 
+.card-section-header {
+  padding: 1rem 1.5rem 0;
+}
+
+.card-section-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+.card-section-header[hidden] {
+  display: none;
+}
+
 .collection-dna-section {
   display: block;
 }

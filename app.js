@@ -4106,6 +4106,7 @@ function setPage(page) {
   genreEvolutionSection.hidden = !isGenreEvolution;
   collectionDnaSection.hidden = !isCollection;
   atAGlanceSection.hidden = !isCollection;
+  document.getElementById("cardSectionHeader").hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
   statusSection.hidden = isHome || isProfile || isRoom || isTasteProfile || isGenreEvolution;
