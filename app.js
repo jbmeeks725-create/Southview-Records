@@ -3022,41 +3022,140 @@ const GENRE_SUPERLATIVES = {
 };
 
 const SUBGENRE_SUPERLATIVES = {
+  // Jazz
   Bebop: "Bebop Scholar",
   "Hard Bop": "Hard Bop Scholar",
   "Modal Jazz": "Modal Jazz Devotee",
   Fusion: "Fusion Head",
   "Free Jazz": "Free Jazz Adventurer",
+  "Cool Jazz": "Cool Jazz Devotee",
+  "Smooth Jazz": "Smooth Jazz Regular",
+
+  // Blues / Soul / Roots
   "Delta Blues": "Delta Blues Pilgrim",
   "Chicago Blues": "Chicago Blues Faithful",
+  "Electric Blues": "Electric Blues Disciple",
   "Bossa Nova": "Bossa Nova Romantic",
   "Bluegrass": "Bluegrass Picker",
+  "Northern Soul": "Northern Soul Faithful",
+  "Southern Soul": "Southern Soul Faithful",
+
+  // Rock / Indie / Alt
   "New Wave": "New Wave Kid",
   "Post-Punk": "Post-Punk Purist",
   Grunge: "Flannel & Feedback",
-  "Northern Soul": "Northern Soul Faithful",
+  Shoegaze: "Shoegaze Dreamer",
+  "Math Rock": "Math Rock Theorist",
+  Emo: "Emo Lifer",
+  "Lo-fi": "Lo-fi Loyalist",
+  "Dream Pop": "Dream Pop Romantic",
+  "Garage Rock": "Garage Rock Regular",
+  "Surf Rock": "Surf Rock Wanderer",
+
+  // Metal
+  "Death Metal": "Death Metal Disciple",
+  "Black Metal": "Black Metal Initiate",
+  Thrash: "Thrash Survivor",
+  "Doom Metal": "Doom Metal Pilgrim",
+  "Power Metal": "Power Metal Champion",
+  Sludge: "Sludge Devotee",
+  "Nu Metal": "Nu Metal Throwback",
+  Metalcore: "Metalcore Regular",
+  "Progressive Metal": "Prog Metal Theorist",
+
+  // Punk / Hardcore
+  "Hardcore Punk": "Hardcore Lifer",
+  "Ska Punk": "Ska Punk Skanker",
+  "Pop Punk": "Pop Punk Kid",
+  "Crust Punk": "Crust Punk Diehard",
+  "Street Punk": "Street Punk Regular",
+
+  // Electronic
+  "Drum and Bass": "D&B Selector",
+  "Drum & Bass": "D&B Selector",
+  Ambient: "Ambient Drifter",
+  IDM: "IDM Theorist",
+  Trance: "Trance Pilgrim",
+  Dubstep: "Dubstep Disciple",
+  Synthwave: "Synthwave Dreamer",
+  Industrial: "Industrial Devotee",
+  "Deep House": "Deep House Regular",
+  Electro: "Electro Disciple",
+  Breakbeat: "Breakbeat Veteran",
+
+  // Hip-Hop
+  "Boom Bap": "Boom Bap Purist",
+  Trap: "Trap Regular",
+  "Conscious Hip Hop": "Conscious Listener",
+  "East Coast Hip Hop": "East Coast Loyalist",
+  "West Coast Hip Hop": "West Coast Loyalist",
+  "Southern Hip Hop": "Dirty South Devotee",
+  "Gangsta Rap": "Gangsta Rap Veteran",
+
+  // World / Latin
+  Afrobeat: "Afrobeat Devotee",
+  Cumbia: "Cumbia Dancer",
+  Reggaeton: "Reggaeton Regular",
+  "K-Pop": "K-Pop Stan",
+  Salsa: "Salsa Dancer",
+  Highlife: "Highlife Devotee",
 };
 
 const LABEL_SUPERLATIVES = {
+  // Jazz
   "Blue Note": "Blue Note Connoisseur",
   Verve: "Verve Devotee",
-  Atlantic: "Atlantic Loyalist",
-  Motown: "Motown Faithful",
-  "Sub Pop": "Sub Pop Disciple",
-  Stax: "Stax Soul Patrol",
-  Impulse: "Impulse! Acolyte",
-  "Impulse!": "Impulse! Acolyte",
-  Columbia: "Columbia Regular",
   Prestige: "Prestige Purist",
   "Riverside": "Riverside Regular",
+  Impulse: "Impulse! Acolyte",
+  "Impulse!": "Impulse! Acolyte",
+  ECM: "ECM Purist",
+
+  // Soul / Blues / Early Rock
+  Atlantic: "Atlantic Loyalist",
+  Motown: "Motown Faithful",
+  Stax: "Stax Soul Patrol",
   Chess: "Chess Records Faithful",
-  "Def Jam": "Def Jam Loyalist",
-  "Death Row": "Death Row Devotee",
+  Columbia: "Columbia Regular",
+  "Sun Records": "Sun Records Pilgrim",
+
+  // Indie / Alt
+  "Sub Pop": "Sub Pop Disciple",
   "4AD": "4AD Aesthete",
   Factory: "Factory Records Faithful",
-  "Sun Records": "Sun Records Pilgrim",
-  ECM: "ECM Purist",
-  "Warp": "Warp Records Head",
+  Matador: "Matador Regular",
+  Merge: "Merge Records Faithful",
+  "Saddle Creek": "Saddle Creek Loyalist",
+  Jagjaguwar: "Jagjaguwar Devotee",
+
+  // Metal
+  Earache: "Earache Disciple",
+  Roadrunner: "Roadrunner Loyalist",
+  "Nuclear Blast": "Nuclear Blast Faithful",
+  "Metal Blade": "Metal Blade Veteran",
+  Relapse: "Relapse Records Faithful",
+  "Century Media": "Century Media Devotee",
+
+  // Punk / Hardcore
+  Epitaph: "Epitaph Regular",
+  "Fat Wreck Chords": "Fat Wreck Loyalist",
+  Dischord: "Dischord Purist",
+  SST: "SST Diehard",
+
+  // Electronic
+  Warp: "Warp Records Head",
+  "Ninja Tune": "Ninja Tune Regular",
+  Hyperdub: "Hyperdub Disciple",
+  Kompakt: "Kompakt Devotee",
+  Mute: "Mute Records Loyalist",
+
+  // Hip-Hop
+  "Def Jam": "Def Jam Loyalist",
+  "Death Row": "Death Row Devotee",
+  Rawkus: "Rawkus Regular",
+  "Stones Throw": "Stones Throw Disciple",
+  "Top Dawg": "TDE Faithful",
+  "Cash Money": "Cash Money Loyalist",
 };
 
 function titleForGenre(name) {
