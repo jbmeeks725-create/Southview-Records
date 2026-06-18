@@ -2594,22 +2594,59 @@ async function addRecommendationToWishlist(artist, album, btn) {
 
 // ------------ "More like this" recommendations (shared) ------------
 
-function isAlbumOwned(artist, album) {
-  const a = (artist || "").trim().toLowerCase();
-  const b = (album || "").trim().toLowerCase();
+// Normalizes a title/name for fuzzy comparison: lowercases, strips
+// parenthetical/bracketed suffixes (remaster notes, "(Mono)", reissue labels,
+// etc.), strips punctuation, and collapses whitespace. This is deliberately
+// loose because real-world catalog data rarely matches character-for-character
+// even when it's clearly "the same album" (e.g. "Waltz for Debby" vs.
+// "Waltz for Debby (Original Jazz Classics Remaster)").
+function normalizeForMatch(str) {
+  return (str || "")
+    .toLowerCase()
+    .replace(/[\(\[][^)\]]*[\)\]]/g, " ") // drop (...) and [...] content
+    .replace(/[^a-z0-9\s]/g, " ") // drop punctuation
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Strips a trailing ensemble word (Trio, Quartet, Orchestra, etc.) and a
+// leading "The" so artist-name formatting differences don't block a match.
+function normalizeArtistForMatch(str) {
+  let s = normalizeForMatch(str);
+  s = s.replace(/^the\s+/, "");
+  s = s.replace(/\s+(trio|quartet|quintet|orchestra|band|ensemble|group|sextet|septet|big band)$/, "");
+  return s.trim();
+}
+
+function titlesLooselyMatch(a, b) {
   if (!a || !b) return false;
-  return allRecords.some(
-    (r) => (r.artist || "").trim().toLowerCase() === a && (r.album || "").trim().toLowerCase() === b
-  );
+  if (a === b) return true;
+  // Treat as a match if one normalized title contains the other as a whole
+  // word sequence - catches "Night Train" vs "Night Train (Deluxe Edition)"
+  // after parenthetical-stripping still leaving minor trailing differences.
+  return a.length >= 3 && b.length >= 3 && (a.startsWith(b) || b.startsWith(a));
+}
+
+function isAlbumOwned(artist, album) {
+  const a = normalizeArtistForMatch(artist);
+  const b = normalizeForMatch(album);
+  if (!a || !b) return false;
+  return allRecords.some((r) => {
+    const ra = normalizeArtistForMatch(r.artist);
+    const rb = normalizeForMatch(r.album);
+    return ra === a && titlesLooselyMatch(rb, b);
+  });
 }
 
 function isAlbumOnWishlist(artist, album) {
-  const a = (artist || "").trim().toLowerCase();
-  const b = (album || "").trim().toLowerCase();
+  const a = normalizeArtistForMatch(artist);
+  const b = normalizeForMatch(album);
   if (!a || !b) return false;
-  return wishlist.some(
-    (w) => (w.artist || "").trim().toLowerCase() === a && (w.album || "").trim().toLowerCase() === b
-  );
+  return wishlist.some((w) => {
+    const wa = normalizeArtistForMatch(w.artist);
+    const wb = normalizeForMatch(w.album);
+    return wa === a && titlesLooselyMatch(wb, b);
+  });
 }
 
 function buildMoreLikeThisCard(suggestion) {

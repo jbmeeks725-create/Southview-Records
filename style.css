@@ -2934,6 +2934,8 @@ h1 {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  position: relative;
+  padding-right: 2.1rem;
 }
 
 .recommendation-artist {
@@ -2975,28 +2977,31 @@ h1 {
   padding: 0.3rem 0.6rem;
 }
 
-.recommendation-card {
-  position: relative;
-}
-
 .recommendation-dismiss {
   position: absolute;
   top: 0.4rem;
   right: 0.4rem;
-  background: none;
-  border: none;
-  color: #4b5563;
-  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 50%;
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-family: inherit;
   line-height: 1;
-  padding: 0.1rem 0.3rem;
+  padding: 0;
   cursor: pointer;
-  border-radius: 4px;
-  transition: color 0.15s ease, background-color 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .recommendation-dismiss:hover {
-  color: #9ca3af;
+  color: #f3f4f6;
   background: #1f2937;
+  border-color: #4b5563;
 }
 
 .recommendation-owned-tag {
