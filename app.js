@@ -834,6 +834,24 @@ function wikiTitleMatchScore(title, primaryTerm) {
   return 0;
 }
 
+// Strips wiki markup/HTML the search API sometimes leaves in snippets
+// (e.g. <span class="searchmatch">Taj</span>) so plain substring checks work.
+function stripWikiSnippetMarkup(snippet) {
+  return (snippet || "").replace(/<[^>]+>/g, "");
+}
+
+// True if the artist's name plausibly shows up in the result's title or
+// search snippet - a cheap signal that this article is actually about (or
+// at least mentions) the right person/group, not just a same-named subject.
+function wikiResultMentionsArtist(result, artistName) {
+  if (!artistName) return true; // nothing to check against
+  const normArtist = artistName.toLowerCase().trim();
+  if (!normArtist) return true;
+
+  const haystack = `${result.title} ${stripWikiSnippetMarkup(result.snippet)}`.toLowerCase();
+  return haystack.includes(normArtist);
+}
+
 async function wikiSearch(query, limit = 5) {
   const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*&srlimit=${limit}`;
   const searchResp = await fetch(searchUrl);
@@ -842,7 +860,7 @@ async function wikiSearch(query, limit = 5) {
   return searchData?.query?.search || [];
 }
 
-async function fetchWikipediaSummary(query, { maxChars = 6000, primaryTerm = null } = {}) {
+async function fetchWikipediaSummary(query, { maxChars = 6000, primaryTerm = null, artistName = null } = {}) {
   // Bias toward an exact title match first (helps when the plain-text query
   // would otherwise be dominated by a more "famous" same-artist result),
   // falling back to a normal relevance search if that comes up empty.
@@ -855,10 +873,21 @@ async function fetchWikipediaSummary(query, { maxChars = 6000, primaryTerm = nul
     throw new Error("No Wikipedia article found");
   }
 
-  let best = results[0];
+  // When we know the artist, prefer candidates whose title/snippet actually
+  // mentions them - this is what catches cases like an album called "Taj
+  // Mahal" matching the historical monument's article instead of the
+  // musician's. A title-only match score has no way to know those are
+  // different subjects; checking for the artist's name does.
+  let candidates = results;
+  if (artistName) {
+    const artistMatches = results.filter((r) => wikiResultMentionsArtist(r, artistName));
+    if (artistMatches.length > 0) candidates = artistMatches;
+  }
+
+  let best = candidates[0];
   if (primaryTerm) {
     let bestScore = -1;
-    for (const r of results) {
+    for (const r of candidates) {
       const score = wikiTitleMatchScore(r.title, primaryTerm);
       if (score > bestScore) {
         bestScore = score;
@@ -880,6 +909,19 @@ async function fetchWikipediaSummary(query, { maxChars = 6000, primaryTerm = nul
 
   if (!extract) {
     throw new Error("No article text available");
+  }
+
+  // Final safety check: if we know the artist and their name is nowhere in
+  // the actual article body, this is almost certainly the wrong subject
+  // (e.g. a monument, a place, an unrelated person) rather than a genuine
+  // mismatch in how Wikipedia titles things. Better to say "not found" than
+  // hand back confidently-wrong content.
+  if (artistName) {
+    const normArtist = artistName.toLowerCase().trim();
+    const firstChunk = extract.slice(0, 4000).toLowerCase();
+    if (normArtist && !firstChunk.includes(normArtist)) {
+      throw new Error(`Found "${title}" on Wikipedia, but it doesn't look like the right one for this artist`);
+    }
   }
 
   // Drop common trailing boilerplate sections that add length without value.
@@ -929,6 +971,7 @@ async function grabSpotlightDescription(record, wrap, btn) {
   try {
     const summaryData = await fetchWikipediaSummary(`${record.album} ${record.artist} album`, {
       primaryTerm: record.album,
+      artistName: record.artist,
     });
 
     const pageUrl = summaryData.content_urls?.desktop?.page;
