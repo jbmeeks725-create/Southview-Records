@@ -2975,9 +2975,39 @@ h1 {
   padding: 0.3rem 0.6rem;
 }
 
+.recommendation-card {
+  position: relative;
+}
+
+.recommendation-dismiss {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  background: none;
+  border: none;
+  color: #4b5563;
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0.1rem 0.3rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.recommendation-dismiss:hover {
+  color: #9ca3af;
+  background: #1f2937;
+}
+
 .recommendation-owned-tag {
   font-size: 0.75rem;
   color: #caa15a;
+  font-weight: 600;
+}
+
+.recommendation-wishlist-tag {
+  font-size: 0.75rem;
+  color: #5ab0c9;
   font-weight: 600;
 }
 

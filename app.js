@@ -2603,6 +2603,97 @@ function isAlbumOwned(artist, album) {
   );
 }
 
+function isAlbumOnWishlist(artist, album) {
+  const a = (artist || "").trim().toLowerCase();
+  const b = (album || "").trim().toLowerCase();
+  if (!a || !b) return false;
+  return wishlist.some(
+    (w) => (w.artist || "").trim().toLowerCase() === a && (w.album || "").trim().toLowerCase() === b
+  );
+}
+
+function buildMoreLikeThisCard(suggestion) {
+  const card = document.createElement("div");
+  card.className = "recommendation-card";
+
+  const owned = isAlbumOwned(suggestion.artist, suggestion.album);
+  const onWishlist = !owned && isAlbumOnWishlist(suggestion.artist, suggestion.album);
+
+  // Dismiss button — top-right X
+  const dismissBtn = document.createElement("button");
+  dismissBtn.type = "button";
+  dismissBtn.className = "recommendation-dismiss";
+  dismissBtn.setAttribute("aria-label", "Dismiss suggestion");
+  dismissBtn.textContent = "×";
+  dismissBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    card.style.transition = "opacity 0.2s ease";
+    card.style.opacity = "0";
+    setTimeout(() => card.remove(), 200);
+  });
+  card.appendChild(dismissBtn);
+
+  const artistEl = document.createElement("div");
+  artistEl.className = "recommendation-artist";
+  artistEl.textContent = suggestion.artist;
+
+  const albumEl = document.createElement("div");
+  albumEl.className = "recommendation-album";
+  albumEl.textContent = suggestion.album;
+
+  const reasonEl = document.createElement("div");
+  reasonEl.className = "recommendation-reason";
+  reasonEl.textContent = suggestion.reason || "";
+
+  card.appendChild(artistEl);
+  card.appendChild(albumEl);
+  card.appendChild(reasonEl);
+
+  if (owned) {
+    const ownedEl = document.createElement("div");
+    ownedEl.className = "recommendation-owned-tag";
+    ownedEl.textContent = "Already in your collection";
+    card.appendChild(ownedEl);
+  } else if (onWishlist) {
+    const wishlistEl = document.createElement("div");
+    wishlistEl.className = "recommendation-wishlist-tag";
+    wishlistEl.textContent = "Already on your wishlist";
+    card.appendChild(wishlistEl);
+  } else {
+    const actions = document.createElement("div");
+    actions.className = "recommendation-actions";
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "btn-secondary";
+    addBtn.textContent = "Add to Wishlist";
+    addBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      addRecommendationToWishlist(suggestion.artist, suggestion.album, addBtn);
+    });
+
+    const songBtn = document.createElement("button");
+    songBtn.type = "button";
+    songBtn.className = "btn-secondary";
+    songBtn.textContent = "Find a notable track";
+
+    const songWrap = document.createElement("div");
+    songWrap.className = "recommendation-song-wrap";
+
+    songBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      findRecommendationSong(suggestion, songWrap, songBtn);
+    });
+
+    actions.appendChild(addBtn);
+    actions.appendChild(songBtn);
+    card.appendChild(actions);
+    card.appendChild(songWrap);
+  }
+
+  return card;
+}
+
 async function fetchMoreLikeThis(artist, album, label) {
   const response = await fetch(RECOMMENDATIONS_FUNCTION_URL, {
     method: "POST",
