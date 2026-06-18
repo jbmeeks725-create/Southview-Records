@@ -1787,6 +1787,26 @@ h1 {
   color: #f9fafb;
 }
 
+.collection-dna-section {
+  margin: 1rem 1.5rem 0;
+  padding: 1.1rem 1.25rem;
+  background: linear-gradient(160deg, rgba(202, 161, 90, 0.08), rgba(11, 18, 32, 0.4));
+  border: 1px solid #caa15a;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px rgba(202, 161, 90, 0.12);
+}
+
+.collection-dna-section[hidden] {
+  display: none;
+}
+
+.collection-dna-section h2 {
+  margin: 0 0 0.85rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #caa15a;
+}
+
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -1795,9 +1815,8 @@ h1 {
 
 .superlatives-wrap {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
-  margin-bottom: 1.25rem;
 }
 
 .superlatives-wrap[hidden] {

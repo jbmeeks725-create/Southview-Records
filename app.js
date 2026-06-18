@@ -2605,6 +2605,7 @@ function computeCollectionStats() {
   const total = allRecords.length;
 
   const genreCounts = {};
+  const subgenreCounts = {};
   const labelCounts = {};
   const artistCounts = {};
   const decadeCounts = {};
@@ -2613,6 +2614,7 @@ function computeCollectionStats() {
 
   allRecords.forEach((r) => {
     if (r.genre_name) genreCounts[r.genre_name] = (genreCounts[r.genre_name] || 0) + 1;
+    if (r.subgenre_name) subgenreCounts[r.subgenre_name] = (subgenreCounts[r.subgenre_name] || 0) + 1;
     if (r.label) labelCounts[r.label] = (labelCounts[r.label] || 0) + 1;
     if (r.artist) artistCounts[r.artist] = (artistCounts[r.artist] || 0) + 1;
     if (r.year) {
@@ -2629,28 +2631,43 @@ function computeCollectionStats() {
     }
   });
 
-  const topEntry = (counts) => {
-    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    return entries.length ? { name: entries[0][0], count: entries[0][1] } : null;
-  };
+  const ranked = (counts) =>
+    Object.entries(counts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
 
-  const topGenre = topEntry(genreCounts);
-  const topLabel = topEntry(labelCounts);
-  const topArtist = topEntry(artistCounts);
+  const genreRanked = ranked(genreCounts);
+  const subgenreRanked = ranked(subgenreCounts);
+  const labelRanked = ranked(labelCounts);
+  const artistRanked = ranked(artistCounts);
 
-  const distinctGenres = Object.keys(genreCounts).length;
-  const distinctLabels = Object.keys(labelCounts).length;
+  const topGenre = genreRanked[0] || null;
+  const secondGenre = genreRanked[1] || null;
+  const topSubgenre = subgenreRanked[0] || null;
+  const topLabel = labelRanked[0] || null;
+  const secondLabel = labelRanked[1] || null;
+  const topArtist = artistRanked[0] || null;
+  const secondArtist = artistRanked[1] || null;
+
+  const distinctGenres = genreRanked.length;
+  const distinctLabels = labelRanked.length;
+  const distinctArtists = artistRanked.length;
   const distinctDecades = Object.keys(decadeCounts).length;
 
   return {
     total,
     topGenre,
     topGenreShare: topGenre && total ? topGenre.count / total : 0,
+    secondGenre,
+    topSubgenre,
     topLabel,
     topLabelShare: topLabel && total ? topLabel.count / total : 0,
+    secondLabel,
     topArtist,
+    secondArtist,
     distinctGenres,
     distinctLabels,
+    distinctArtists,
     distinctDecades,
     ratingCounts,
     ratedCount: total - ratingCounts.unrated,
@@ -2659,21 +2676,28 @@ function computeCollectionStats() {
   };
 }
 
-// Curated genre/label -> evocative title overrides. Falls back to a generic
-// "{Name} Devotee" pattern when nothing more specific is defined.
+// Curated genre/subgenre/label -> evocative title overrides. Falls back to a
+// generic "{Name} Devotee" / "{Name} Loyalist" pattern when nothing more
+// specific is defined, so any genre or label still gets a sensible title.
 const GENRE_SUPERLATIVES = {
   Jazz: "Jazz Explorer",
   Blues: "Blues Traveler",
   Rock: "Arena Rocker",
   "Hard Rock": "Arena Rocker",
+  "Classic Rock": "Classic Rock Lifer",
+  "Prog Rock": "Prog Voyager",
+  "Psychedelic Rock": "Acid Trip Curator",
   Metal: "Headbanger",
   Punk: "Basement Show Regular",
   "Hip Hop": "Crate Digger",
   Hip: "Crate Digger",
+  Rap: "Crate Digger",
   Soul: "Soul Searcher",
   Funk: "Funk Disciple",
   Reggae: "Skank Enthusiast",
   Electronic: "Synth Voyager",
+  House: "Late Night DJ",
+  Techno: "Warehouse Regular",
   Classical: "Concert Hall Regular",
   Folk: "Front Porch Picker",
   Country: "Backroads Wanderer",
@@ -2681,7 +2705,26 @@ const GENRE_SUPERLATIVES = {
   Disco: "Dance Floor Veteran",
   Pop: "Pop Connoisseur",
   Indie: "Indie Tastemaker",
+  "Singer-Songwriter": "Lyric Listener",
   World: "Global Listener",
+  Latin: "Global Listener",
+  Gospel: "Sunday Morning Soul",
+};
+
+const SUBGENRE_SUPERLATIVES = {
+  Bebop: "Bebop Scholar",
+  "Hard Bop": "Hard Bop Scholar",
+  "Modal Jazz": "Modal Jazz Devotee",
+  Fusion: "Fusion Head",
+  "Free Jazz": "Free Jazz Adventurer",
+  "Delta Blues": "Delta Blues Pilgrim",
+  "Chicago Blues": "Chicago Blues Faithful",
+  "Bossa Nova": "Bossa Nova Romantic",
+  "Bluegrass": "Bluegrass Picker",
+  "New Wave": "New Wave Kid",
+  "Post-Punk": "Post-Punk Purist",
+  Grunge: "Flannel & Feedback",
+  "Northern Soul": "Northern Soul Faithful",
 };
 
 const LABEL_SUPERLATIVES = {
@@ -2695,10 +2738,23 @@ const LABEL_SUPERLATIVES = {
   "Impulse!": "Impulse! Acolyte",
   Columbia: "Columbia Regular",
   Prestige: "Prestige Purist",
+  "Riverside": "Riverside Regular",
+  Chess: "Chess Records Faithful",
+  "Def Jam": "Def Jam Loyalist",
+  "Death Row": "Death Row Devotee",
+  "4AD": "4AD Aesthete",
+  Factory: "Factory Records Faithful",
+  "Sun Records": "Sun Records Pilgrim",
+  ECM: "ECM Purist",
+  "Warp": "Warp Records Head",
 };
 
 function titleForGenre(name) {
   return GENRE_SUPERLATIVES[name] || `${name} Devotee`;
+}
+
+function titleForSubgenre(name) {
+  return SUBGENRE_SUPERLATIVES[name] || `${name} Enthusiast`;
 }
 
 function titleForLabel(name) {
@@ -2711,91 +2767,166 @@ function buildSuperlatives() {
 
   if (stats.total === 0) return [];
 
-  // Genre concentration - needs a meaningful share to be worth claiming.
-  if (stats.topGenre && stats.topGenreShare >= 0.25) {
+  // --- Genre-based ---
+
+  if (stats.topGenre && stats.topGenreShare >= 0.2) {
     candidates.push({
+      category: "genre",
       title: titleForGenre(stats.topGenre.name),
       detail: `${Math.round(stats.topGenreShare * 100)}% of your collection is ${stats.topGenre.name}`,
-      strength: stats.topGenreShare,
+      strength: stats.topGenreShare + 0.2,
     });
   }
 
-  // Genre diversity - opposite signal, only when there's no strong genre lock-in.
+  if (
+    stats.secondGenre &&
+    stats.total >= 10 &&
+    stats.secondGenre.count >= 3 &&
+    stats.secondGenre.name !== stats.topGenre?.name
+  ) {
+    candidates.push({
+      category: "genre",
+      title: titleForGenre(stats.secondGenre.name),
+      detail: `Your second-favorite genre, with ${stats.secondGenre.count} records`,
+      strength: (stats.secondGenre.count / stats.total) * 0.7,
+    });
+  }
+
+  if (stats.topSubgenre && stats.topSubgenre.count >= 3) {
+    candidates.push({
+      category: "genre",
+      title: titleForSubgenre(stats.topSubgenre.name),
+      detail: `${stats.topSubgenre.count} records in ${stats.topSubgenre.name}`,
+      strength: (stats.topSubgenre.count / stats.total) * 0.9,
+    });
+  }
+
   if (stats.distinctGenres >= 6 && stats.topGenreShare < 0.25 && stats.total >= 15) {
     candidates.push({
+      category: "genre",
       title: "Genre Omnivore",
       detail: `${stats.distinctGenres} different genres across your shelves`,
       strength: Math.min(stats.distinctGenres / 12, 1),
     });
   }
 
-  // Label loyalty
-  if (stats.topLabel && stats.topLabelShare >= 0.15 && stats.topLabel.count >= 3) {
+  // --- Artist-based ---
+
+  if (stats.topArtist && stats.topArtist.count >= 4) {
     candidates.push({
-      title: titleForLabel(stats.topLabel.name),
-      detail: `${stats.topLabel.count} records on ${stats.topLabel.name}`,
-      strength: stats.topLabelShare,
+      category: "artist",
+      title: "Completist",
+      detail: `${stats.topArtist.count} albums by ${stats.topArtist.name}`,
+      strength: Math.min(stats.topArtist.count / 10, 1) + 0.15,
     });
   }
 
-  // Label variety
+  if (
+    stats.secondArtist &&
+    stats.secondArtist.count >= 3 &&
+    stats.secondArtist.name !== stats.topArtist?.name
+  ) {
+    candidates.push({
+      category: "artist",
+      title: "Devoted Fan",
+      detail: `${stats.secondArtist.count} albums by ${stats.secondArtist.name}`,
+      strength: Math.min(stats.secondArtist.count / 10, 1),
+    });
+  }
+
+  if (stats.distinctArtists >= 20 && stats.total >= 25) {
+    const ratio = stats.distinctArtists / stats.total;
+    if (ratio >= 0.7) {
+      candidates.push({
+        category: "artist",
+        title: "Wide Net Collector",
+        detail: `${stats.distinctArtists} different artists, rarely repeating`,
+        strength: ratio * 0.8,
+      });
+    }
+  }
+
+  // --- Label-based ---
+
+  if (stats.topLabel && stats.topLabelShare >= 0.12 && stats.topLabel.count >= 3) {
+    candidates.push({
+      category: "label",
+      title: titleForLabel(stats.topLabel.name),
+      detail: `${stats.topLabel.count} records on ${stats.topLabel.name}`,
+      strength: stats.topLabelShare + 0.15,
+    });
+  }
+
+  if (
+    stats.secondLabel &&
+    stats.secondLabel.count >= 3 &&
+    stats.secondLabel.name !== stats.topLabel?.name
+  ) {
+    candidates.push({
+      category: "label",
+      title: titleForLabel(stats.secondLabel.name),
+      detail: `${stats.secondLabel.count} more records on ${stats.secondLabel.name}`,
+      strength: (stats.secondLabel.count / stats.total) * 0.6,
+    });
+  }
+
   if (stats.distinctLabels >= 10 && stats.topLabelShare < 0.12 && stats.total >= 15) {
     candidates.push({
+      category: "label",
       title: "Crate Variety",
       detail: `${stats.distinctLabels} different labels represented`,
       strength: Math.min(stats.distinctLabels / 20, 1),
     });
   }
 
-  // Decade spread
+  // --- Era ---
+
   if (stats.distinctDecades >= 5) {
     candidates.push({
+      category: "era",
       title: "Time Traveler",
       detail: `Spanning ${stats.distinctDecades} decades of music`,
-      strength: Math.min(stats.distinctDecades / 7, 1),
+      strength: Math.min(stats.distinctDecades / 7, 1) * 0.75,
     });
   }
 
-  // Artist depth (completist)
-  if (stats.topArtist && stats.topArtist.count >= 5) {
-    candidates.push({
-      title: "Completist",
-      detail: `${stats.topArtist.count} albums by ${stats.topArtist.name}`,
-      strength: Math.min(stats.topArtist.count / 12, 1),
-    });
-  }
+  // --- Taste patterns ---
 
-  // Taste patterns
   if (stats.ratedCount >= 10) {
     const loveLikeShare = (stats.ratingCounts.love + stats.ratingCounts.like) / stats.ratedCount;
     const toughShare = (stats.ratingCounts.dislike + stats.ratingCounts.neutral) / stats.ratedCount;
 
     if (loveLikeShare >= 0.8) {
       candidates.push({
+        category: "taste",
         title: "Easy to Please",
         detail: `You've rated ${Math.round(loveLikeShare * 100)}% of your collection Love or Like`,
-        strength: loveLikeShare,
+        strength: loveLikeShare * 0.7,
       });
     } else if (toughShare >= 0.5) {
       candidates.push({
+        category: "taste",
         title: "Tough Critic",
         detail: `Plenty of Neutral and Dislike ratings in the mix`,
-        strength: toughShare,
+        strength: toughShare * 0.7,
       });
     }
   }
 
-  // Storytelling
+  // --- Storytelling ---
+
   if (stats.storyCount >= 5 && stats.storyShare >= 0.15) {
     candidates.push({
+      category: "story",
       title: "Storyteller",
       detail: `You've added personal stories to ${stats.storyCount} records`,
-      strength: stats.storyShare,
+      strength: stats.storyShare * 0.7,
     });
   }
 
   // Always-available fallback so there's at least something to show.
   candidates.push({
+    category: "fallback",
     title: "Record Collector",
     detail: `${stats.total} record${stats.total === 1 ? "" : "s"} and counting`,
     strength: 0,
@@ -2811,7 +2942,15 @@ function buildSuperlatives() {
     deduped.push(c);
   }
 
-  return deduped.slice(0, 4);
+  // Genre/artist/label superlatives are the preferred categories - bring them
+  // to the front (preserving their internal strength order) so they fill the
+  // available slots first, then backfill with era/taste/story/fallback.
+  const priorityCategories = new Set(["genre", "artist", "label"]);
+  const prioritized = deduped.filter((c) => priorityCategories.has(c.category));
+  const rest = deduped.filter((c) => !priorityCategories.has(c.category));
+
+  const targetCount = Math.min(deduped.length, 9);
+  return [...prioritized, ...rest].slice(0, Math.max(targetCount, 1));
 }
 
 function renderSuperlatives() {
@@ -3138,6 +3277,7 @@ function setPage(page) {
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
   const roomSection = document.getElementById("roomSection");
+  const collectionDnaSection = document.getElementById("collectionDnaSection");
   const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
   const wishlistSection = document.getElementById("wishlistSection");
@@ -3164,6 +3304,7 @@ function setPage(page) {
   homeSection.hidden = !isHome;
   profileSection.hidden = !isProfile;
   roomSection.hidden = !isRoom;
+  collectionDnaSection.hidden = !isCollection;
   atAGlanceSection.hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
