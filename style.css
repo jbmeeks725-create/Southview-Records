@@ -762,6 +762,12 @@ header {
   color: #6b7280;
 }
 
+.profile-empty-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
 .profile-field {
   display: flex;
   justify-content: space-between;

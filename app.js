@@ -1594,27 +1594,62 @@ function buildProfileTagRow(label, items) {
   return row;
 }
 
-function renderBasicsView() {
-  const view = document.getElementById("basicsView");
+function renderWishlistPersonalityView() {
+  const view = document.getElementById("wishlistPersonalityView");
   view.innerHTML = "";
-
   const p = currentProfile || {};
-  const rows = [];
-
-  if (p.preferred_name) rows.push(["Preferred name", p.preferred_name]);
-  if (p.username) rows.push(["Username", p.username]);
-
-  const location = [p.city, p.state, p.country].filter(Boolean).join(", ");
-  if (location) rows.push(["Location", location]);
-
-  if (p.birthdate) {
-    const age = calculateAge(p.birthdate);
-    if (age !== null) rows.push(["Age", String(age)]);
+  const rows = [
+    ["My Grail", p.my_grail],
+    ["My White Whale", p.my_white_whale],
+    ["My Best Score", p.my_best_score],
+    ["My Guiltiest Pleasure", p.my_guilty_pleasure],
+    ["My Favorite Record Shops", p.my_record_shops],
+  ];
+  let hasAny = false;
+  rows.forEach(([label, value]) => {
+    if (value) {
+      view.appendChild(buildProfileField(label, value));
+      hasAny = true;
+    }
+  });
+  if (!hasAny) {
+    const empty = document.createElement("p");
+    empty.className = "profile-empty-hint";
+    empty.textContent = "Nothing added yet.";
+    view.appendChild(empty);
   }
-
-  rows.forEach(([label, value]) => view.appendChild(buildProfileField(label, value)));
 }
 
+function renderSystemView() {
+  const view = document.getElementById("systemView");
+  view.innerHTML = "";
+  const p = currentProfile || {};
+  const rows = [
+    ["Turntable", p.turntable],
+    ["Cartridge", p.cartridge],
+    ["Phono Stage", p.phono_stage],
+    ["Amplifier / Receiver", p.receiver],
+    ["Speakers", p.speakers],
+    ["Subwoofer", p.subwoofer],
+    ["Headphones", p.headphones],
+    ["Record Cleaning", p.record_cleaning],
+    ["Next Upgrade", p.next_upgrade],
+    ["Dream Component", p.dream_component],
+  ];
+  let hasAny = false;
+  rows.forEach(([label, value]) => {
+    if (value) {
+      view.appendChild(buildProfileField(label, value));
+      hasAny = true;
+    }
+  });
+  if (!hasAny) {
+    const empty = document.createElement("p");
+    empty.className = "profile-empty-hint";
+    empty.textContent = "Nothing added yet.";
+    view.appendChild(empty);
+  }
+}
 function renderTasteView() {
   const view = document.getElementById("tasteView");
   view.innerHTML = "";
@@ -1631,24 +1666,6 @@ function renderTasteView() {
     if (items && items.length > 0) {
       view.appendChild(buildProfileTagRow(label, items));
     }
-  });
-}
-
-function renderSystemView() {
-  const view = document.getElementById("systemView");
-  view.innerHTML = "";
-
-  const p = currentProfile || {};
-  const rows = [
-    ["Turntable", p.turntable],
-    ["Cartridge", p.cartridge],
-    ["Receiver", p.receiver],
-    ["Speakers", p.speakers],
-    ["Subwoofer", p.subwoofer],
-  ];
-
-  rows.forEach(([label, value]) => {
-    if (value) view.appendChild(buildProfileField(label, value));
   });
 }
 
@@ -1773,23 +1790,20 @@ function renderProfile() {
     superlativesWrap.appendChild(card);
   });
 
-  renderBasicsView();
+  renderWishlistPersonalityView();
   renderTasteView();
   renderSystemView();
 }
 
 // ------------ Profile editing ------------
 
-function fillBasicsForm() {
+function fillWishlistPersonalityForm() {
   const p = currentProfile || {};
-  document.getElementById("basicsFirstName").value = p.first_name || "";
-  document.getElementById("basicsLastName").value = p.last_name || "";
-  document.getElementById("basicsPreferredName").value = p.preferred_name || "";
-  document.getElementById("basicsUsername").value = p.username || "";
-  document.getElementById("basicsCity").value = p.city || "";
-  document.getElementById("basicsState").value = p.state || "";
-  document.getElementById("basicsCountry").value = p.country || "";
-  document.getElementById("basicsBirthdate").value = p.birthdate || "";
+  document.getElementById("wishGrailInput").value = p.my_grail || "";
+  document.getElementById("wishWhaleInput").value = p.my_white_whale || "";
+  document.getElementById("wishScoreInput").value = p.my_best_score || "";
+  document.getElementById("wishGuiltyInput").value = p.my_guilty_pleasure || "";
+  document.getElementById("wishShopsInput").value = p.my_record_shops || "";
 }
 
 function fillTasteForm() {
@@ -1804,9 +1818,14 @@ function fillSystemForm() {
   const p = currentProfile || {};
   document.getElementById("systemTurntable").value = p.turntable || "";
   document.getElementById("systemCartridge").value = p.cartridge || "";
+  document.getElementById("systemPhonoStage").value = p.phono_stage || "";
   document.getElementById("systemReceiver").value = p.receiver || "";
   document.getElementById("systemSpeakers").value = p.speakers || "";
   document.getElementById("systemSubwoofer").value = p.subwoofer || "";
+  document.getElementById("systemHeadphones").value = p.headphones || "";
+  document.getElementById("systemCleaning").value = p.record_cleaning || "";
+  document.getElementById("systemNextUpgrade").value = p.next_upgrade || "";
+  document.getElementById("systemDreamComponent").value = p.dream_component || "";
 }
 
 function toggleProfileEdit(section, editing) {
@@ -1816,48 +1835,34 @@ function toggleProfileEdit(section, editing) {
   form.hidden = !editing;
 
   if (editing) {
-    if (section === "basics") fillBasicsForm();
+    if (section === "wishlistPersonality") fillWishlistPersonalityForm();
     if (section === "taste") fillTasteForm();
     if (section === "system") fillSystemForm();
   }
 }
 
-async function handleBasicsSubmit(event) {
+async function handleWishlistPersonalitySubmit(event) {
   event.preventDefault();
-
-  const statusEl = document.getElementById("basicsStatus");
+  const statusEl = document.getElementById("wishlistPersonalityStatus");
   const submitBtn = event.target.querySelector("button[type=submit]");
-
-  const username = document.getElementById("basicsUsername").value.trim();
-
   submitBtn.disabled = true;
   statusEl.textContent = "Saving...";
   statusEl.className = "form-status";
-
   try {
     await saveProfileFields({
-      first_name: document.getElementById("basicsFirstName").value.trim() || null,
-      last_name: document.getElementById("basicsLastName").value.trim() || null,
-      preferred_name: document.getElementById("basicsPreferredName").value.trim() || null,
-      username: username || null,
-      city: document.getElementById("basicsCity").value.trim() || null,
-      state: document.getElementById("basicsState").value.trim() || null,
-      country: document.getElementById("basicsCountry").value.trim() || null,
-      birthdate: document.getElementById("basicsBirthdate").value || null,
+      my_grail: document.getElementById("wishGrailInput").value.trim() || null,
+      my_white_whale: document.getElementById("wishWhaleInput").value.trim() || null,
+      my_best_score: document.getElementById("wishScoreInput").value.trim() || null,
+      my_guilty_pleasure: document.getElementById("wishGuiltyInput").value.trim() || null,
+      my_record_shops: document.getElementById("wishShopsInput").value.trim() || null,
     });
-
     statusEl.textContent = "Saved.";
     statusEl.className = "form-status form-status-success";
-    refreshAccountButton();
     renderProfile();
-    toggleProfileEdit("basics", false);
+    toggleProfileEdit("wishlistPersonality", false);
   } catch (err) {
     console.error(err);
-    if (err.code === "23505") {
-      statusEl.textContent = "That username is already taken.";
-    } else {
-      statusEl.textContent = "Couldn't save. Check console for details.";
-    }
+    statusEl.textContent = "Couldn't save. Check console for details.";
     statusEl.className = "form-status form-status-error";
   } finally {
     submitBtn.disabled = false;
@@ -1897,23 +1902,24 @@ async function handleTasteSubmit(event) {
 
 async function handleSystemSubmit(event) {
   event.preventDefault();
-
   const statusEl = document.getElementById("systemStatus");
   const submitBtn = event.target.querySelector("button[type=submit]");
-
   submitBtn.disabled = true;
   statusEl.textContent = "Saving...";
   statusEl.className = "form-status";
-
   try {
     await saveProfileFields({
       turntable: document.getElementById("systemTurntable").value.trim() || null,
       cartridge: document.getElementById("systemCartridge").value.trim() || null,
+      phono_stage: document.getElementById("systemPhonoStage").value.trim() || null,
       receiver: document.getElementById("systemReceiver").value.trim() || null,
       speakers: document.getElementById("systemSpeakers").value.trim() || null,
       subwoofer: document.getElementById("systemSubwoofer").value.trim() || null,
+      headphones: document.getElementById("systemHeadphones").value.trim() || null,
+      record_cleaning: document.getElementById("systemCleaning").value.trim() || null,
+      next_upgrade: document.getElementById("systemNextUpgrade").value.trim() || null,
+      dream_component: document.getElementById("systemDreamComponent").value.trim() || null,
     });
-
     statusEl.textContent = "Saved.";
     statusEl.className = "form-status form-status-success";
     renderProfile();
@@ -2022,9 +2028,9 @@ async function handleAvatarFileChange(event) {
 }
 
 function setupProfile() {
-  document.getElementById("editBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", true));
-  document.getElementById("cancelBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", false));
-  document.getElementById("basicsForm").addEventListener("submit", handleBasicsSubmit);
+  document.getElementById("editWishlistPersonalityBtn").addEventListener("click", () => toggleProfileEdit("wishlistPersonality", true));
+  document.getElementById("cancelWishlistPersonalityBtn").addEventListener("click", () => toggleProfileEdit("wishlistPersonality", false));
+  document.getElementById("wishlistPersonalityForm").addEventListener("submit", handleWishlistPersonalitySubmit);
 
   document.getElementById("editTasteBtn").addEventListener("click", () => toggleProfileEdit("taste", true));
   document.getElementById("cancelTasteBtn").addEventListener("click", () => toggleProfileEdit("taste", false));

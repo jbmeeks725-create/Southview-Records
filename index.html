@@ -404,63 +404,50 @@
         <!-- Row 3: Superlatives -->
         <div id="profileSuperlatives" class="profile-superlatives"></div>
 
+        <!-- Wishlist Personality -->
         <div class="profile-card">
           <div class="profile-card-header">
-            <h2>Basics</h2>
-            <button type="button" id="editBasicsBtn" class="icon-btn" aria-label="Edit basics" title="Edit">
+            <h2>My Wishlist</h2>
+            <button type="button" id="editWishlistPersonalityBtn" class="icon-btn" aria-label="Edit wishlist personality" title="Edit">
               <i class="ti ti-pencil" aria-hidden="true"></i>
             </button>
           </div>
-          <div id="basicsView" class="profile-field-list"></div>
-          <form id="basicsForm" class="profile-edit-form" hidden>
-            <div class="form-row-split">
-              <div>
-                <label for="basicsFirstName">First name</label>
-                <input type="text" id="basicsFirstName" />
-              </div>
-              <div>
-                <label for="basicsLastName">Last name</label>
-                <input type="text" id="basicsLastName" />
-              </div>
-            </div>
-            <p class="field-hint">Your name is kept private and never shown to other users.</p>
+          <div id="wishlistPersonalityView" class="profile-field-list"></div>
+          <form id="wishlistPersonalityForm" class="profile-edit-form" hidden>
             <div class="form-row">
-              <label for="basicsPreferredName">Preferred name</label>
-              <input type="text" id="basicsPreferredName" placeholder="What should we call you?" />
-              <p class="field-hint">Shown on your profile page.</p>
+              <label for="wishGrailInput">My Grail</label>
+              <p class="field-hint">The record I need the most.</p>
+              <input type="text" id="wishGrailInput" placeholder="e.g. an original Blue Note pressing of..." />
             </div>
             <div class="form-row">
-              <label for="basicsUsername">Username</label>
-              <input type="text" id="basicsUsername" placeholder="e.g. recordcollector42" />
-              <p class="field-hint">Shown on your profile button instead of your email.</p>
-            </div>
-            <div class="form-row-split">
-              <div>
-                <label for="basicsCity">City</label>
-                <input type="text" id="basicsCity" />
-              </div>
-              <div>
-                <label for="basicsState">State / Province</label>
-                <input type="text" id="basicsState" />
-              </div>
+              <label for="wishWhaleInput">My White Whale</label>
+              <p class="field-hint">The record I've been looking for longest.</p>
+              <input type="text" id="wishWhaleInput" placeholder="e.g. an impossible-to-find..." />
             </div>
             <div class="form-row">
-              <label for="basicsCountry">Country</label>
-              <input type="text" id="basicsCountry" />
+              <label for="wishScoreInput">My Best Score</label>
+              <p class="field-hint">I still can't believe I found it.</p>
+              <input type="text" id="wishScoreInput" placeholder="e.g. found a mint copy of..." />
             </div>
             <div class="form-row">
-              <label for="basicsBirthdate">Birthdate</label>
-              <input type="date" id="basicsBirthdate" />
-              <p class="field-hint">Only your age is shown on your profile, not your birthdate.</p>
+              <label for="wishGuiltyInput">My Guiltiest Pleasure</label>
+              <p class="field-hint">I love it, but don't tell anyone.</p>
+              <input type="text" id="wishGuiltyInput" placeholder="e.g. a soft spot for..." />
             </div>
-            <div id="basicsStatus" class="form-status"></div>
+            <div class="form-row">
+              <label for="wishShopsInput">My Favorite Record Shops</label>
+              <p class="field-hint">Sharing is caring!</p>
+              <input type="text" id="wishShopsInput" placeholder="e.g. Waxwork Records in Austin, TX" />
+            </div>
+            <div id="wishlistPersonalityStatus" class="form-status"></div>
             <div class="form-actions">
-              <button type="button" id="cancelBasicsBtn" class="btn-secondary">Cancel</button>
+              <button type="button" id="cancelWishlistPersonalityBtn" class="btn-secondary">Cancel</button>
               <button type="submit" class="btn-primary">Save</button>
             </div>
           </form>
         </div>
 
+        <!-- Music Taste -->
         <div class="profile-card">
           <div class="profile-card-header">
             <h2>Music Taste</h2>
@@ -510,9 +497,10 @@
           </form>
         </div>
 
+        <!-- My System -->
         <div class="profile-card">
           <div class="profile-card-header">
-            <h2>System</h2>
+            <h2>My System</h2>
             <button type="button" id="editSystemBtn" class="icon-btn" aria-label="Edit system" title="Edit">
               <i class="ti ti-pencil" aria-hidden="true"></i>
             </button>
@@ -528,7 +516,11 @@
               <input type="text" id="systemCartridge" />
             </div>
             <div class="form-row">
-              <label for="systemReceiver">Receiver</label>
+              <label for="systemPhonoStage">Phono Stage</label>
+              <input type="text" id="systemPhonoStage" />
+            </div>
+            <div class="form-row">
+              <label for="systemReceiver">Amplifier / Receiver</label>
               <input type="text" id="systemReceiver" />
             </div>
             <div class="form-row">
@@ -538,6 +530,22 @@
             <div class="form-row">
               <label for="systemSubwoofer">Subwoofer</label>
               <input type="text" id="systemSubwoofer" />
+            </div>
+            <div class="form-row">
+              <label for="systemHeadphones">Headphones</label>
+              <input type="text" id="systemHeadphones" />
+            </div>
+            <div class="form-row">
+              <label for="systemCleaning">Record Cleaning Method</label>
+              <input type="text" id="systemCleaning" placeholder="e.g. Spin Clean, ultrasonic..." />
+            </div>
+            <div class="form-row">
+              <label for="systemNextUpgrade">Next Upgrade</label>
+              <input type="text" id="systemNextUpgrade" placeholder="What's next on the list?" />
+            </div>
+            <div class="form-row">
+              <label for="systemDreamComponent">Dream Component</label>
+              <input type="text" id="systemDreamComponent" placeholder="Money no object..." />
             </div>
             <div id="systemStatus" class="form-status"></div>
             <div class="form-actions">
