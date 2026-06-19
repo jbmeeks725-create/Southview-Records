@@ -1652,6 +1652,41 @@ function renderSystemView() {
   });
 }
 
+function ageRange(age) {
+  if (age === null || age === undefined) return "—";
+  const decade = Math.floor(age / 10) * 10;
+  // E.g. 37 → "Late 30s", 30 → "Early 30s", 35 → "Mid 30s"
+  const offset = age - decade;
+  const phase = offset < 3 ? "Early" : offset < 7 ? "Mid" : "Late";
+  return `${phase} ${decade}s`;
+}
+
+function renderProfileTopList(elId, items) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.innerHTML = "";
+  if (!items || items.length === 0) {
+    const li = document.createElement("li");
+    li.className = "profile-top-list-empty";
+    li.textContent = "—";
+    el.appendChild(li);
+    return;
+  }
+  items.forEach(({ name, count }) => {
+    const li = document.createElement("li");
+    li.className = "profile-top-list-item";
+    const nameEl = document.createElement("span");
+    nameEl.className = "profile-top-list-name";
+    nameEl.textContent = name;
+    const countEl = document.createElement("span");
+    countEl.className = "profile-top-list-count";
+    countEl.textContent = count;
+    li.appendChild(nameEl);
+    li.appendChild(countEl);
+    el.appendChild(li);
+  });
+}
+
 function renderProfile() {
   document.getElementById("profileAvatarImg").src = getAvatarUrl();
   document.getElementById("profileDisplayName").textContent = getDisplayName();
@@ -1678,11 +1713,65 @@ function renderProfile() {
     memberSinceEl.textContent = "";
   }
 
-  document.getElementById("profileStatRecords").textContent = allRecords.length;
-  document.getElementById("profileStatWishlist").textContent = wishlist.length;
+  // --- Row 1: Key stats ---
+  document.getElementById("profileStatRecords").textContent = allRecords.length || "—";
+  document.getElementById("profileStatWishlist").textContent = wishlist.length || "—";
 
   const age = calculateAge(currentProfile?.birthdate);
-  document.getElementById("profileStatAge").textContent = age !== null ? String(age) : "—";
+  document.getElementById("profileStatAge").textContent = ageRange(age);
+
+  const stats = computeCollectionStats();
+  document.getElementById("profileStatGenres").textContent = stats.distinctGenres || "—";
+
+  // Decade range: earliest to latest decade represented
+  const years = allRecords.map((r) => r.year).filter(Boolean);
+  if (years.length > 0) {
+    const minDecade = Math.floor(Math.min(...years) / 10) * 10;
+    const maxDecade = Math.floor(Math.max(...years) / 10) * 10;
+    document.getElementById("profileStatDecades").textContent =
+      minDecade === maxDecade ? `${minDecade}s` : `${minDecade}s–${maxDecade}s`;
+  } else {
+    document.getElementById("profileStatDecades").textContent = "—";
+  }
+
+  // --- Row 2: Top 3 lists ---
+  const genreData = computeGenreCounts();
+  const artistData = computeArtistCounts();
+
+  const topN = (data, n) =>
+    data.slice(0, n).map(([name, count]) => ({ name, count }));
+
+  renderProfileTopList("profileTopArtists", topN(artistData, 3));
+  renderProfileTopList("profileTopGenres", topN(genreData, 3));
+
+  // Subgenres aren't in a pre-computed function — compute inline
+  const subgenreCounts = {};
+  allRecords.forEach((r) => {
+    if (r.subgenre_name) subgenreCounts[r.subgenre_name] = (subgenreCounts[r.subgenre_name] || 0) + 1;
+  });
+  const topSubgenres = Object.entries(subgenreCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, count]) => ({ name, count }));
+  renderProfileTopList("profileTopSubgenres", topSubgenres);
+
+  // --- Row 3: Superlatives ---
+  const superlativesWrap = document.getElementById("profileSuperlatives");
+  superlativesWrap.innerHTML = "";
+  const superlatives = buildSuperlatives();
+  superlatives.forEach((s) => {
+    const card = document.createElement("div");
+    card.className = "superlative-card";
+    const titleEl = document.createElement("div");
+    titleEl.className = "superlative-title";
+    titleEl.textContent = s.title;
+    const detailEl = document.createElement("div");
+    detailEl.className = "superlative-detail";
+    detailEl.textContent = s.detail;
+    card.appendChild(titleEl);
+    card.appendChild(detailEl);
+    superlativesWrap.appendChild(card);
+  });
 
   renderBasicsView();
   renderTasteView();

@@ -359,21 +359,50 @@
             <p id="profileLocation" class="field-hint"></p>
             <p class="field-hint" id="profileMemberSince"></p>
           </div>
-          <div class="stat-row profile-stat-row">
-            <div class="stat">
-              <span class="stat-value" id="profileStatRecords">—</span>
-              <span class="stat-label">Records</span>
-            </div>
-            <div class="stat">
-              <span class="stat-value" id="profileStatWishlist">—</span>
-              <span class="stat-label">Wishlist</span>
-            </div>
-            <div class="stat">
-              <span class="stat-value stat-value-text" id="profileStatAge">—</span>
-              <span class="stat-label">Age</span>
-            </div>
+        </div>
+
+        <!-- Row 1: Key stats -->
+        <div class="profile-collection-overview">
+          <div class="profile-stat-tile">
+            <span class="profile-stat-tile-value" id="profileStatRecords">—</span>
+            <span class="profile-stat-tile-label">Records</span>
+          </div>
+          <div class="profile-stat-tile">
+            <span class="profile-stat-tile-value" id="profileStatGenres">—</span>
+            <span class="profile-stat-tile-label">Genres</span>
+          </div>
+          <div class="profile-stat-tile">
+            <span class="profile-stat-tile-value" id="profileStatDecades">—</span>
+            <span class="profile-stat-tile-label">Decades</span>
+          </div>
+          <div class="profile-stat-tile">
+            <span class="profile-stat-tile-value" id="profileStatWishlist">—</span>
+            <span class="profile-stat-tile-label">Wishlist</span>
+          </div>
+          <div class="profile-stat-tile">
+            <span class="profile-stat-tile-value profile-stat-tile-value-text" id="profileStatAge">—</span>
+            <span class="profile-stat-tile-label">Age</span>
           </div>
         </div>
+
+        <!-- Row 2: Top lists -->
+        <div class="profile-top-lists">
+          <div class="profile-top-list">
+            <h4 class="profile-top-list-heading">Top Artists</h4>
+            <ol id="profileTopArtists" class="profile-top-list-items"></ol>
+          </div>
+          <div class="profile-top-list">
+            <h4 class="profile-top-list-heading">Top Genres</h4>
+            <ol id="profileTopGenres" class="profile-top-list-items"></ol>
+          </div>
+          <div class="profile-top-list">
+            <h4 class="profile-top-list-heading">Top Sub-Genres</h4>
+            <ol id="profileTopSubgenres" class="profile-top-list-items"></ol>
+          </div>
+        </div>
+
+        <!-- Row 3: Superlatives -->
+        <div id="profileSuperlatives" class="profile-superlatives"></div>
 
         <div class="profile-card">
           <div class="profile-card-header">

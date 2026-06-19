@@ -629,8 +629,125 @@ header {
 }
 
 .profile-stat-row {
-  flex-basis: 100%;
-  margin-top: 0.5rem;
+  display: none; /* replaced by profile-collection-overview */
+}
+
+/* --- Row 1: Key stats --- */
+.profile-collection-overview {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+}
+
+.profile-stat-tile {
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.profile-stat-tile-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #caa15a;
+  line-height: 1;
+}
+
+.profile-stat-tile-value-text {
+  font-size: 1rem;
+}
+
+.profile-stat-tile-label {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --- Row 2: Top 3 lists --- */
+.profile-top-lists {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.profile-top-list {
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+
+.profile-top-list-heading {
+  margin: 0 0 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+
+.profile-top-list-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  counter-reset: profile-top-list;
+}
+
+.profile-top-list-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.92rem;
+  counter-increment: profile-top-list;
+}
+
+.profile-top-list-item::before {
+  content: counter(profile-top-list) ".";
+  font-size: 0.75rem;
+  color: #caa15a;
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 1em;
+}
+
+.profile-top-list-name {
+  flex: 1;
+  color: #f9fafb;
+  font-weight: 500;
+}
+
+.profile-top-list-count {
+  font-size: 0.78rem;
+  color: #6b7280;
+  background: #1f2937;
+  border-radius: 10px;
+  padding: 0.1rem 0.45rem;
+}
+
+.profile-top-list-empty {
+  color: #4b5563;
+  font-size: 0.88rem;
+}
+
+/* --- Row 3: Superlatives --- */
+.profile-superlatives {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.profile-superlatives:empty {
+  display: none;
 }
 
 .profile-field-list {
@@ -3404,6 +3521,14 @@ h1 {
 
   .profile-identity-info {
     text-align: center;
+  }
+
+  .profile-collection-overview {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .profile-top-lists {
+    grid-template-columns: 1fr;
   }
 
   .avatar-preset-grid {
