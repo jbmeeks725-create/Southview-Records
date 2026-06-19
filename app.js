@@ -1480,7 +1480,44 @@ function setupTagInput(container) {
 }
 
 function setupAllTagInputs() {
-  document.querySelectorAll(".tag-input").forEach((container) => setupTagInput(container));
+  document
+    .querySelectorAll(".tag-input:not(.free-list-input)")
+    .forEach((container) => setupTagInput(container));
+}
+
+// A simpler multi-entry input for free-text lists that have no suggestion
+// source to autocomplete against (e.g. "my favorite record shops" - there's
+// no canonical list of record shops to suggest from). Reuses the same chip
+// rendering/storage helpers as the full tag input, just without the
+// suggestions dropdown.
+function setupFreeListInput(container) {
+  const input = container.querySelector("input");
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      if (input.value.trim()) {
+        addTagChip(container, input.value);
+        input.value = "";
+      }
+    } else if (e.key === "Backspace" && input.value === "") {
+      const chips = container.querySelectorAll(".tag-input-chip");
+      if (chips.length > 0) {
+        chips[chips.length - 1].remove();
+      }
+    }
+  });
+
+  input.addEventListener("blur", () => {
+    if (input.value.trim()) {
+      addTagChip(container, input.value);
+      input.value = "";
+    }
+  });
+}
+
+function setupAllFreeListInputs() {
+  document.querySelectorAll(".free-list-input").forEach((container) => setupFreeListInput(container));
 }
 
 function refreshAccountButton() {
@@ -1564,8 +1601,13 @@ function buildProfileField(label, value) {
   labelEl.textContent = label;
 
   const valueEl = document.createElement("span");
-  valueEl.className = "profile-field-value";
-  valueEl.textContent = value;
+  if (value) {
+    valueEl.className = "profile-field-value";
+    valueEl.textContent = value;
+  } else {
+    valueEl.className = "profile-field-value profile-field-value-empty";
+    valueEl.textContent = "Nothing here yet";
+  }
 
   row.appendChild(labelEl);
   row.appendChild(valueEl);
@@ -1579,6 +1621,15 @@ function buildProfileTagRow(label, items) {
   const labelEl = document.createElement("span");
   labelEl.className = "profile-field-label";
   labelEl.textContent = label;
+
+  if (!items || items.length === 0) {
+    const emptyEl = document.createElement("span");
+    emptyEl.className = "profile-field-value profile-field-value-empty";
+    emptyEl.textContent = "Nothing here yet";
+    row.appendChild(labelEl);
+    row.appendChild(emptyEl);
+    return row;
+  }
 
   const tagList = document.createElement("div");
   tagList.className = "profile-tag-list";
@@ -1598,75 +1649,40 @@ function renderWishlistPersonalityView() {
   const view = document.getElementById("wishlistPersonalityView");
   view.innerHTML = "";
   const p = currentProfile || {};
-  const rows = [
-    ["My Grail", p.my_grail],
-    ["My White Whale", p.my_white_whale],
-    ["My Best Score", p.my_best_score],
-    ["My Guiltiest Pleasure", p.my_guilty_pleasure],
-    ["My Favorite Record Shops", p.my_record_shops],
-  ];
-  let hasAny = false;
-  rows.forEach(([label, value]) => {
-    if (value) {
-      view.appendChild(buildProfileField(label, value));
-      hasAny = true;
-    }
-  });
-  if (!hasAny) {
-    const empty = document.createElement("p");
-    empty.className = "profile-empty-hint";
-    empty.textContent = "Nothing added yet.";
-    view.appendChild(empty);
-  }
+
+  view.appendChild(buildProfileField("My Grail", p.my_grail));
+  view.appendChild(buildProfileField("My White Whale", p.my_white_whale));
+  view.appendChild(buildProfileField("My Best Score", p.my_best_score));
+  view.appendChild(buildProfileField("My Guiltiest Pleasure", p.my_guilty_pleasure));
+  view.appendChild(buildProfileTagRow("My Favorite Record Shops", p.my_record_shops));
 }
 
 function renderSystemView() {
   const view = document.getElementById("systemView");
   view.innerHTML = "";
   const p = currentProfile || {};
-  const rows = [
-    ["Turntable", p.turntable],
-    ["Cartridge", p.cartridge],
-    ["Phono Stage", p.phono_stage],
-    ["Amplifier / Receiver", p.receiver],
-    ["Speakers", p.speakers],
-    ["Subwoofer", p.subwoofer],
-    ["Headphones", p.headphones],
-    ["Record Cleaning", p.record_cleaning],
-    ["Next Upgrade", p.next_upgrade],
-    ["Dream Component", p.dream_component],
-  ];
-  let hasAny = false;
-  rows.forEach(([label, value]) => {
-    if (value) {
-      view.appendChild(buildProfileField(label, value));
-      hasAny = true;
-    }
-  });
-  if (!hasAny) {
-    const empty = document.createElement("p");
-    empty.className = "profile-empty-hint";
-    empty.textContent = "Nothing added yet.";
-    view.appendChild(empty);
-  }
+
+  view.appendChild(buildProfileTagRow("Turntable", p.turntable));
+  view.appendChild(buildProfileTagRow("Cartridge", p.cartridge));
+  view.appendChild(buildProfileField("Phono Stage", p.phono_stage));
+  view.appendChild(buildProfileField("Amplifier / Receiver", p.receiver));
+  view.appendChild(buildProfileTagRow("Speakers", p.speakers));
+  view.appendChild(buildProfileField("Subwoofer", p.subwoofer));
+  view.appendChild(buildProfileTagRow("Headphones", p.headphones));
+  view.appendChild(buildProfileField("Record Cleaning", p.record_cleaning));
+  view.appendChild(buildProfileField("Next Upgrade", p.next_upgrade));
+  view.appendChild(buildProfileField("Dream Component", p.dream_component));
 }
+
 function renderTasteView() {
   const view = document.getElementById("tasteView");
   view.innerHTML = "";
 
   const p = currentProfile || {};
-  const sections = [
-    ["Favorite genres", p.favorite_genres],
-    ["Favorite subgenres", p.favorite_subgenres],
-    ["Favorite artists", p.favorite_artists],
-    ["Favorite albums", p.favorite_albums],
-  ];
-
-  sections.forEach(([label, items]) => {
-    if (items && items.length > 0) {
-      view.appendChild(buildProfileTagRow(label, items));
-    }
-  });
+  view.appendChild(buildProfileTagRow("Favorite genres", p.favorite_genres));
+  view.appendChild(buildProfileTagRow("Favorite subgenres", p.favorite_subgenres));
+  view.appendChild(buildProfileTagRow("Favorite artists", p.favorite_artists));
+  view.appendChild(buildProfileTagRow("Favorite albums", p.favorite_albums));
 }
 
 function ageRange(age) {
@@ -1803,7 +1819,7 @@ function fillWishlistPersonalityForm() {
   document.getElementById("wishWhaleInput").value = p.my_white_whale || "";
   document.getElementById("wishScoreInput").value = p.my_best_score || "";
   document.getElementById("wishGuiltyInput").value = p.my_guilty_pleasure || "";
-  document.getElementById("wishShopsInput").value = p.my_record_shops || "";
+  setTagInputValues(document.getElementById("wishShopsTagInput"), p.my_record_shops || []);
 }
 
 function fillTasteForm() {
@@ -1816,13 +1832,13 @@ function fillTasteForm() {
 
 function fillSystemForm() {
   const p = currentProfile || {};
-  document.getElementById("systemTurntable").value = p.turntable || "";
-  document.getElementById("systemCartridge").value = p.cartridge || "";
+  setTagInputValues(document.getElementById("systemTurntableTagInput"), p.turntable || []);
+  setTagInputValues(document.getElementById("systemCartridgeTagInput"), p.cartridge || []);
   document.getElementById("systemPhonoStage").value = p.phono_stage || "";
   document.getElementById("systemReceiver").value = p.receiver || "";
-  document.getElementById("systemSpeakers").value = p.speakers || "";
+  setTagInputValues(document.getElementById("systemSpeakersTagInput"), p.speakers || []);
   document.getElementById("systemSubwoofer").value = p.subwoofer || "";
-  document.getElementById("systemHeadphones").value = p.headphones || "";
+  setTagInputValues(document.getElementById("systemHeadphonesTagInput"), p.headphones || []);
   document.getElementById("systemCleaning").value = p.record_cleaning || "";
   document.getElementById("systemNextUpgrade").value = p.next_upgrade || "";
   document.getElementById("systemDreamComponent").value = p.dream_component || "";
@@ -1854,7 +1870,7 @@ async function handleWishlistPersonalitySubmit(event) {
       my_white_whale: document.getElementById("wishWhaleInput").value.trim() || null,
       my_best_score: document.getElementById("wishScoreInput").value.trim() || null,
       my_guilty_pleasure: document.getElementById("wishGuiltyInput").value.trim() || null,
-      my_record_shops: document.getElementById("wishShopsInput").value.trim() || null,
+      my_record_shops: getTagInputValues(document.getElementById("wishShopsTagInput")),
     });
     statusEl.textContent = "Saved.";
     statusEl.className = "form-status form-status-success";
@@ -1909,13 +1925,13 @@ async function handleSystemSubmit(event) {
   statusEl.className = "form-status";
   try {
     await saveProfileFields({
-      turntable: document.getElementById("systemTurntable").value.trim() || null,
-      cartridge: document.getElementById("systemCartridge").value.trim() || null,
+      turntable: getTagInputValues(document.getElementById("systemTurntableTagInput")),
+      cartridge: getTagInputValues(document.getElementById("systemCartridgeTagInput")),
       phono_stage: document.getElementById("systemPhonoStage").value.trim() || null,
       receiver: document.getElementById("systemReceiver").value.trim() || null,
-      speakers: document.getElementById("systemSpeakers").value.trim() || null,
+      speakers: getTagInputValues(document.getElementById("systemSpeakersTagInput")),
       subwoofer: document.getElementById("systemSubwoofer").value.trim() || null,
-      headphones: document.getElementById("systemHeadphones").value.trim() || null,
+      headphones: getTagInputValues(document.getElementById("systemHeadphonesTagInput")),
       record_cleaning: document.getElementById("systemCleaning").value.trim() || null,
       next_upgrade: document.getElementById("systemNextUpgrade").value.trim() || null,
       dream_component: document.getElementById("systemDreamComponent").value.trim() || null,
@@ -7478,6 +7494,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupProfile();
   setupRoom();
   setupAllTagInputs();
+  setupAllFreeListInputs();
   setupLandingPage();
   setupAuth();
 });

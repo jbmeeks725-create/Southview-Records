@@ -792,6 +792,11 @@ header {
   text-align: right;
 }
 
+.profile-field-value-empty {
+  color: #4b5563;
+  font-style: italic;
+}
+
 .profile-tag-list {
   display: flex;
   flex-wrap: wrap;

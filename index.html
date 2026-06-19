@@ -437,7 +437,10 @@
             <div class="form-row">
               <label for="wishShopsInput">My Favorite Record Shops</label>
               <p class="field-hint">Sharing is caring!</p>
-              <input type="text" id="wishShopsInput" placeholder="e.g. Waxwork Records in Austin, TX" />
+              <div class="tag-input free-list-input" id="wishShopsTagInput">
+                <div class="tag-input-chips"></div>
+                <input type="text" id="wishShopsInput" placeholder="Type a shop name, press Enter..." autocomplete="off" />
+              </div>
             </div>
             <div id="wishlistPersonalityStatus" class="form-status"></div>
             <div class="form-actions">
@@ -509,11 +512,17 @@
           <form id="systemForm" class="profile-edit-form" hidden>
             <div class="form-row">
               <label for="systemTurntable">Turntable</label>
-              <input type="text" id="systemTurntable" />
+              <div class="tag-input free-list-input" id="systemTurntableTagInput">
+                <div class="tag-input-chips"></div>
+                <input type="text" id="systemTurntable" placeholder="Type a turntable, press Enter..." autocomplete="off" />
+              </div>
             </div>
             <div class="form-row">
               <label for="systemCartridge">Cartridge</label>
-              <input type="text" id="systemCartridge" />
+              <div class="tag-input free-list-input" id="systemCartridgeTagInput">
+                <div class="tag-input-chips"></div>
+                <input type="text" id="systemCartridge" placeholder="Type a cartridge, press Enter..." autocomplete="off" />
+              </div>
             </div>
             <div class="form-row">
               <label for="systemPhonoStage">Phono Stage</label>
@@ -525,7 +534,10 @@
             </div>
             <div class="form-row">
               <label for="systemSpeakers">Speakers</label>
-              <input type="text" id="systemSpeakers" />
+              <div class="tag-input free-list-input" id="systemSpeakersTagInput">
+                <div class="tag-input-chips"></div>
+                <input type="text" id="systemSpeakers" placeholder="Type a speaker pair, press Enter..." autocomplete="off" />
+              </div>
             </div>
             <div class="form-row">
               <label for="systemSubwoofer">Subwoofer</label>
@@ -533,7 +545,10 @@
             </div>
             <div class="form-row">
               <label for="systemHeadphones">Headphones</label>
-              <input type="text" id="systemHeadphones" />
+              <div class="tag-input free-list-input" id="systemHeadphonesTagInput">
+                <div class="tag-input-chips"></div>
+                <input type="text" id="systemHeadphones" placeholder="Type headphones, press Enter..." autocomplete="off" />
+              </div>
             </div>
             <div class="form-row">
               <label for="systemCleaning">Record Cleaning Method</label>
