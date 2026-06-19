@@ -1614,9 +1614,11 @@ function buildProfileField(label, value) {
   return row;
 }
 
-function buildProfileTagRow(label, items) {
+function buildProfileTagRow(label, items, options) {
+  const stacked = options?.stacked === true;
+
   const row = document.createElement("div");
-  row.className = "profile-field";
+  row.className = stacked ? "profile-field profile-field-stacked" : "profile-field";
 
   const labelEl = document.createElement("span");
   labelEl.className = "profile-field-label";
@@ -1632,7 +1634,7 @@ function buildProfileTagRow(label, items) {
   }
 
   const tagList = document.createElement("div");
-  tagList.className = "profile-tag-list";
+  tagList.className = stacked ? "profile-tag-list profile-tag-list-stacked" : "profile-tag-list";
   items.forEach((item) => {
     const tag = document.createElement("span");
     tag.className = "profile-tag";
@@ -1645,6 +1647,57 @@ function buildProfileTagRow(label, items) {
   return row;
 }
 
+function buildAlbumGridRow(label, albums, metaByAlbum) {
+  const row = document.createElement("div");
+  row.className = "profile-field profile-field-stacked";
+
+  const labelEl = document.createElement("span");
+  labelEl.className = "profile-field-label";
+  labelEl.textContent = label;
+
+  if (!albums || albums.length === 0) {
+    const emptyEl = document.createElement("span");
+    emptyEl.className = "profile-field-value profile-field-value-empty";
+    emptyEl.textContent = "Nothing here yet";
+    row.appendChild(labelEl);
+    row.appendChild(emptyEl);
+    return row;
+  }
+
+  const grid = document.createElement("div");
+  grid.className = "profile-album-grid";
+
+  const meta = metaByAlbum || {};
+  albums.forEach((albumName) => {
+    const cell = document.createElement("div");
+    cell.className = "profile-album-cell";
+
+    const coverUrl = meta[albumName]?.cover_url;
+    if (coverUrl) {
+      const img = document.createElement("img");
+      img.src = coverUrl;
+      img.alt = "";
+      img.className = "profile-album-cover";
+      cell.appendChild(img);
+    } else {
+      const placeholder = document.createElement("div");
+      placeholder.className = "profile-album-cover profile-album-cover-placeholder";
+      cell.appendChild(placeholder);
+    }
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "profile-album-name";
+    nameEl.textContent = albumName;
+    cell.appendChild(nameEl);
+
+    grid.appendChild(cell);
+  });
+
+  row.appendChild(labelEl);
+  row.appendChild(grid);
+  return row;
+}
+
 function renderWishlistPersonalityView() {
   const view = document.getElementById("wishlistPersonalityView");
   view.innerHTML = "";
@@ -1654,7 +1707,7 @@ function renderWishlistPersonalityView() {
   view.appendChild(buildProfileField("My White Whale", p.my_white_whale));
   view.appendChild(buildProfileField("My Best Score", p.my_best_score));
   view.appendChild(buildProfileField("My Guiltiest Pleasure", p.my_guilty_pleasure));
-  view.appendChild(buildProfileTagRow("My Favorite Record Shops", p.my_record_shops));
+  view.appendChild(buildProfileTagRow("My Favorite Record Shops", p.my_record_shops, { stacked: true }));
 }
 
 function renderSystemView() {
@@ -1681,8 +1734,8 @@ function renderTasteView() {
   const p = currentProfile || {};
   view.appendChild(buildProfileTagRow("Favorite genres", p.favorite_genres));
   view.appendChild(buildProfileTagRow("Favorite subgenres", p.favorite_subgenres));
-  view.appendChild(buildProfileTagRow("Favorite artists", p.favorite_artists));
-  view.appendChild(buildProfileTagRow("Favorite albums", p.favorite_albums));
+  view.appendChild(buildProfileTagRow("Favorite artists", p.favorite_artists, { stacked: true }));
+  view.appendChild(buildAlbumGridRow("Favorite albums", p.favorite_albums, p.favorite_albums_meta));
 }
 
 function ageRange(age) {
