@@ -1665,8 +1665,6 @@ function renderProfile() {
     .join(", ");
   locationEl.textContent = location;
 
-  document.getElementById("profileEmail").textContent = currentUser?.email || "";
-
   const memberSinceEl = document.getElementById("profileMemberSince");
   if (currentUser?.created_at) {
     const date = new Date(currentUser.created_at);
@@ -4435,6 +4433,7 @@ function setPage(page) {
 
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
+  const settingsSection = document.getElementById("settingsSection");
   const roomSection = document.getElementById("roomSection");
   const tasteProfileSection = document.getElementById("tasteProfileSection");
   const genreEvolutionSection = document.getElementById("genreEvolutionSection");
@@ -4449,6 +4448,7 @@ function setPage(page) {
   const isCollection = page === "collection";
   const isWishlist = page === "wishlist";
   const isProfile = page === "profile";
+  const isSettings = page === "settings";
   const isRoom = page === "room";
   const isTasteProfile = page === "tasteProfile";
   const isGenreEvolution = page === "genreEvolution";
@@ -4467,6 +4467,7 @@ function setPage(page) {
 
   homeSection.hidden = !isHome;
   profileSection.hidden = !isProfile;
+  settingsSection.hidden = !isSettings;
   roomSection.hidden = !isRoom;
   tasteProfileSection.hidden = !isTasteProfile;
   genreEvolutionSection.hidden = !isGenreEvolution;
@@ -4475,11 +4476,16 @@ function setPage(page) {
   document.getElementById("cardSectionHeader").hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
-  statusSection.hidden = isHome || isProfile || isRoom || isTasteProfile || isGenreEvolution;
-  pageNav.hidden = isProfile;
+  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution;
+  pageNav.hidden = isProfile || isSettings;
 
   if (isProfile) {
     renderProfile();
+    return;
+  }
+
+  if (isSettings) {
+    renderSettings();
     return;
   }
 
@@ -6875,6 +6881,98 @@ async function handleSignOut() {
   }
 }
 
+function renderSettings() {
+  document.getElementById("settingsCurrentEmail").textContent = currentUser?.email || "—";
+
+  const emailForm = document.getElementById("changeEmailForm");
+  const emailStatus = document.getElementById("changeEmailStatus");
+  emailForm.reset();
+  emailStatus.textContent = "";
+  emailStatus.className = "form-status";
+
+  const passwordForm = document.getElementById("changePasswordForm");
+  const passwordStatus = document.getElementById("changePasswordStatus");
+  passwordForm.reset();
+  passwordStatus.textContent = "";
+  passwordStatus.className = "form-status";
+}
+
+async function handleChangeEmail(event) {
+  event.preventDefault();
+
+  const newEmail = document.getElementById("newEmailInput").value.trim();
+  const submitBtn = event.target.querySelector("button[type='submit']");
+  const statusEl = document.getElementById("changeEmailStatus");
+
+  if (!newEmail) return;
+
+  if (newEmail.toLowerCase() === (currentUser?.email || "").toLowerCase()) {
+    statusEl.textContent = "That's already your current email.";
+    statusEl.className = "form-status form-status-error";
+    return;
+  }
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Updating email...";
+  statusEl.className = "form-status";
+
+  try {
+    const { error } = await supabaseClient.auth.updateUser({ email: newEmail });
+    if (error) throw error;
+
+    statusEl.textContent =
+      "Check both your old and new email inboxes — Supabase sends a confirmation link to each, and the change takes effect once you confirm.";
+    statusEl.className = "form-status form-status-success";
+    document.getElementById("changeEmailForm").reset();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = err.message || "Couldn't update your email. Please try again.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
+async function handleChangePassword(event) {
+  event.preventDefault();
+
+  const newPassword = document.getElementById("newPasswordInput").value;
+  const confirmPassword = document.getElementById("confirmPasswordInput").value;
+  const submitBtn = event.target.querySelector("button[type='submit']");
+  const statusEl = document.getElementById("changePasswordStatus");
+
+  if (newPassword.length < 6) {
+    statusEl.textContent = "Password must be at least 6 characters.";
+    statusEl.className = "form-status form-status-error";
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    statusEl.textContent = "Passwords don't match.";
+    statusEl.className = "form-status form-status-error";
+    return;
+  }
+
+  submitBtn.disabled = true;
+  statusEl.textContent = "Updating password...";
+  statusEl.className = "form-status";
+
+  try {
+    const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+
+    statusEl.textContent = "Password updated.";
+    statusEl.className = "form-status form-status-success";
+    document.getElementById("changePasswordForm").reset();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = err.message || "Couldn't update your password. Please try again.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
+  }
+}
+
 async function onSignedIn(user) {
   currentUser = user;
 
@@ -7019,11 +7117,76 @@ function setupAuth() {
     setAuthMode(authMode === "signup" ? "signin" : "signup");
   });
 
-  document.getElementById("accountBtn").addEventListener("click", () => setPage("profile"));
+  function closeAccountMenu() {
+    document.getElementById("accountMenu").hidden = true;
+    document.getElementById("accountBtn").setAttribute("aria-expanded", "false");
+  }
+
+  function openAccountMenu() {
+    document.getElementById("accountMenu").hidden = false;
+    document.getElementById("accountBtn").setAttribute("aria-expanded", "true");
+  }
+
+  document.getElementById("accountBtn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    const menu = document.getElementById("accountMenu");
+    if (menu.hidden) {
+      openAccountMenu();
+    } else {
+      closeAccountMenu();
+    }
+  });
+
+  document.getElementById("accountMenuProfileBtn").addEventListener("click", () => {
+    closeAccountMenu();
+    setPage("profile");
+  });
+
+  document.getElementById("accountMenuSettingsBtn").addEventListener("click", () => {
+    closeAccountMenu();
+    setPage("settings");
+  });
+
+  document.getElementById("accountMenuSignOutBtn").addEventListener("click", () => {
+    closeAccountMenu();
+    handleSignOut();
+  });
+
+  document.addEventListener("click", (e) => {
+    const wrap = document.querySelector(".account-menu-wrap");
+    if (wrap && !wrap.contains(e.target)) closeAccountMenu();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAccountMenu();
+  });
 
   document.getElementById("profileBackBtn").addEventListener("click", () => setPage("home"));
 
   document.getElementById("profileSignOutBtn").addEventListener("click", () => handleSignOut());
+
+  document.getElementById("settingsBackBtn").addEventListener("click", () => setPage("home"));
+
+  document.getElementById("changeEmailForm").addEventListener("submit", handleChangeEmail);
+  document.getElementById("changePasswordForm").addEventListener("submit", handleChangePassword);
+
+  function wirePasswordToggle(toggleId, inputId) {
+    document.getElementById(toggleId).addEventListener("click", () => {
+      const input = document.getElementById(inputId);
+      const btn = document.getElementById(toggleId);
+      const isVisible = input.type === "text";
+
+      input.type = isVisible ? "password" : "text";
+      btn.setAttribute("aria-pressed", String(!isVisible));
+      btn.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
+      btn.innerHTML = isVisible
+        ? '<i class="ti ti-eye" aria-hidden="true"></i>'
+        : '<i class="ti ti-eye-off" aria-hidden="true"></i>';
+    });
+  }
+
+  wirePasswordToggle("newPasswordToggle", "newPasswordInput");
+  wirePasswordToggle("confirmPasswordToggle", "confirmPasswordInput");
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session?.user) {

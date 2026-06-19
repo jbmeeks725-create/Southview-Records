@@ -240,10 +240,25 @@
       </div>
     </button>
     <div id="accountSection" class="account-section" hidden>
-      <button type="button" id="accountBtn" class="account-btn">
-        <img id="accountAvatarImg" src="icon-512.png" alt="" class="account-avatar" />
-        <span id="accountEmail" class="account-email"></span>
-      </button>
+      <div class="account-menu-wrap">
+        <button type="button" id="accountBtn" class="account-btn" aria-haspopup="true" aria-expanded="false">
+          <img id="accountAvatarImg" src="icon-512.png" alt="" class="account-avatar" />
+          <span id="accountEmail" class="account-email"></span>
+          <i class="ti ti-chevron-down account-menu-caret" aria-hidden="true"></i>
+        </button>
+        <div id="accountMenu" class="account-menu" role="menu" hidden>
+          <button type="button" id="accountMenuProfileBtn" class="account-menu-item" role="menuitem">
+            <i class="ti ti-user" aria-hidden="true"></i> Profile
+          </button>
+          <button type="button" id="accountMenuSettingsBtn" class="account-menu-item" role="menuitem">
+            <i class="ti ti-settings" aria-hidden="true"></i> Settings
+          </button>
+          <div class="account-menu-divider"></div>
+          <button type="button" id="accountMenuSignOutBtn" class="account-menu-item account-menu-item-danger" role="menuitem">
+            <i class="ti ti-logout" aria-hidden="true"></i> Sign Out
+          </button>
+        </div>
+      </div>
     </div>
   </header>
   <section id="controls">
@@ -342,7 +357,6 @@
             <h2 id="profileDisplayName" class="profile-display-name">—</h2>
             <p id="profileUsername" class="profile-username"></p>
             <p id="profileLocation" class="field-hint"></p>
-            <p id="profileEmail" class="profile-email"></p>
             <p class="field-hint" id="profileMemberSince"></p>
           </div>
           <div class="stat-row profile-stat-row">
@@ -507,6 +521,70 @@
 
       <div class="profile-actions">
         <button type="button" id="profileSignOutBtn" class="btn-secondary">Sign out</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="settingsSection" hidden>
+    <div class="profile-page">
+      <button type="button" id="settingsBackBtn" class="link-btn profile-back-btn">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> Back
+      </button>
+
+      <div class="profile-grid settings-grid">
+        <div class="profile-card">
+          <div class="profile-card-header">
+            <h2>Account Email</h2>
+          </div>
+          <p class="field-hint">This is the email used to sign in. It isn't shown on your public profile.</p>
+          <p id="settingsCurrentEmail" class="settings-current-email">—</p>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-card-header">
+            <h2>Change Email</h2>
+          </div>
+          <form id="changeEmailForm">
+            <div class="form-row">
+              <label for="newEmailInput">New email</label>
+              <input type="email" id="newEmailInput" autocomplete="email" required />
+            </div>
+            <div id="changeEmailStatus" class="form-status"></div>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Update email</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-card-header">
+            <h2>Change Password</h2>
+          </div>
+          <form id="changePasswordForm">
+            <div class="form-row">
+              <label for="newPasswordInput">New password</label>
+              <div class="password-field-wrap">
+                <input type="password" id="newPasswordInput" autocomplete="new-password" required minlength="6" />
+                <button type="button" id="newPasswordToggle" class="password-toggle-btn" aria-label="Show password" aria-pressed="false">
+                  <i class="ti ti-eye" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="confirmPasswordInput">Confirm new password</label>
+              <div class="password-field-wrap">
+                <input type="password" id="confirmPasswordInput" autocomplete="new-password" required minlength="6" />
+                <button type="button" id="confirmPasswordToggle" class="password-toggle-btn" aria-label="Show password" aria-pressed="false">
+                  <i class="ti ti-eye" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+            <div id="changePasswordStatus" class="form-status"></div>
+            <div class="form-actions">
+              <button type="submit" class="btn-primary">Update password</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </section>

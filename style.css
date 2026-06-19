@@ -427,6 +427,86 @@ header {
   flex-shrink: 0;
 }
 
+.account-menu-wrap {
+  position: relative;
+}
+
+.account-menu-caret {
+  font-size: 0.85rem;
+  color: #6b7280;
+  transition: transform 0.15s ease;
+}
+
+.account-btn[aria-expanded="true"] .account-menu-caret {
+  transform: rotate(180deg);
+}
+
+.account-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 180px;
+  background: #111827;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 0.35rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  z-index: 50;
+}
+
+.account-menu[hidden] {
+  display: none;
+}
+
+.account-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: #e5e7eb;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.account-menu-item i {
+  font-size: 1rem;
+  color: #9ca3af;
+  width: 1.1rem;
+  text-align: center;
+}
+
+.account-menu-item:hover,
+.account-menu-item:focus-visible {
+  background: #1f2937;
+  outline: none;
+}
+
+.account-menu-item-danger {
+  color: #f3a8a8;
+}
+
+.account-menu-item-danger i {
+  color: #e0746e;
+}
+
+.account-menu-item-danger:hover,
+.account-menu-item-danger:focus-visible {
+  background: rgba(224, 86, 86, 0.12);
+}
+
+.account-menu-divider {
+  height: 1px;
+  background: #2d3748;
+  margin: 0.3rem 0.2rem;
+}
+
 /* ------------ Profile ------------ */
 
 .profile-page {
@@ -454,6 +534,13 @@ header {
   border: 1px solid #1f2937;
   border-radius: 8px;
   padding: 1.25rem;
+}
+
+.settings-current-email {
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f9fafb;
 }
 
 .profile-card-header {
