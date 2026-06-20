@@ -7460,10 +7460,10 @@ async function handleOnboardingMoreSubmit(event) {
       favorite_subgenres: getTagInputValues(document.getElementById("onboardSubgenresTagInput")),
       favorite_artists: getTagInputValues(document.getElementById("onboardArtistsTagInput")),
       favorite_albums: getTagInputValues(document.getElementById("onboardAlbumsTagInput")),
-      turntable: document.getElementById("onboardTurntable").value.trim() || null,
-      cartridge: document.getElementById("onboardCartridge").value.trim() || null,
+      turntable: getTagInputValues(document.getElementById("onboardTurntableTagInput")),
+      cartridge: getTagInputValues(document.getElementById("onboardCartridgeTagInput")),
       receiver: document.getElementById("onboardReceiver").value.trim() || null,
-      speakers: document.getElementById("onboardSpeakers").value.trim() || null,
+      speakers: getTagInputValues(document.getElementById("onboardSpeakersTagInput")),
       subwoofer: document.getElementById("onboardSubwoofer").value.trim() || null,
       onboarding_completed: true,
     });
