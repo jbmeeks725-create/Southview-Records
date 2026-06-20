@@ -277,7 +277,7 @@
       <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
       <button type="button" id="tasteProfilePageBtn" class="view-btn" aria-pressed="false">My Taste Profile</button>
       <button type="button" id="genreEvolutionPageBtn" class="view-btn" aria-pressed="false">Genre Evolution</button>
-      <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Room</button>
+      <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Listening Room</button>
     </nav>
   </section>
   <section id="status" hidden>
@@ -833,7 +833,7 @@
   <section id="roomSection" hidden>
     <div class="room-page">
       <div class="room-page-header">
-        <h2>My Room</h2>
+        <h2>My Listening Room</h2>
         <div class="room-page-header-actions">
           <button type="button" id="arrangeWallBtn" class="btn-secondary">Arrange wall</button>
           <button type="button" id="changeRoomThemeBtn" class="btn-secondary">Change room style</button>
@@ -844,6 +844,8 @@
         <img id="roomBackgroundImg" src="room-cozy.png" alt="" class="room-background" />
         <div id="roomFrames" class="room-frames"></div>
         <div id="roomNowPlaying" class="room-now-playing" hidden></div>
+        <div id="roomShelves" class="room-shelves"></div>
+        <button type="button" id="roomPlayerHotspot" class="room-player-hotspot" aria-label="Play music" hidden></button>
       </div>
     </div>
   </section>
@@ -931,6 +933,45 @@
       <div id="arrangeWallSlots" class="arrange-wall-slots"></div>
 
       <div id="arrangeWallStatus" class="form-status"></div>
+    </div>
+  </div>
+
+  <!-- Shelf bucket editor modal -->
+  <div id="shelfBucketOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shelfBucketTitle">
+      <div class="modal-header">
+        <h2 id="shelfBucketTitle">Organize this shelf</h2>
+        <button type="button" id="closeShelfBucketBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="form-row">
+        <label for="shelfBucketNameInput">Shelf name</label>
+        <input type="text" id="shelfBucketNameInput" placeholder="e.g. Jazz Hits, Sunday Morning..." autocomplete="off" />
+      </div>
+
+      <div class="form-row">
+        <label for="shelfBucketSearchInput">Filter your collection</label>
+        <input type="text" id="shelfBucketSearchInput" placeholder="Search by album or artist..." autocomplete="off" />
+      </div>
+
+      <div id="shelfBucketAlbumList" class="shelf-bucket-album-list"></div>
+
+      <div id="shelfBucketStatus" class="form-status"></div>
+    </div>
+  </div>
+
+  <!-- Record player modal (Spotify integration coming soon) -->
+  <div id="roomPlayerOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="roomPlayerTitle">
+      <div class="modal-header">
+        <h2 id="roomPlayerTitle">Listen in your room</h2>
+        <button type="button" id="closeRoomPlayerBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <p class="field-hint">
+        In-room Spotify playback is on its way. Soon you'll be able to drop the needle on any
+        album in your collection right from here.
+      </p>
     </div>
   </div>
 

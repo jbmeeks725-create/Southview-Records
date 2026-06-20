@@ -2204,6 +2204,13 @@ const ROOM_THEMES = [
       height: 13.867,
       clipPath: "polygon(14.29% 0%, 100% 9.15%, 87.5% 100%, 0% 80.99%)",
     },
+    shelves: [
+      { left: 23.112, top: 55.176, width: 7.812, height: 11.719 },
+      { left: 31.901, top: 55.176, width: 9.44, height: 11.719 },
+      { left: 55.013, top: 55.176, width: 9.44, height: 11.719 },
+      { left: 65.755, top: 55.176, width: 6.836, height: 11.719 },
+    ],
+    recordPlayer: { left: 39.714, top: 45.117, width: 15.951, height: 9.375 },
   },
   {
     id: "modern",
@@ -2223,6 +2230,13 @@ const ROOM_THEMES = [
       height: 13.477,
       clipPath: "polygon(12.74% 0%, 100% 7.25%, 87.90% 100%, 0% 85.51%)",
     },
+    shelves: [
+      { left: 25.391, top: 54.199, width: 7.812, height: 12.695 },
+      { left: 34.18, top: 54.199, width: 9.44, height: 12.695 },
+      { left: 55.664, top: 54.199, width: 9.44, height: 12.695 },
+      { left: 66.081, top: 54.199, width: 7.812, height: 12.695 },
+    ],
+    recordPlayer: { left: 39.388, top: 43.945, width: 15.951, height: 10.254 },
   },
   {
     id: "retro",
@@ -2242,6 +2256,11 @@ const ROOM_THEMES = [
       height: 15.918,
       clipPath: "polygon(11.31% 0%, 100% 9.20%, 89.88% 100%, 0% 83.44%)",
     },
+    shelves: [
+      { left: 32.878, top: 51.758, width: 11.719, height: 13.184 },
+      { left: 53.385, top: 51.758, width: 11.719, height: 13.184 },
+    ],
+    recordPlayer: { left: 44.271, top: 41.992, width: 13.997, height: 8.789 },
   },
   {
     id: "rock",
@@ -2261,6 +2280,13 @@ const ROOM_THEMES = [
       height: 17.383,
       clipPath: "polygon(12.65% 0%, 100% 9.55%, 87.35% 100%, 0% 83.71%)",
     },
+    shelves: [
+      { left: 21.81, top: 52.246, width: 9.115, height: 13.184 },
+      { left: 31.576, top: 52.246, width: 14.974, height: 13.184 },
+      { left: 52.409, top: 52.246, width: 13.346, height: 13.184 },
+      { left: 66.081, top: 52.246, width: 11.393, height: 13.184 },
+    ],
+    recordPlayer: { left: 38.737, top: 41.504, width: 11.719, height: 9.766 },
   },
   {
     id: "punk",
@@ -2280,6 +2306,12 @@ const ROOM_THEMES = [
       height: 14.746,
       clipPath: "polygon(11.18% 0%, 100% 7.95%, 90.13% 100%, 0% 83.44%)",
     },
+    shelves: [
+      { left: 23.438, top: 53.223, width: 9.44, height: 13.672 },
+      { left: 34.831, top: 53.223, width: 7.487, height: 13.672 },
+      { left: 62.5, top: 53.223, width: 13.672, height: 13.672 },
+    ],
+    recordPlayer: { left: 42.643, top: 44.922, width: 15.625, height: 7.324 },
   },
   {
     id: "store",
@@ -2299,6 +2331,12 @@ const ROOM_THEMES = [
       height: 15.918,
       clipPath: "polygon(14.77% 0%, 100% 7.98%, 87.92% 100%, 0% 84.05%)",
     },
+    shelves: [
+      { left: 26.042, top: 53.223, width: 6.836, height: 13.672 },
+      { left: 33.854, top: 53.223, width: 8.789, height: 13.672 },
+      { left: 61.523, top: 53.223, width: 12.695, height: 13.672 },
+    ],
+    recordPlayer: { left: 39.062, top: 44.922, width: 15.625, height: 7.324 },
   },
 ];
 
@@ -2313,6 +2351,8 @@ function renderRoom() {
 
   renderRoomFrames(theme);
   renderRoomNowPlaying(theme);
+  renderRoomShelves(theme);
+  renderRoomPlayerHotspot(theme);
 }
 
 function getRoomWallAlbums() {
@@ -2326,6 +2366,21 @@ function getRoomWallAlbums() {
     return [0, 1, 2, 3, 4].map((i) => wallAlbums[i] || "");
   }
   return [0, 1, 2, 3, 4].map((i) => favoriteAlbums[i] || "");
+}
+
+function getRoomShelfBuckets(theme) {
+  const allBuckets = currentProfile?.room_shelf_buckets || {};
+  const themeBuckets = allBuckets[theme.id] || [];
+
+  // Positionally aligned with theme.shelves. Pad/truncate to match the
+  // shelf count for this room, same defensive pattern as the wall frames.
+  return theme.shelves.map((_, i) => {
+    const bucket = themeBuckets[i];
+    return {
+      name: bucket?.name || "",
+      albums: Array.isArray(bucket?.albums) ? bucket.albums : [],
+    };
+  });
 }
 
 function renderRoomFrames(theme) {
@@ -2427,6 +2482,69 @@ function renderRoomNowPlaying(theme) {
   wrap.hidden = false;
 }
 
+function renderRoomShelves(theme) {
+  const container = document.getElementById("roomShelves");
+  container.innerHTML = "";
+
+  const buckets = getRoomShelfBuckets(theme);
+
+  theme.shelves.forEach((shelf, i) => {
+    const bucket = buckets[i];
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "room-shelf";
+    btn.style.left = `${shelf.left}%`;
+    btn.style.top = `${shelf.top}%`;
+    btn.style.width = `${shelf.width}%`;
+    btn.style.height = `${shelf.height}%`;
+    btn.addEventListener("click", () => openShelfBucketModal(i));
+
+    if (bucket.albums.length > 0) {
+      btn.classList.add("room-shelf-filled");
+      btn.title = bucket.name
+        ? `${bucket.name} (${bucket.albums.length} ${bucket.albums.length === 1 ? "album" : "albums"})`
+        : `${bucket.albums.length} ${bucket.albums.length === 1 ? "album" : "albums"}`;
+
+      if (bucket.name) {
+        const label = document.createElement("span");
+        label.className = "room-shelf-label";
+        label.textContent = bucket.name;
+        btn.appendChild(label);
+      }
+
+      const count = document.createElement("span");
+      count.className = "room-shelf-count";
+      count.textContent = bucket.albums.length;
+      btn.appendChild(count);
+    } else {
+      btn.classList.add("room-shelf-empty");
+      btn.title = "Click to organize albums on this shelf";
+
+      const icon = document.createElement("i");
+      icon.className = "ti ti-plus room-shelf-empty-icon";
+      icon.setAttribute("aria-hidden", "true");
+      btn.appendChild(icon);
+    }
+
+    container.appendChild(btn);
+  });
+}
+
+function renderRoomPlayerHotspot(theme) {
+  const btn = document.getElementById("roomPlayerHotspot");
+  if (!theme.recordPlayer) {
+    btn.hidden = true;
+    return;
+  }
+
+  btn.style.left = `${theme.recordPlayer.left}%`;
+  btn.style.top = `${theme.recordPlayer.top}%`;
+  btn.style.width = `${theme.recordPlayer.width}%`;
+  btn.style.height = `${theme.recordPlayer.height}%`;
+  btn.hidden = false;
+}
+
 function openRoomThemeModal() {
   const overlay = document.getElementById("roomThemeOverlay");
   const statusEl = document.getElementById("roomThemeStatus");
@@ -2497,6 +2615,30 @@ function setupRoom() {
   document.getElementById("arrangeWallOverlay").addEventListener("click", (e) => {
     if (e.target.id === "arrangeWallOverlay") closeArrangeWallModal();
   });
+
+  document.getElementById("roomPlayerHotspot").addEventListener("click", () => openRoomPlayerModal());
+  document.getElementById("closeRoomPlayerBtn").addEventListener("click", () => closeRoomPlayerModal());
+
+  document.getElementById("roomPlayerOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "roomPlayerOverlay") closeRoomPlayerModal();
+  });
+
+  document.getElementById("closeShelfBucketBtn").addEventListener("click", () => closeShelfBucketModal());
+
+  document.getElementById("shelfBucketOverlay").addEventListener("click", (e) => {
+    if (e.target.id === "shelfBucketOverlay") closeShelfBucketModal();
+  });
+
+  document.getElementById("shelfBucketNameInput").addEventListener("input", () => saveShelfBucketName());
+  document.getElementById("shelfBucketSearchInput").addEventListener("input", () => renderShelfBucketAlbumList());
+}
+
+function openRoomPlayerModal() {
+  document.getElementById("roomPlayerOverlay").hidden = false;
+}
+
+function closeRoomPlayerModal() {
+  document.getElementById("roomPlayerOverlay").hidden = true;
 }
 
 function openArrangeWallModal() {
@@ -2572,6 +2714,152 @@ async function saveRoomWallArrangement() {
   try {
     await saveProfileFields({ room_wall_albums: wallAlbums });
     renderRoomFrames(getRoomTheme());
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  }
+}
+
+// ------------ Shelf buckets ------------
+
+let activeShelfIndex = null;
+
+function openShelfBucketModal(shelfIndex) {
+  activeShelfIndex = shelfIndex;
+
+  const theme = getRoomTheme();
+  const buckets = getRoomShelfBuckets(theme);
+  const bucket = buckets[shelfIndex];
+
+  document.getElementById("shelfBucketNameInput").value = bucket.name;
+  document.getElementById("shelfBucketSearchInput").value = "";
+  document.getElementById("shelfBucketStatus").textContent = "";
+  document.getElementById("shelfBucketStatus").className = "form-status";
+
+  renderShelfBucketAlbumList();
+
+  document.getElementById("shelfBucketOverlay").hidden = false;
+}
+
+function closeShelfBucketModal() {
+  document.getElementById("shelfBucketOverlay").hidden = true;
+  activeShelfIndex = null;
+}
+
+function renderShelfBucketAlbumList() {
+  if (activeShelfIndex === null) return;
+
+  const theme = getRoomTheme();
+  const buckets = getRoomShelfBuckets(theme);
+  const bucket = buckets[activeShelfIndex];
+  const selected = new Set(bucket.albums.map((a) => a.toLowerCase()));
+
+  const query = document.getElementById("shelfBucketSearchInput").value.trim().toLowerCase();
+
+  // One row per unique album in the user's collection (allRecords may
+  // contain duplicates/multiple pressings of the same album).
+  const seen = new Set();
+  const uniqueAlbums = [];
+  allRecords.forEach((r) => {
+    const key = r.album.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    uniqueAlbums.push(r);
+  });
+
+  const filtered = uniqueAlbums
+    .filter((r) => !query || r.album.toLowerCase().includes(query) || r.artist.toLowerCase().includes(query))
+    .sort((a, b) => a.album.localeCompare(b.album));
+
+  const list = document.getElementById("shelfBucketAlbumList");
+  list.innerHTML = "";
+
+  if (filtered.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-hint";
+    empty.textContent = allRecords.length === 0
+      ? "Add some records to your collection first, then come back here to build this shelf."
+      : "No albums match that search.";
+    list.appendChild(empty);
+    return;
+  }
+
+  filtered.forEach((record) => {
+    const row = document.createElement("label");
+    row.className = "shelf-bucket-album-row";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = selected.has(record.album.toLowerCase());
+    checkbox.addEventListener("change", () => toggleShelfBucketAlbum(record.album, checkbox.checked));
+
+    const info = document.createElement("span");
+    info.className = "shelf-bucket-album-info";
+
+    if (record.cover_url) {
+      const img = document.createElement("img");
+      img.src = record.cover_url;
+      img.alt = "";
+      img.className = "shelf-bucket-album-cover";
+      info.appendChild(img);
+    }
+
+    const text = document.createElement("span");
+    text.className = "shelf-bucket-album-text";
+    text.textContent = `${record.artist} — ${record.album}`;
+    info.appendChild(text);
+
+    row.appendChild(checkbox);
+    row.appendChild(info);
+    list.appendChild(row);
+  });
+}
+
+async function toggleShelfBucketAlbum(albumName, isSelected) {
+  if (activeShelfIndex === null) return;
+
+  const theme = getRoomTheme();
+  const allBuckets = { ...(currentProfile?.room_shelf_buckets || {}) };
+  const themeBuckets = getRoomShelfBuckets(theme);
+
+  const current = themeBuckets[activeShelfIndex];
+  const updatedAlbums = isSelected
+    ? [...current.albums, albumName]
+    : current.albums.filter((a) => a.toLowerCase() !== albumName.toLowerCase());
+
+  themeBuckets[activeShelfIndex] = { name: current.name, albums: updatedAlbums };
+  allBuckets[theme.id] = themeBuckets;
+
+  await saveShelfBuckets(allBuckets);
+}
+
+async function saveShelfBucketName() {
+  if (activeShelfIndex === null) return;
+
+  const theme = getRoomTheme();
+  const allBuckets = { ...(currentProfile?.room_shelf_buckets || {}) };
+  const themeBuckets = getRoomShelfBuckets(theme);
+
+  const name = document.getElementById("shelfBucketNameInput").value.trim();
+  const current = themeBuckets[activeShelfIndex];
+
+  themeBuckets[activeShelfIndex] = { name, albums: current.albums };
+  allBuckets[theme.id] = themeBuckets;
+
+  await saveShelfBuckets(allBuckets);
+}
+
+async function saveShelfBuckets(allBuckets) {
+  const statusEl = document.getElementById("shelfBucketStatus");
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    await saveProfileFields({ room_shelf_buckets: allBuckets });
+    renderRoomShelves(getRoomTheme());
     statusEl.textContent = "Saved.";
     statusEl.className = "form-status form-status-success";
   } catch (err) {
