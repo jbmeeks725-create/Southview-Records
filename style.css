@@ -1299,6 +1299,48 @@ header {
   text-overflow: ellipsis;
 }
 
+.shelf-bucket-album-text-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.shelf-bucket-album-genre {
+  font-size: 0.7rem;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shelf-bucket-section-header {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+  margin: 0.6rem 0.2rem 0.2rem;
+}
+
+.shelf-bucket-section-header:first-child {
+  margin-top: 0.1rem;
+}
+
+.shelf-bucket-section-in {
+  border-radius: 6px;
+  background: rgba(202, 161, 90, 0.06);
+  padding: 2px;
+}
+
+.shelf-bucket-browse-toggle {
+  padding: 0.4rem 0.2rem 0.1rem;
+}
+
+.shelf-bucket-browse-toggle .link-btn {
+  font-size: 0.8rem;
+}
+
 /* Room theme picker */
 .room-theme-grid {
   display: grid;

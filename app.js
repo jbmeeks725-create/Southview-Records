@@ -2236,7 +2236,7 @@ const ROOM_THEMES = [
       { left: 55.664, top: 54.199, width: 9.44, height: 12.695 },
       { left: 66.081, top: 54.199, width: 7.812, height: 12.695 },
     ],
-    recordPlayer: { left: 39.388, top: 43.945, width: 15.951, height: 10.254 },
+    recordPlayer: { left: 42.969, top: 45.41, width: 12.044, height: 7.324 },
   },
   {
     id: "retro",
@@ -2726,9 +2726,11 @@ async function saveRoomWallArrangement() {
 // ------------ Shelf buckets ------------
 
 let activeShelfIndex = null;
+let shelfBucketBrowsing = false;
 
 function openShelfBucketModal(shelfIndex) {
   activeShelfIndex = shelfIndex;
+  shelfBucketBrowsing = false;
 
   const theme = getRoomTheme();
   const buckets = getRoomShelfBuckets(theme);
@@ -2739,6 +2741,10 @@ function openShelfBucketModal(shelfIndex) {
   document.getElementById("shelfBucketStatus").textContent = "";
   document.getElementById("shelfBucketStatus").className = "form-status";
 
+  // Start in "browse" mode automatically if the shelf is empty, since
+  // there's nothing to show in the default in-shelf-only view yet.
+  if (bucket.albums.length === 0) shelfBucketBrowsing = true;
+
   renderShelfBucketAlbumList();
 
   document.getElementById("shelfBucketOverlay").hidden = false;
@@ -2747,18 +2753,10 @@ function openShelfBucketModal(shelfIndex) {
 function closeShelfBucketModal() {
   document.getElementById("shelfBucketOverlay").hidden = true;
   activeShelfIndex = null;
+  shelfBucketBrowsing = false;
 }
 
-function renderShelfBucketAlbumList() {
-  if (activeShelfIndex === null) return;
-
-  const theme = getRoomTheme();
-  const buckets = getRoomShelfBuckets(theme);
-  const bucket = buckets[activeShelfIndex];
-  const selected = new Set(bucket.albums.map((a) => a.toLowerCase()));
-
-  const query = document.getElementById("shelfBucketSearchInput").value.trim().toLowerCase();
-
+function getUniqueAlbumRecords() {
   // One row per unique album in the user's collection (allRecords may
   // contain duplicates/multiple pressings of the same album).
   const seen = new Set();
@@ -2769,53 +2767,152 @@ function renderShelfBucketAlbumList() {
     seen.add(key);
     uniqueAlbums.push(r);
   });
+  return uniqueAlbums;
+}
 
-  const filtered = uniqueAlbums
-    .filter((r) => !query || r.album.toLowerCase().includes(query) || r.artist.toLowerCase().includes(query))
-    .sort((a, b) => a.album.localeCompare(b.album));
+function buildShelfBucketAlbumRow(record, isSelected) {
+  const row = document.createElement("label");
+  row.className = "shelf-bucket-album-row";
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = isSelected;
+  checkbox.addEventListener("change", () => toggleShelfBucketAlbum(record.album, checkbox.checked));
+
+  const info = document.createElement("span");
+  info.className = "shelf-bucket-album-info";
+
+  if (record.cover_url) {
+    const img = document.createElement("img");
+    img.src = record.cover_url;
+    img.alt = "";
+    img.className = "shelf-bucket-album-cover";
+    info.appendChild(img);
+  }
+
+  const textWrap = document.createElement("span");
+  textWrap.className = "shelf-bucket-album-text-wrap";
+
+  const text = document.createElement("span");
+  text.className = "shelf-bucket-album-text";
+  text.textContent = `${record.artist} — ${record.album}`;
+  textWrap.appendChild(text);
+
+  if (record.genre_name) {
+    const genreEl = document.createElement("span");
+    genreEl.className = "shelf-bucket-album-genre";
+    genreEl.textContent = record.subgenre_name
+      ? `${record.genre_name} · ${record.subgenre_name}`
+      : record.genre_name;
+    textWrap.appendChild(genreEl);
+  }
+
+  info.appendChild(textWrap);
+
+  row.appendChild(checkbox);
+  row.appendChild(info);
+  return row;
+}
+
+function renderShelfBucketAlbumList() {
+  if (activeShelfIndex === null) return;
+
+  const theme = getRoomTheme();
+  const buckets = getRoomShelfBuckets(theme);
+  const bucket = buckets[activeShelfIndex];
+  const selectedNames = bucket.albums;
+  const selectedLower = new Set(selectedNames.map((a) => a.toLowerCase()));
+
+  const uniqueAlbums = getUniqueAlbumRecords();
+  const byAlbumLower = new Map(uniqueAlbums.map((r) => [r.album.toLowerCase(), r]));
 
   const list = document.getElementById("shelfBucketAlbumList");
   list.innerHTML = "";
+
+  const browseToggleRow = document.createElement("div");
+  browseToggleRow.className = "shelf-bucket-browse-toggle";
+  const browseBtn = document.createElement("button");
+  browseBtn.type = "button";
+  browseBtn.className = "link-btn";
+  browseBtn.textContent = shelfBucketBrowsing ? "Hide collection browser" : "Add more albums";
+  browseBtn.addEventListener("click", () => {
+    shelfBucketBrowsing = !shelfBucketBrowsing;
+    renderShelfBucketAlbumList();
+  });
+  browseToggleRow.appendChild(browseBtn);
+
+  // --- "In this shelf" section: always shown when non-empty ---
+  if (selectedNames.length > 0) {
+    const inHeader = document.createElement("p");
+    inHeader.className = "shelf-bucket-section-header";
+    inHeader.textContent = `In this shelf (${selectedNames.length})`;
+    list.appendChild(inHeader);
+
+    const inSection = document.createElement("div");
+    inSection.className = "shelf-bucket-section shelf-bucket-section-in";
+
+    selectedNames.forEach((albumName) => {
+      const record = byAlbumLower.get(albumName.toLowerCase()) || {
+        artist: "",
+        album: albumName,
+        cover_url: null,
+        genre_name: "",
+        subgenre_name: "",
+      };
+      inSection.appendChild(buildShelfBucketAlbumRow(record, true));
+    });
+
+    list.appendChild(inSection);
+    list.appendChild(browseToggleRow);
+  } else {
+    const empty = document.createElement("p");
+    empty.className = "empty-hint";
+    empty.textContent = "Nothing on this shelf yet. Add some albums below.";
+    list.appendChild(empty);
+  }
+
+  if (!shelfBucketBrowsing) return;
+
+  // --- Browse/search section: only rendered when explicitly opened ---
+  const query = document.getElementById("shelfBucketSearchInput").value.trim().toLowerCase();
+
+  const outHeader = document.createElement("p");
+  outHeader.className = "shelf-bucket-section-header";
+  outHeader.textContent = "Add from your collection";
+  list.appendChild(outHeader);
+
+  const filtered = uniqueAlbums
+    .filter((r) => !selectedLower.has(r.album.toLowerCase()))
+    .filter((r) => {
+      if (!query) return true;
+      return (
+        r.album.toLowerCase().includes(query) ||
+        r.artist.toLowerCase().includes(query) ||
+        (r.genre_name || "").toLowerCase().includes(query) ||
+        (r.subgenre_name || "").toLowerCase().includes(query)
+      );
+    })
+    .sort((a, b) => a.album.localeCompare(b.album));
+
+  const outSection = document.createElement("div");
+  outSection.className = "shelf-bucket-section shelf-bucket-section-out";
 
   if (filtered.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty-hint";
     empty.textContent = allRecords.length === 0
       ? "Add some records to your collection first, then come back here to build this shelf."
-      : "No albums match that search.";
-    list.appendChild(empty);
-    return;
+      : query
+        ? "No albums match that search."
+        : "Every album in your collection is already on this shelf.";
+    outSection.appendChild(empty);
+  } else {
+    filtered.forEach((record) => {
+      outSection.appendChild(buildShelfBucketAlbumRow(record, false));
+    });
   }
 
-  filtered.forEach((record) => {
-    const row = document.createElement("label");
-    row.className = "shelf-bucket-album-row";
-
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = selected.has(record.album.toLowerCase());
-    checkbox.addEventListener("change", () => toggleShelfBucketAlbum(record.album, checkbox.checked));
-
-    const info = document.createElement("span");
-    info.className = "shelf-bucket-album-info";
-
-    if (record.cover_url) {
-      const img = document.createElement("img");
-      img.src = record.cover_url;
-      img.alt = "";
-      img.className = "shelf-bucket-album-cover";
-      info.appendChild(img);
-    }
-
-    const text = document.createElement("span");
-    text.className = "shelf-bucket-album-text";
-    text.textContent = `${record.artist} — ${record.album}`;
-    info.appendChild(text);
-
-    row.appendChild(checkbox);
-    row.appendChild(info);
-    list.appendChild(row);
-  });
+  list.appendChild(outSection);
 }
 
 async function toggleShelfBucketAlbum(albumName, isSelected) {
@@ -2834,6 +2931,7 @@ async function toggleShelfBucketAlbum(albumName, isSelected) {
   allBuckets[theme.id] = themeBuckets;
 
   await saveShelfBuckets(allBuckets);
+  renderShelfBucketAlbumList();
 }
 
 async function saveShelfBucketName() {
