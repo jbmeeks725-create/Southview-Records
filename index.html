@@ -960,7 +960,7 @@
     </div>
   </div>
 
-  <!-- Record player modal (Spotify integration coming soon) -->
+  <!-- Record player modal: Spotify (owner) / read-only now-playing (visitors) -->
   <div id="roomPlayerOverlay" class="modal-overlay" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="roomPlayerTitle">
       <div class="modal-header">
@@ -968,10 +968,59 @@
         <button type="button" id="closeRoomPlayerBtn" class="modal-close" aria-label="Close">&times;</button>
       </div>
 
-      <p class="field-hint">
-        In-room Spotify playback is on its way. Soon you'll be able to drop the needle on any
-        album in your collection right from here.
-      </p>
+      <!-- Owner view: connect/disconnect + transport controls -->
+      <div id="roomPlayerOwnerView" hidden>
+        <p class="field-hint">
+          Connect your Spotify Premium account to play music right from your Listening Room.
+        </p>
+
+        <button type="button" id="spotifyConnectBtn" class="btn-primary" hidden>
+          Connect Spotify
+        </button>
+
+        <div id="roomPlayerControls" hidden>
+          <div id="roomPlayerNowPlaying" class="room-player-now-playing" hidden></div>
+
+          <div class="room-player-transport">
+            <button type="button" id="spotifyPrevBtn" class="btn-secondary" aria-label="Previous track">
+              <i class="ti ti-player-skip-back" aria-hidden="true"></i>
+            </button>
+            <button type="button" id="spotifyPlayPauseBtn" class="btn-primary" aria-label="Play or pause">
+              <i class="ti ti-player-play" aria-hidden="true"></i>
+            </button>
+            <button type="button" id="spotifyNextBtn" class="btn-secondary" aria-label="Next track">
+              <i class="ti ti-player-skip-forward" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <button type="button" id="spotifyDisconnectBtn" class="btn-text" hidden>
+            Disconnect Spotify
+          </button>
+        </div>
+
+        <p id="roomPlayerStatus" class="form-status"></p>
+      </div>
+
+      <!-- Visitor view: read-only now-playing, no controls -->
+      <div id="roomPlayerVisitorView" hidden>
+        <div id="roomPlayerVisitorNowPlaying" class="room-player-now-playing" hidden></div>
+        <p id="roomPlayerVisitorEmpty" class="field-hint">
+          Nothing's playing in this room right now.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Spotify album match picker (manual override) -->
+  <div id="spotifyMatchOverlay" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="spotifyMatchTitle">
+      <div class="modal-header">
+        <h2 id="spotifyMatchTitle">Choose the right Spotify match</h2>
+        <button type="button" id="closeSpotifyMatchBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+
+      <div id="spotifyMatchList" class="spotify-match-list"></div>
+      <p id="spotifyMatchStatus" class="form-status"></p>
     </div>
   </div>
 
@@ -1204,6 +1253,8 @@
           <button type="button" id="removeCoverBtn" class="btn-secondary">Remove cover</button>
         </div>
         <div id="coverUploadStatus" class="form-status"></div>
+
+        <div id="recordSpotifyControls" class="record-spotify-controls" hidden></div>
 
         <div id="detailRatingControls" class="detail-rating-controls"></div>
 
