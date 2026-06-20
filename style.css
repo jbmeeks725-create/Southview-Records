@@ -1081,6 +1081,7 @@ header {
 .room-frames {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 
 .room-frame {
@@ -1093,6 +1094,7 @@ header {
   border: none;
   padding: 0;
   margin: 0;
+  pointer-events: auto;
 }
 
 .room-frame[type="button"] {
@@ -1164,6 +1166,7 @@ header {
 .room-shelves {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 
 .room-shelf {
@@ -1181,6 +1184,7 @@ header {
   outline: 2px solid transparent;
   outline-offset: 2px;
   transition: outline-color 0.15s ease, background 0.15s ease;
+  pointer-events: auto;
 }
 
 .room-shelf:hover,
