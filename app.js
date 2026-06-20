@@ -2639,6 +2639,7 @@ function setupRoom() {
 
 function openRoomPlayerModal() {
   document.getElementById("roomPlayerOverlay").hidden = false;
+  renderRoomPlayerModal();
 }
 
 function closeRoomPlayerModal() {
@@ -6763,6 +6764,8 @@ function openRecordDetailModal(recordId, startTab = "details") {
   moreLikeThisWrap.appendChild(moreLikeThisBtn);
 
   document.getElementById("recordDetailOverlay").hidden = false;
+
+  renderRecordSpotifyControls(record);
 }
 
 function closeRecordDetailModal() {
@@ -7716,6 +7719,684 @@ function setupLandingPage() {
   loadLandingNowPlaying();
 }
 
+// ============================================================
+// Spotify Connect (owner-only)
+// ============================================================
+//
+// Architecture recap:
+//   - Only the SITE OWNER ever authorizes Spotify (Development Mode caps
+//     Spotify apps at 5 authorized users — see session notes). Any signed-in
+//     visitor who isn't the owner just sees a read-only "what's playing"
+//     snapshot with no controls, same as a signed-out landing-page visitor.
+//   - Auth uses Authorization Code Flow with PKCE (Spotify retired the
+//     implicit grant flow; PKCE means no client secret has to live anywhere
+//     in this static frontend).
+//   - The actual token exchange/refresh/storage happens in the
+//     `spotify-auth` Supabase Edge Function. The browser only ever holds a
+//     short-lived access_token (≤1hr) for the Web Playback SDK — refresh
+//     tokens never touch the browser.
+//   - A separate static page, spotify-callback.html, is the OAuth redirect
+//     target. It finishes the code exchange and then closes itself /
+//     hands control back to the main app (see that file for details).
+
+const SPOTIFY_CLIENT_ID = "abce6ebe89b248b796cd64532ce397a7";
+const SPOTIFY_REDIRECT_URI = "https://spinvinyl.co/spotify-callback.html";
+const SPOTIFY_AUTH_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/spotify-auth";
+const SPOTIFY_SCOPES = [
+  "streaming",
+  "user-read-email",
+  "user-read-private",
+  "user-read-playback-state",
+  "user-modify-playback-state",
+].join(" ");
+
+let spotifyPlayer = null; // Web Playback SDK instance, once initialized
+let spotifyDeviceId = null;
+let spotifyAccessToken = null;
+let spotifyPollTimer = null;
+
+// ---- PKCE helpers ----
+
+function spotifyGenerateRandomString(length) {
+  const possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const values = crypto.getRandomValues(new Uint8Array(length));
+  return Array.from(values, (x) => possible[x % possible.length]).join("");
+}
+
+async function spotifySha256(plain) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  return crypto.subtle.digest("SHA-256", data);
+}
+
+function spotifyBase64Encode(input) {
+  return btoa(String.fromCharCode(...new Uint8Array(input)))
+    .replace(/=/g, "")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
+
+// ---- Edge Function calls ----
+
+async function callSpotifyAuthFunction(action, extra = {}) {
+  const { data: sessionData } = await supabaseClient.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+
+  const response = await fetch(SPOTIFY_AUTH_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${accessToken || SUPABASE_ANON_KEY}`,
+    },
+    body: JSON.stringify({ action, ...extra }),
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error || `Spotify auth request failed (${response.status})`);
+  }
+  return result;
+}
+
+// Owner-only check, mirrors LANDING_OWNER_USER_ID used on the landing page.
+function isSpotifyOwner() {
+  return !!currentUser && currentUser.id === LANDING_OWNER_USER_ID;
+}
+
+// ---- Connect flow (owner only) ----
+
+async function startSpotifyConnect() {
+  const codeVerifier = spotifyGenerateRandomString(64);
+  const hashed = await spotifySha256(codeVerifier);
+  const codeChallenge = spotifyBase64Encode(hashed);
+
+  // sessionStorage (not localStorage) — this only needs to survive the
+  // single redirect round-trip to Spotify and back.
+  sessionStorage.setItem("spotify_code_verifier", codeVerifier);
+
+  const authUrl = new URL("https://accounts.spotify.com/authorize");
+  authUrl.search = new URLSearchParams({
+    response_type: "code",
+    client_id: SPOTIFY_CLIENT_ID,
+    scope: SPOTIFY_SCOPES,
+    code_challenge_method: "S256",
+    code_challenge: codeChallenge,
+    redirect_uri: SPOTIFY_REDIRECT_URI,
+  }).toString();
+
+  window.location.href = authUrl.toString();
+}
+
+async function disconnectSpotify() {
+  await callSpotifyAuthFunction("disconnect");
+  spotifyAccessToken = null;
+  if (spotifyPlayer) {
+    spotifyPlayer.disconnect();
+    spotifyPlayer = null;
+    spotifyDeviceId = null;
+  }
+  renderRoomPlayerModal();
+}
+
+// ---- Web Playback SDK ----
+
+function loadSpotifyPlaybackSdk() {
+  return new Promise((resolve) => {
+    if (window.Spotify) {
+      resolve();
+      return;
+    }
+    window.onSpotifyWebPlaybackSDKReady = () => resolve();
+    const script = document.createElement("script");
+    script.src = "https://sdk.scdn.co/spotify-player.js";
+    document.head.appendChild(script);
+  });
+}
+
+async function ensureSpotifyPlayer() {
+  if (spotifyPlayer) return spotifyPlayer;
+
+  await loadSpotifyPlaybackSdk();
+
+  spotifyPlayer = new window.Spotify.Player({
+    name: "SPIN VINYL Listening Room",
+    getOAuthToken: async (callback) => {
+      const token = await getValidSpotifyAccessToken();
+      callback(token || "");
+    },
+    volume: 0.6,
+  });
+
+  spotifyPlayer.addListener("ready", ({ device_id }) => {
+    spotifyDeviceId = device_id;
+  });
+
+  spotifyPlayer.addListener("not_ready", () => {
+    spotifyDeviceId = null;
+  });
+
+  spotifyPlayer.addListener("initialization_error", ({ message }) => {
+    console.error("Spotify init error:", message);
+  });
+  spotifyPlayer.addListener("authentication_error", ({ message }) => {
+    console.error("Spotify auth error:", message);
+  });
+  spotifyPlayer.addListener("account_error", ({ message }) => {
+    // Most commonly: the connected account isn't Premium.
+    console.error("Spotify account error:", message);
+    showRoomPlayerStatus(
+      "This Spotify account doesn't have Premium, which the Web Playback SDK requires."
+    );
+  });
+
+  spotifyPlayer.addListener("player_state_changed", (state) => {
+    if (!state) return;
+    renderRoomPlayerNowPlaying({
+      track: state.track_window.current_track.name,
+      artist: state.track_window.current_track.artists.map((a) => a.name).join(", "),
+      album: state.track_window.current_track.album.name,
+      coverUrl: state.track_window.current_track.album.images?.[0]?.url || null,
+      playing: !state.paused,
+    });
+  });
+
+  await spotifyPlayer.connect();
+  return spotifyPlayer;
+}
+
+async function getValidSpotifyAccessToken() {
+  try {
+    const result = await callSpotifyAuthFunction("token");
+    if (!result.connected) {
+      spotifyAccessToken = null;
+      return null;
+    }
+    spotifyAccessToken = result.access_token;
+    return spotifyAccessToken;
+  } catch (err) {
+    console.error("Failed to get Spotify access token:", err);
+    return null;
+  }
+}
+
+// ---- Room player modal ----
+
+function showRoomPlayerStatus(message) {
+  const el = document.getElementById("roomPlayerStatus");
+  if (el) el.textContent = message || "";
+}
+
+function renderRoomPlayerNowPlaying(info) {
+  const wrap = document.getElementById("roomPlayerNowPlaying");
+  if (!wrap) return;
+
+  if (!info) {
+    wrap.hidden = true;
+    wrap.innerHTML = "";
+    return;
+  }
+
+  wrap.hidden = false;
+  wrap.innerHTML = "";
+
+  if (info.coverUrl) {
+    const img = document.createElement("img");
+    img.src = info.coverUrl;
+    img.alt = info.album || info.track;
+    img.className = "room-player-now-playing-cover";
+    wrap.appendChild(img);
+  }
+
+  const textWrap = document.createElement("div");
+  textWrap.className = "room-player-now-playing-text";
+
+  const trackEl = document.createElement("p");
+  trackEl.className = "room-player-now-playing-track";
+  trackEl.textContent = info.track;
+  textWrap.appendChild(trackEl);
+
+  const artistEl = document.createElement("p");
+  artistEl.className = "room-player-now-playing-artist";
+  artistEl.textContent = info.artist;
+  textWrap.appendChild(artistEl);
+
+  wrap.appendChild(textWrap);
+
+  const badge = document.createElement("span");
+  badge.className = "room-player-now-playing-badge";
+  badge.textContent = info.playing ? "Playing" : "Paused";
+  wrap.appendChild(badge);
+
+  const playPauseBtn = document.getElementById("spotifyPlayPauseBtn");
+  const icon = playPauseBtn?.querySelector("i");
+  if (icon) {
+    icon.className = info.playing ? "ti ti-player-pause" : "ti ti-player-play";
+  }
+}
+
+// Renders the modal body based on: owner+connected, owner+not-connected,
+// or visitor (read-only).
+async function renderRoomPlayerModal() {
+  const ownerView = document.getElementById("roomPlayerOwnerView");
+  const visitorView = document.getElementById("roomPlayerVisitorView");
+  const connectBtn = document.getElementById("spotifyConnectBtn");
+  const disconnectBtn = document.getElementById("spotifyDisconnectBtn");
+  const controls = document.getElementById("roomPlayerControls");
+
+  showRoomPlayerStatus("");
+
+  if (!isSpotifyOwner()) {
+    ownerView.hidden = true;
+    visitorView.hidden = false;
+    await refreshVisitorNowPlaying();
+    return;
+  }
+
+  ownerView.hidden = false;
+  visitorView.hidden = true;
+
+  let status;
+  try {
+    status = await callSpotifyAuthFunction("status");
+  } catch (err) {
+    showRoomPlayerStatus("Couldn't reach Spotify right now. Try again in a moment.");
+    return;
+  }
+
+  if (!status.connected) {
+    connectBtn.hidden = false;
+    disconnectBtn.hidden = true;
+    controls.hidden = true;
+    renderRoomPlayerNowPlaying(null);
+    return;
+  }
+
+  connectBtn.hidden = true;
+  disconnectBtn.hidden = false;
+  controls.hidden = false;
+
+  try {
+    await ensureSpotifyPlayer();
+  } catch (err) {
+    console.error("Spotify player init failed:", err);
+    showRoomPlayerStatus("Couldn't start the Spotify player. Make sure this account has Premium.");
+  }
+}
+
+// Read-only "now playing" for non-owner visitors (and reused by the
+// signed-out landing page). Calls the public, unauthenticated
+// "now-playing" action — no tokens are ever involved on this path.
+async function refreshVisitorNowPlaying() {
+  const wrap = document.getElementById("roomPlayerVisitorNowPlaying");
+  const emptyMsg = document.getElementById("roomPlayerVisitorEmpty");
+  if (!wrap) return;
+
+  try {
+    const response = await fetch(SPOTIFY_AUTH_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ action: "now-playing" }),
+    });
+    const data = await response.json();
+
+    if (!data.connected || !data.playing) {
+      wrap.hidden = true;
+      if (emptyMsg) emptyMsg.hidden = false;
+      return;
+    }
+
+    if (emptyMsg) emptyMsg.hidden = true;
+    wrap.hidden = false;
+    wrap.innerHTML = "";
+
+    if (data.coverUrl) {
+      const img = document.createElement("img");
+      img.src = data.coverUrl;
+      img.alt = data.album || data.track;
+      img.className = "room-player-now-playing-cover";
+      wrap.appendChild(img);
+    }
+
+    const textWrap = document.createElement("div");
+    textWrap.className = "room-player-now-playing-text";
+    const trackEl = document.createElement("p");
+    trackEl.className = "room-player-now-playing-track";
+    trackEl.textContent = data.track;
+    textWrap.appendChild(trackEl);
+    const artistEl = document.createElement("p");
+    artistEl.className = "room-player-now-playing-artist";
+    artistEl.textContent = data.artist;
+    textWrap.appendChild(artistEl);
+    wrap.appendChild(textWrap);
+  } catch (err) {
+    console.error("Failed to load now-playing:", err);
+    wrap.hidden = true;
+    if (emptyMsg) emptyMsg.hidden = false;
+  }
+}
+
+// ---- Playback controls (owner only, called from modal buttons) ----
+
+async function spotifyTogglePlayback() {
+  if (!spotifyPlayer) return;
+  try {
+    await spotifyPlayer.togglePlay();
+  } catch (err) {
+    console.error("Spotify toggle playback failed:", err);
+  }
+}
+
+async function spotifyNextTrack() {
+  if (!spotifyPlayer) return;
+  try {
+    await spotifyPlayer.nextTrack();
+  } catch (err) {
+    console.error("Spotify next track failed:", err);
+  }
+}
+
+async function spotifyPreviousTrack() {
+  if (!spotifyPlayer) return;
+  try {
+    await spotifyPlayer.previousTrack();
+  } catch (err) {
+    console.error("Spotify previous track failed:", err);
+  }
+}
+
+// ---- Record-to-Spotify-album matching ----
+//
+// Records don't store a Spotify URI until the owner first tries to play
+// them. At that point we search Spotify by artist+album, cache the top
+// match on the record as 'auto', and let the owner override it via the
+// match picker if it's wrong (e.g. a compilation or reissue matched
+// instead of the original pressing).
+
+async function searchSpotifyAlbumCandidates(artist, album) {
+  const result = await callSpotifyAuthFunction("search-album", { artist, album });
+  return result.candidates || [];
+}
+
+async function saveRecordSpotifyMatch(recordId, uri, status) {
+  const { data, error } = await supabaseClient
+    .from("records")
+    .update({ spotify_album_uri: uri, spotify_match_status: status })
+    .eq("id", recordId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // Keep the in-memory copy in sync so the UI doesn't need a full reload.
+  const idx = allRecords.findIndex((r) => r.id === recordId);
+  if (idx !== -1) {
+    allRecords[idx] = { ...allRecords[idx], ...data };
+  }
+  return data;
+}
+
+// Renders the small "Play on Spotify" control inside the record detail
+// modal: resolves a match (auto-searching the first time), shows a
+// "play" button once one exists, and a "change match" link to override it.
+async function renderRecordSpotifyControls(record) {
+  const wrap = document.getElementById("recordSpotifyControls");
+  if (!wrap) return;
+
+  if (!isSpotifyOwner()) {
+    wrap.hidden = true;
+    return;
+  }
+
+  wrap.hidden = false;
+  wrap.innerHTML = "";
+
+  const status = await callSpotifyAuthFunction("status").catch(() => ({ connected: false }));
+  if (!status.connected) {
+    const hint = document.createElement("p");
+    hint.className = "field-hint";
+    hint.textContent = "Connect Spotify in My Listening Room to play albums from here.";
+    wrap.appendChild(hint);
+    return;
+  }
+
+  if (record.spotify_album_uri && record.spotify_match_status !== "not_found") {
+    renderSpotifyMatchFound(wrap, record);
+    return;
+  }
+
+  if (record.spotify_match_status === "not_found") {
+    renderSpotifyNoMatch(wrap, record);
+    return;
+  }
+
+  // Never searched yet — search automatically.
+  renderSpotifySearching(wrap);
+  try {
+    const candidates = await searchSpotifyAlbumCandidates(record.artist, record.album);
+    if (candidates.length === 0) {
+      await saveRecordSpotifyMatch(record.id, null, "not_found");
+      renderSpotifyNoMatch(wrap, record);
+      return;
+    }
+    const best = candidates[0];
+    await saveRecordSpotifyMatch(record.id, best.uri, "auto");
+    renderSpotifyMatchFound(wrap, { ...record, spotify_album_uri: best.uri, spotify_match_status: "auto" });
+  } catch (err) {
+    console.error("Spotify album search failed:", err);
+    wrap.innerHTML = "";
+    const errEl = document.createElement("p");
+    errEl.className = "form-status";
+    errEl.textContent = "Couldn't search Spotify right now.";
+    wrap.appendChild(errEl);
+  }
+}
+
+function renderSpotifySearching(wrap) {
+  wrap.innerHTML = "";
+  const p = document.createElement("p");
+  p.className = "field-hint";
+  p.textContent = "Looking for this album on Spotify…";
+  wrap.appendChild(p);
+}
+
+function renderSpotifyNoMatch(wrap, record) {
+  wrap.innerHTML = "";
+  const p = document.createElement("p");
+  p.className = "field-hint";
+  p.textContent = "No Spotify match found for this album.";
+  wrap.appendChild(p);
+
+  const retryBtn = document.createElement("button");
+  retryBtn.type = "button";
+  retryBtn.className = "btn-text";
+  retryBtn.textContent = "Search again";
+  retryBtn.addEventListener("click", () => openSpotifyMatchPicker(record));
+  wrap.appendChild(retryBtn);
+}
+
+function renderSpotifyMatchFound(wrap, record) {
+  wrap.innerHTML = "";
+
+  const playBtn = document.createElement("button");
+  playBtn.type = "button";
+  playBtn.className = "btn-primary";
+  playBtn.innerHTML = '<i class="ti ti-brand-spotify" aria-hidden="true"></i> Play on Spotify';
+  playBtn.addEventListener("click", () => spotifyPlayAlbumByUri(record.spotify_album_uri, playBtn));
+  wrap.appendChild(playBtn);
+
+  if (record.spotify_match_status === "auto") {
+    const changeBtn = document.createElement("button");
+    changeBtn.type = "button";
+    changeBtn.className = "btn-text";
+    changeBtn.textContent = "Wrong match? Change it";
+    changeBtn.addEventListener("click", () => openSpotifyMatchPicker(record));
+    wrap.appendChild(changeBtn);
+  }
+}
+
+// ---- Match picker modal (manual override) ----
+
+async function openSpotifyMatchPicker(record) {
+  const overlay = document.getElementById("spotifyMatchOverlay");
+  const list = document.getElementById("spotifyMatchList");
+  const statusEl = document.getElementById("spotifyMatchStatus");
+  if (!overlay || !list) return;
+
+  overlay.hidden = false;
+  statusEl.textContent = "";
+  list.innerHTML = "<p class=\"field-hint\">Searching Spotify…</p>";
+
+  try {
+    const candidates = await searchSpotifyAlbumCandidates(record.artist, record.album);
+    list.innerHTML = "";
+
+    if (candidates.length === 0) {
+      list.innerHTML = "<p class=\"field-hint\">No matches found.</p>";
+      return;
+    }
+
+    candidates.forEach((c) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "spotify-match-row";
+
+      if (c.coverUrl) {
+        const img = document.createElement("img");
+        img.src = c.coverUrl;
+        img.alt = c.name;
+        row.appendChild(img);
+      }
+
+      const textWrap = document.createElement("div");
+      const nameEl = document.createElement("p");
+      nameEl.className = "spotify-match-row-name";
+      nameEl.textContent = c.name;
+      textWrap.appendChild(nameEl);
+      const metaEl = document.createElement("p");
+      metaEl.className = "spotify-match-row-meta";
+      metaEl.textContent = [c.artist, c.year].filter(Boolean).join(" · ");
+      textWrap.appendChild(metaEl);
+      row.appendChild(textWrap);
+
+      row.addEventListener("click", async () => {
+        try {
+          await saveRecordSpotifyMatch(record.id, c.uri, "confirmed");
+          closeSpotifyMatchPicker();
+          renderRecordSpotifyControls({ ...record, spotify_album_uri: c.uri, spotify_match_status: "confirmed" });
+        } catch (err) {
+          statusEl.textContent = "Couldn't save that match. Try again.";
+        }
+      });
+
+      list.appendChild(row);
+    });
+  } catch (err) {
+    console.error("Spotify match search failed:", err);
+    list.innerHTML = "";
+    statusEl.textContent = "Couldn't search Spotify right now.";
+  }
+}
+
+function closeSpotifyMatchPicker() {
+  const overlay = document.getElementById("spotifyMatchOverlay");
+  if (overlay) overlay.hidden = true;
+}
+
+// Called by the "Play this record" button inside the record detail modal.
+async function spotifyPlayAlbumByUri(albumUri, triggerBtn) {
+  if (!isSpotifyOwner() || !albumUri) return;
+
+  const originalLabel = triggerBtn ? triggerBtn.innerHTML : null;
+  if (triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.textContent = "Starting playback…";
+  }
+
+  try {
+    // The Web Playback SDK device might not be ready yet if the owner
+    // hasn't opened the room player modal this session — make sure it is.
+    await ensureSpotifyPlayer();
+
+    // Device registration with Spotify's servers can lag a beat behind
+    // the SDK's "ready" event firing locally; give it a short window.
+    let attempts = 0;
+    while (!spotifyDeviceId && attempts < 10) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      attempts++;
+    }
+
+    if (!spotifyDeviceId) {
+      throw new Error("Spotify player isn't ready yet. Try again in a moment.");
+    }
+
+    const token = await getValidSpotifyAccessToken();
+    if (!token) throw new Error("Spotify isn't connected.");
+
+    const resp = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${spotifyDeviceId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ context_uri: albumUri }),
+    });
+
+    if (!resp.ok && resp.status !== 204) {
+      const errBody = await resp.json().catch(() => ({}));
+      throw new Error(errBody.error?.message || `Playback failed (${resp.status})`);
+    }
+  } catch (err) {
+    console.error("spotifyPlayAlbumByUri failed:", err);
+    if (triggerBtn) {
+      triggerBtn.textContent = err.message || "Couldn't start playback";
+      setTimeout(() => {
+        if (triggerBtn) {
+          triggerBtn.disabled = false;
+          triggerBtn.innerHTML = originalLabel;
+        }
+      }, 2500);
+      return;
+    }
+  }
+
+  if (triggerBtn) {
+    triggerBtn.disabled = false;
+    triggerBtn.innerHTML = originalLabel;
+  }
+}
+
+// ---- Setup ----
+
+function setupSpotify() {
+  document.getElementById("spotifyConnectBtn")?.addEventListener("click", () => startSpotifyConnect());
+  document.getElementById("spotifyDisconnectBtn")?.addEventListener("click", () => disconnectSpotify());
+  document.getElementById("spotifyPlayPauseBtn")?.addEventListener("click", () => spotifyTogglePlayback());
+  document.getElementById("spotifyNextBtn")?.addEventListener("click", () => spotifyNextTrack());
+  document.getElementById("spotifyPrevBtn")?.addEventListener("click", () => spotifyPreviousTrack());
+
+  document.getElementById("closeSpotifyMatchBtn")?.addEventListener("click", () => closeSpotifyMatchPicker());
+  document.getElementById("spotifyMatchOverlay")?.addEventListener("click", (e) => {
+    if (e.target.id === "spotifyMatchOverlay") closeSpotifyMatchPicker();
+  });
+
+  // If startSpotifyConnect() ever opens spotify-callback.html in a popup
+  // instead of a full-page redirect, this picks up the completion message
+  // and refreshes whichever view is currently open.
+  window.addEventListener("message", (event) => {
+    if (event.data?.type !== "spotify-auth-complete") return;
+    const overlay = document.getElementById("roomPlayerOverlay");
+    if (overlay && !overlay.hidden) {
+      renderRoomPlayerModal();
+    }
+  });
+}
+
+
 function setupAuth() {
   document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
 
@@ -8005,4 +8686,5 @@ document.addEventListener("DOMContentLoaded", () => {
   setupAllFreeListInputs();
   setupLandingPage();
   setupAuth();
+  setupSpotify();
 });
