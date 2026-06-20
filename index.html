@@ -355,19 +355,57 @@
       </button>
 
       <div class="profile-grid">
-        <div class="profile-card profile-identity">
-          <div class="profile-avatar-wrap">
-            <img id="profileAvatarImg" src="icon-512.png" alt="" class="profile-avatar" />
-            <button type="button" id="profileAvatarEditBtn" class="profile-avatar-edit" aria-label="Change profile picture">
-              <i class="ti ti-camera" aria-hidden="true"></i>
-            </button>
+        <div class="profile-card profile-identity-card">
+          <button type="button" id="editBasicsBtn" class="icon-btn profile-identity-edit-btn" aria-label="Edit basics" title="Edit">
+            <i class="ti ti-pencil" aria-hidden="true"></i>
+          </button>
+          <div id="basicsView" class="profile-identity">
+            <div class="profile-avatar-wrap">
+              <img id="profileAvatarImg" src="icon-512.png" alt="" class="profile-avatar" />
+              <button type="button" id="profileAvatarEditBtn" class="profile-avatar-edit" aria-label="Change profile picture">
+                <i class="ti ti-camera" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="profile-identity-info">
+              <h2 id="profileDisplayName" class="profile-display-name">—</h2>
+              <p id="profileUsername" class="profile-username"></p>
+              <p id="profileLocation" class="profile-location"></p>
+              <p class="profile-member-since" id="profileMemberSince"></p>
+            </div>
           </div>
-          <div class="profile-identity-info">
-            <h2 id="profileDisplayName" class="profile-display-name">—</h2>
-            <p id="profileUsername" class="profile-username"></p>
-            <p id="profileLocation" class="field-hint"></p>
-            <p class="field-hint" id="profileMemberSince"></p>
-          </div>
+          <form id="basicsForm" class="profile-edit-form" hidden>
+            <div class="form-row">
+              <label for="basicsPreferredName">Preferred name</label>
+              <input type="text" id="basicsPreferredName" placeholder="What should we call you?" />
+            </div>
+            <div class="form-row">
+              <label for="basicsUsername">Username</label>
+              <input type="text" id="basicsUsername" placeholder="username" />
+            </div>
+            <div class="form-row-split">
+              <div class="form-row">
+                <label for="basicsCity">City</label>
+                <input type="text" id="basicsCity" />
+              </div>
+              <div class="form-row">
+                <label for="basicsState">State / Province</label>
+                <input type="text" id="basicsState" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="basicsCountry">Country</label>
+              <input type="text" id="basicsCountry" />
+            </div>
+            <div class="form-row">
+              <label for="basicsBirthdate">Birthdate</label>
+              <input type="date" id="basicsBirthdate" />
+            </div>
+            <div id="basicsStatus" class="form-status"></div>
+            <div class="form-actions">
+              <button type="button" id="cancelBasicsBtn" class="btn-secondary">Cancel</button>
+              <button type="submit" class="btn-primary">Save</button>
+            </div>
+          </form>
         </div>
 
         <!-- Row 1: Key stats -->

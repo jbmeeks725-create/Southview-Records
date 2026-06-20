@@ -1340,6 +1340,15 @@ function setTagInputValues(container, values) {
 }
 
 function addTagChip(container, value) {
+  // Guard against pasted or typed values that already contain commas
+  // (e.g. pasting "Shop A, Shop B, Shop C" into the input at once) --
+  // split those into separate chips instead of creating one chip whose
+  // label is the whole comma-joined string.
+  if (value.includes(",")) {
+    value.split(",").forEach((part) => addTagChip(container, part));
+    return;
+  }
+
   const trimmed = value.trim();
   if (!trimmed) return;
 
@@ -1635,12 +1644,19 @@ function buildProfileTagRow(label, items, options) {
 
   const tagList = document.createElement("div");
   tagList.className = stacked ? "profile-tag-list profile-tag-list-stacked" : "profile-tag-list";
-  items.forEach((item) => {
-    const tag = document.createElement("span");
-    tag.className = "profile-tag";
-    tag.textContent = item;
-    tagList.appendChild(tag);
-  });
+  // Defensive: repair any legacy entries that were saved as one
+  // comma-joined string instead of separate array elements (e.g. from
+  // pasting "Shop A, Shop B" before addTagChip split on commas).
+  items
+    .flatMap((item) => (item.includes(",") ? item.split(",") : [item]))
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .forEach((item) => {
+      const tag = document.createElement("span");
+      tag.className = "profile-tag";
+      tag.textContent = item;
+      tagList.appendChild(tag);
+    });
 
   row.appendChild(labelEl);
   row.appendChild(tagList);
@@ -1866,6 +1882,16 @@ function renderProfile() {
 
 // ------------ Profile editing ------------
 
+function fillBasicsForm() {
+  const p = currentProfile || {};
+  document.getElementById("basicsPreferredName").value = p.preferred_name || "";
+  document.getElementById("basicsUsername").value = p.username || "";
+  document.getElementById("basicsCity").value = p.city || "";
+  document.getElementById("basicsState").value = p.state || "";
+  document.getElementById("basicsCountry").value = p.country || "";
+  document.getElementById("basicsBirthdate").value = p.birthdate || "";
+}
+
 function fillWishlistPersonalityForm() {
   const p = currentProfile || {};
   document.getElementById("wishGrailInput").value = p.my_grail || "";
@@ -1904,9 +1930,44 @@ function toggleProfileEdit(section, editing) {
   form.hidden = !editing;
 
   if (editing) {
+    if (section === "basics") fillBasicsForm();
     if (section === "wishlistPersonality") fillWishlistPersonalityForm();
     if (section === "taste") fillTasteForm();
     if (section === "system") fillSystemForm();
+  }
+}
+
+async function handleBasicsSubmit(event) {
+  event.preventDefault();
+  const statusEl = document.getElementById("basicsStatus");
+  const submitBtn = event.target.querySelector("button[type=submit]");
+  submitBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+  try {
+    await saveProfileFields({
+      preferred_name: document.getElementById("basicsPreferredName").value.trim() || null,
+      username: document.getElementById("basicsUsername").value.trim(),
+      city: document.getElementById("basicsCity").value.trim() || null,
+      state: document.getElementById("basicsState").value.trim() || null,
+      country: document.getElementById("basicsCountry").value.trim() || null,
+      birthdate: document.getElementById("basicsBirthdate").value || null,
+    });
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+    refreshAccountButton();
+    renderProfile();
+    toggleProfileEdit("basics", false);
+  } catch (err) {
+    console.error(err);
+    if (err.code === "23505") {
+      statusEl.textContent = "That username is already taken - please choose another.";
+    } else {
+      statusEl.textContent = "Couldn't save. Check console for details.";
+    }
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    submitBtn.disabled = false;
   }
 }
 
@@ -2097,6 +2158,10 @@ async function handleAvatarFileChange(event) {
 }
 
 function setupProfile() {
+  document.getElementById("editBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", true));
+  document.getElementById("cancelBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", false));
+  document.getElementById("basicsForm").addEventListener("submit", handleBasicsSubmit);
+
   document.getElementById("editWishlistPersonalityBtn").addEventListener("click", () => toggleProfileEdit("wishlistPersonality", true));
   document.getElementById("cancelWishlistPersonalityBtn").addEventListener("click", () => toggleProfileEdit("wishlistPersonality", false));
   document.getElementById("wishlistPersonalityForm").addEventListener("submit", handleWishlistPersonalitySubmit);
