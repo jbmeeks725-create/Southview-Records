@@ -7902,6 +7902,9 @@ async function ensureSpotifyPlayer() {
       coverUrl: state.track_window.current_track.album.images?.[0]?.url || null,
       playing: !state.paused,
     });
+    // Nudge the header strip to refresh now rather than waiting for the
+    // next poll — Spotify's API reflects the new state almost immediately.
+    refreshHeaderNowPlaying();
   });
 
   const connected = await spotifyPlayer.connect();
@@ -7930,6 +7933,8 @@ async function getValidSpotifyAccessToken() {
 function showRoomPlayerStatus(message) {
   const el = document.getElementById("roomPlayerStatus");
   if (el) el.textContent = message || "";
+  const recordEl = document.getElementById("recordSpotifyStatus");
+  if (recordEl) recordEl.textContent = message || "";
 }
 
 function renderRoomPlayerNowPlaying(info) {
@@ -8032,11 +8037,9 @@ async function renderRoomPlayerModal() {
 // Read-only "now playing" for non-owner visitors (and reused by the
 // signed-out landing page). Calls the public, unauthenticated
 // "now-playing" action — no tokens are ever involved on this path.
-async function refreshVisitorNowPlaying() {
-  const wrap = document.getElementById("roomPlayerVisitorNowPlaying");
-  const emptyMsg = document.getElementById("roomPlayerVisitorEmpty");
-  if (!wrap) return;
-
+// Shared by the room player's visitor view and the persistent header strip.
+// Public, unauthenticated call — works for signed-out visitors too.
+async function fetchSpotifyNowPlaying() {
   try {
     const response = await fetch(SPOTIFY_AUTH_FUNCTION_URL, {
       method: "POST",
@@ -8047,42 +8050,89 @@ async function refreshVisitorNowPlaying() {
       },
       body: JSON.stringify({ action: "now-playing" }),
     });
-    const data = await response.json();
-
-    if (!data.connected || !data.playing) {
-      wrap.hidden = true;
-      if (emptyMsg) emptyMsg.hidden = false;
-      return;
-    }
-
-    if (emptyMsg) emptyMsg.hidden = true;
-    wrap.hidden = false;
-    wrap.innerHTML = "";
-
-    if (data.coverUrl) {
-      const img = document.createElement("img");
-      img.src = data.coverUrl;
-      img.alt = data.album || data.track;
-      img.className = "room-player-now-playing-cover";
-      wrap.appendChild(img);
-    }
-
-    const textWrap = document.createElement("div");
-    textWrap.className = "room-player-now-playing-text";
-    const trackEl = document.createElement("p");
-    trackEl.className = "room-player-now-playing-track";
-    trackEl.textContent = data.track;
-    textWrap.appendChild(trackEl);
-    const artistEl = document.createElement("p");
-    artistEl.className = "room-player-now-playing-artist";
-    artistEl.textContent = data.artist;
-    textWrap.appendChild(artistEl);
-    wrap.appendChild(textWrap);
+    return await response.json();
   } catch (err) {
-    console.error("Failed to load now-playing:", err);
+    console.error("Failed to fetch Spotify now-playing:", err);
+    return { connected: false, playing: false };
+  }
+}
+
+async function refreshVisitorNowPlaying() {
+  const wrap = document.getElementById("roomPlayerVisitorNowPlaying");
+  const emptyMsg = document.getElementById("roomPlayerVisitorEmpty");
+  if (!wrap) return;
+
+  const data = await fetchSpotifyNowPlaying();
+
+  if (!data.connected || !data.playing) {
     wrap.hidden = true;
     if (emptyMsg) emptyMsg.hidden = false;
+    return;
   }
+
+  if (emptyMsg) emptyMsg.hidden = true;
+  wrap.hidden = false;
+  wrap.innerHTML = "";
+
+  if (data.coverUrl) {
+    const img = document.createElement("img");
+    img.src = data.coverUrl;
+    img.alt = data.album || data.track;
+    img.className = "room-player-now-playing-cover";
+    wrap.appendChild(img);
+  }
+
+  const textWrap = document.createElement("div");
+  textWrap.className = "room-player-now-playing-text";
+  const trackEl = document.createElement("p");
+  trackEl.className = "room-player-now-playing-track";
+  trackEl.textContent = data.track;
+  textWrap.appendChild(trackEl);
+  const artistEl = document.createElement("p");
+  artistEl.className = "room-player-now-playing-artist";
+  artistEl.textContent = data.artist;
+  textWrap.appendChild(artistEl);
+  wrap.appendChild(textWrap);
+}
+
+// ---- Persistent header Now Playing strip (visible to everyone, every page) ----
+
+let headerNowPlayingPollTimer = null;
+
+async function refreshHeaderNowPlaying() {
+  const wrap = document.getElementById("headerNowPlaying");
+  if (!wrap) return;
+
+  const data = await fetchSpotifyNowPlaying();
+
+  if (!data.connected || !data.playing) {
+    wrap.hidden = true;
+    return;
+  }
+
+  const coverImg = document.getElementById("headerNowPlayingCover");
+  const trackEl = document.getElementById("headerNowPlayingTrack");
+  const artistEl = document.getElementById("headerNowPlayingArtist");
+
+  if (data.coverUrl) {
+    coverImg.src = data.coverUrl;
+    coverImg.alt = data.album || data.track || "";
+    coverImg.hidden = false;
+  } else {
+    coverImg.hidden = true;
+  }
+
+  trackEl.textContent = data.track || "";
+  artistEl.textContent = data.artist || "";
+  wrap.hidden = false;
+}
+
+function startHeaderNowPlayingPolling() {
+  refreshHeaderNowPlaying();
+  if (headerNowPlayingPollTimer) clearInterval(headerNowPlayingPollTimer);
+  // 30s strikes a balance between feeling "live" and not hammering the
+  // Edge Function / Spotify's currently-playing endpoint on every page.
+  headerNowPlayingPollTimer = setInterval(refreshHeaderNowPlaying, 30000);
 }
 
 // ---- Playback controls (owner only, called from modal buttons) ----
@@ -8136,20 +8186,24 @@ async function spotifyTogglePlayback() {
 }
 
 async function spotifyNextTrack() {
-  if (!spotifyPlayer) return;
   try {
+    await ensureSpotifyPlayer();
+    if (!spotifyPlayer) return;
     await spotifyPlayer.nextTrack();
   } catch (err) {
     console.error("Spotify next track failed:", err);
+    showRoomPlayerStatus("Couldn't skip — make sure something's already playing.");
   }
 }
 
 async function spotifyPreviousTrack() {
-  if (!spotifyPlayer) return;
   try {
+    await ensureSpotifyPlayer();
+    if (!spotifyPlayer) return;
     await spotifyPlayer.previousTrack();
   } catch (err) {
     console.error("Spotify previous track failed:", err);
+    showRoomPlayerStatus("Couldn't skip — make sure something's already playing.");
   }
 }
 
@@ -8265,18 +8319,49 @@ function renderSpotifyNoMatch(wrap, record) {
 
 function renderSpotifyMatchFound(wrap, record) {
   wrap.innerHTML = "";
+  wrap.classList.add("record-spotify-controls-active");
+
+  const row = document.createElement("div");
+  row.className = "record-spotify-row";
 
   const playBtn = document.createElement("button");
   playBtn.type = "button";
-  playBtn.className = "btn-primary";
+  playBtn.className = "btn-primary record-spotify-play-btn";
   playBtn.innerHTML = '<i class="ti ti-brand-spotify" aria-hidden="true"></i> Play on Spotify';
   playBtn.addEventListener("click", () => spotifyPlayAlbumByUri(record.spotify_album_uri, playBtn));
-  wrap.appendChild(playBtn);
+  row.appendChild(playBtn);
+
+  const transport = document.createElement("div");
+  transport.className = "record-spotify-transport";
+
+  const prevBtn = document.createElement("button");
+  prevBtn.type = "button";
+  prevBtn.className = "btn-secondary record-spotify-transport-btn";
+  prevBtn.setAttribute("aria-label", "Previous track");
+  prevBtn.innerHTML = '<i class="ti ti-player-skip-back" aria-hidden="true"></i>';
+  prevBtn.addEventListener("click", () => spotifyPreviousTrack());
+  transport.appendChild(prevBtn);
+
+  const nextBtn = document.createElement("button");
+  nextBtn.type = "button";
+  nextBtn.className = "btn-secondary record-spotify-transport-btn";
+  nextBtn.setAttribute("aria-label", "Next track");
+  nextBtn.innerHTML = '<i class="ti ti-player-skip-forward" aria-hidden="true"></i>';
+  nextBtn.addEventListener("click", () => spotifyNextTrack());
+  transport.appendChild(nextBtn);
+
+  row.appendChild(transport);
+  wrap.appendChild(row);
+
+  const statusEl = document.createElement("p");
+  statusEl.id = "recordSpotifyStatus";
+  statusEl.className = "form-status";
+  wrap.appendChild(statusEl);
 
   if (record.spotify_match_status === "auto") {
     const changeBtn = document.createElement("button");
     changeBtn.type = "button";
-    changeBtn.className = "btn-text";
+    changeBtn.className = "record-spotify-change-match";
     changeBtn.textContent = "Wrong match? Change it";
     changeBtn.addEventListener("click", () => openSpotifyMatchPicker(record));
     wrap.appendChild(changeBtn);
@@ -8731,4 +8816,5 @@ document.addEventListener("DOMContentLoaded", () => {
   setupLandingPage();
   setupAuth();
   setupSpotify();
+  startHeaderNowPlayingPolling();
 });
