@@ -2441,7 +2441,11 @@ function renderRoomFrames(theme) {
       icon.className = "ti ti-photo-plus";
       icon.setAttribute("aria-hidden", "true");
       placeholder.appendChild(icon);
-      placeholder.title = "Favorite an album from your collection to display it here";
+      const label = document.createElement("span");
+      label.className = "room-frame-empty-label";
+      label.textContent = "Favorite an album or use Arrange wall";
+      placeholder.appendChild(label);
+      placeholder.title = "Favorite an album from your collection, or use \u201cArrange wall\u201d above, to display it here";
       el.appendChild(placeholder);
     }
 
@@ -2458,31 +2462,60 @@ function renderRoomNowPlaying(theme) {
   wrap.style.height = `${theme.nowPlaying.height}%`;
   wrap.style.clipPath = theme.nowPlaying.clipPath || "";
 
+  // Positioning is synchronous, but the actual playback content is fetched
+  // async — start blank/hidden until we know whether anything's playing.
   wrap.innerHTML = "";
+  wrap.hidden = true;
 
-  if (allRecords.length === 0) {
+  refreshRoomNowPlayingSign();
+}
+
+// Populates the in-room "Now Playing" sign from REAL playback state (not a
+// random record from the collection). Blank whenever nothing is actually
+// playing. Reused by both the public poll path and instant SDK-driven
+// updates from the owner's own session — see renderAllSpotifyNowPlayingSlots.
+//
+// TODO(apple-music): once native Apple Music playback exists, this sign
+// should reflect whichever service is actually playing (Spotify OR Apple
+// Music) for the person viewing the room. That likely means this function
+// takes a `source` along with `info`, or gets a sibling
+// refreshRoomNowPlayingSignFromAppleMusic() that the same broadcast call
+// site (renderAllSpotifyNowPlayingSlots, which should be renamed at that
+// point) invokes alongside this one.
+async function refreshRoomNowPlayingSign(info) {
+  const wrap = document.getElementById("roomNowPlaying");
+  if (!wrap) return;
+
+  // No info passed in means "go fetch the current public state" — used on
+  // initial room load and by the header's poll cadence. SDK-driven updates
+  // pass the state directly so this can stay perfectly in sync without an
+  // extra round trip. Note: SDK-shaped state has no `connected` field (a
+  // live SDK event already implies a connection), so only `playing` is
+  // checked here — it's present and meaningful on both shapes.
+  const data = info || (await fetchSpotifyNowPlaying());
+
+  if (!data || !data.playing) {
     wrap.hidden = true;
+    wrap.innerHTML = "";
     return;
   }
 
-  // Pick a random record from the collection to feature.
-  // (Stage 4 will let the user pin a specific choice.)
-  const record = allRecords[Math.floor(Math.random() * allRecords.length)];
+  wrap.innerHTML = "";
 
-  if (record.cover_url) {
+  if (data.coverUrl) {
     const img = document.createElement("img");
-    img.src = record.cover_url;
-    img.alt = record.album;
+    img.src = data.coverUrl;
+    img.alt = data.album || data.track || "";
     img.className = "room-now-playing-cover";
     wrap.appendChild(img);
   } else {
     const textEl = document.createElement("p");
     textEl.className = "room-now-playing-text";
-    textEl.textContent = `${record.artist} — ${record.album}`;
+    textEl.textContent = data.artist ? `${data.artist} — ${data.track}` : data.track || "";
     wrap.appendChild(textEl);
   }
 
-  wrap.title = `${record.artist} — ${record.album}`;
+  wrap.title = data.artist ? `${data.artist} — ${data.track}` : data.track || "";
   wrap.hidden = false;
 }
 
@@ -7952,6 +7985,9 @@ function renderAllSpotifyNowPlayingSlots(info) {
   renderRoomPlayerNowPlaying(info);
   renderRecordSpotifyNowPlaying(info);
   renderHeaderNowPlayingFromState(info);
+  // The room sign element only exists while "My Listening Room" is the
+  // active page — refreshRoomNowPlayingSign no-ops safely if it's absent.
+  refreshRoomNowPlayingSign(info);
 }
 
 // Lightweight sync for the header bar driven directly by SDK events (no

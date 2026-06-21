@@ -1210,14 +1210,24 @@ header {
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   background: rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  text-align: center;
 }
 
 .room-frame-empty i {
   font-size: 22px;
   color: rgba(202, 161, 90, 0.5);
+}
+
+.room-frame-empty-label {
+  font-size: 0.65rem;
+  color: rgba(202, 161, 90, 0.45);
+  line-height: 1.3;
 }
 
 .room-now-playing {
