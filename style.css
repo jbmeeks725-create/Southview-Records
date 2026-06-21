@@ -2420,6 +2420,47 @@ h1 {
   color: #e5e7eb;
 }
 
+.visitor-listen-options {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 16px;
+  text-align: center;
+}
+
+.listen-option-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 280px;
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+}
+
+.listen-option-apple {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.listen-option-spotify {
+  color: #1db954;
+  border-color: rgba(29, 185, 84, 0.4);
+}
+
+.listen-option-spotify:hover {
+  color: #1ed760;
+  border-color: rgba(29, 185, 84, 0.7);
+}
+
+.listen-option-note {
+  margin: -2px 0 4px;
+  font-size: 0.7rem;
+  color: rgba(243, 227, 195, 0.45);
+}
+
 .spotify-match-list {
   max-height: 360px;
   overflow-y: auto;

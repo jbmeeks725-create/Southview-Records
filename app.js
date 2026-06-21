@@ -8287,6 +8287,57 @@ async function saveRecordSpotifyMatch(recordId, uri, status) {
   return data;
 }
 
+// ---- Visitor listen options (Spotify deep-link + Apple Music placeholder) ----
+//
+// Unlike the owner's in-room playback, visitors never get a Spotify
+// session on this site at all (Development Mode's 5-user cap makes that
+// permanently impossible at any real scale — see project notes). Instead:
+//   - "Listen on Spotify" deep-links out to open.spotify.com, where the
+//     visitor uses whatever Spotify session they're already logged into.
+//     Precise link if the owner has already matched this record; falls
+//     back to a Spotify search URL otherwise (no API call, works for
+//     anyone, no auth required).
+//   - "Listen here on Apple Music" is reserved for native in-site
+//     playback via MusicKit JS (each visitor signs in with their own
+//     Apple Music account, no per-user cap). Not built yet — see TODO.
+
+function buildSpotifyDeepLink(record) {
+  if (record.spotify_album_uri && record.spotify_match_status !== "not_found") {
+    // spotify:album:XXXXX -> https://open.spotify.com/album/XXXXX
+    const id = record.spotify_album_uri.split(":").pop();
+    return `https://open.spotify.com/album/${id}`;
+  }
+  const query = encodeURIComponent(`${record.album || ""} ${record.artist || ""}`.trim());
+  return `https://open.spotify.com/search/${query}`;
+}
+
+function renderVisitorListenOptions(wrap, record) {
+  wrap.hidden = false;
+  wrap.innerHTML = "";
+  wrap.classList.add("visitor-listen-options");
+
+  const appleBtn = document.createElement("button");
+  appleBtn.type = "button";
+  appleBtn.className = "btn-secondary listen-option-btn listen-option-apple";
+  appleBtn.innerHTML = '<i class="ti ti-brand-apple" aria-hidden="true"></i> Listen here on Apple Music';
+  appleBtn.disabled = true;
+  appleBtn.title = "Coming soon";
+  wrap.appendChild(appleBtn);
+
+  const comingSoonNote = document.createElement("p");
+  comingSoonNote.className = "listen-option-note";
+  comingSoonNote.textContent = "Apple Music playback is coming soon.";
+  wrap.appendChild(comingSoonNote);
+
+  const spotifyLink = document.createElement("a");
+  spotifyLink.className = "btn-secondary listen-option-btn listen-option-spotify";
+  spotifyLink.href = buildSpotifyDeepLink(record);
+  spotifyLink.target = "_blank";
+  spotifyLink.rel = "noopener noreferrer";
+  spotifyLink.innerHTML = '<i class="ti ti-brand-spotify" aria-hidden="true"></i> Listen on Spotify';
+  wrap.appendChild(spotifyLink);
+}
+
 // Renders the small "Play on Spotify" control inside the record detail
 // modal: resolves a match (auto-searching the first time), shows a
 // "play" button once one exists, and a "change match" link to override it.
@@ -8295,7 +8346,7 @@ async function renderRecordSpotifyControls(record) {
   if (!wrap) return;
 
   if (!isSpotifyOwner()) {
-    wrap.hidden = true;
+    renderVisitorListenOptions(wrap, record);
     return;
   }
 
