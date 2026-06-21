@@ -248,6 +248,24 @@
         <p class="tagline">The digital home for your vinyl collection</p>
       </div>
     </button>
+    <div id="headerNowPlaying" class="header-now-playing" hidden>
+      <img id="headerNowPlayingCover" class="header-now-playing-cover" alt="" hidden />
+      <div class="header-now-playing-text">
+        <p id="headerNowPlayingTrack" class="header-now-playing-track"></p>
+        <p id="headerNowPlayingArtist" class="header-now-playing-artist"></p>
+      </div>
+      <div id="headerNowPlayingControls" class="header-now-playing-controls" hidden>
+        <button type="button" id="headerSpotifyPrevBtn" class="header-now-playing-btn" aria-label="Previous track">
+          <i class="ti ti-player-skip-back" aria-hidden="true"></i>
+        </button>
+        <button type="button" id="headerSpotifyPlayPauseBtn" class="header-now-playing-btn header-now-playing-btn-primary" aria-label="Play or pause">
+          <i class="ti ti-player-play" aria-hidden="true"></i>
+        </button>
+        <button type="button" id="headerSpotifyNextBtn" class="header-now-playing-btn" aria-label="Next track">
+          <i class="ti ti-player-skip-forward" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
     <div id="accountSection" class="account-section" hidden>
       <div class="account-menu-wrap">
         <button type="button" id="accountBtn" class="account-btn" aria-haspopup="true" aria-expanded="false">

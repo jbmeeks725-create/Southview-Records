@@ -393,15 +393,9 @@ header {
   background: rgba(202, 161, 90, 0.08);
   border: 1px solid rgba(202, 161, 90, 0.2);
   border-radius: 999px;
-  padding: 6px 14px 6px 12px;
-  max-width: 280px;
+  padding: 6px 10px 6px 8px;
+  max-width: 380px;
   min-width: 0;
-}
-
-.header-now-playing-icon {
-  color: #1db954;
-  font-size: 1rem;
-  flex-shrink: 0;
 }
 
 .header-now-playing-cover {
@@ -414,6 +408,7 @@ header {
 
 .header-now-playing-text {
   min-width: 0;
+  max-width: 140px;
 }
 
 .header-now-playing-track {
@@ -433,6 +428,49 @@ header {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.header-now-playing-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(202, 161, 90, 0.2);
+}
+
+.header-now-playing-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: #cbb89a;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.85rem;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.header-now-playing-btn:hover {
+  color: #f3e3c3;
+  background: rgba(243, 227, 195, 0.08);
+}
+
+.header-now-playing-btn-primary {
+  width: 28px;
+  height: 28px;
+  background: #caa15a;
+  color: #1a1206;
+}
+
+.header-now-playing-btn-primary:hover {
+  background: #ddb66c;
+  color: #1a1206;
 }
 
 @media (max-width: 720px) {

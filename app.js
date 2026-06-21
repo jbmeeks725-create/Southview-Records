@@ -7906,6 +7906,7 @@ async function ensureSpotifyPlayer() {
       album: state.track_window.current_track.album.name,
       coverUrl: state.track_window.current_track.album.images?.[0]?.url || null,
       playing: !state.paused,
+      contextUri: state.context?.uri || null,
     };
     renderAllSpotifyNowPlayingSlots(spotifyLatestState);
     // Nudge the header strip to refresh now rather than waiting for the
@@ -7950,6 +7951,21 @@ function showRoomPlayerStatus(message) {
 function renderAllSpotifyNowPlayingSlots(info) {
   renderRoomPlayerNowPlaying(info);
   renderRecordSpotifyNowPlaying(info);
+  renderHeaderNowPlayingFromState(info);
+}
+
+// Lightweight sync for the header bar driven directly by SDK events (no
+// network round-trip needed, unlike refreshHeaderNowPlaying's poll path).
+function renderHeaderNowPlayingFromState(info) {
+  const wrap = document.getElementById("headerNowPlaying");
+  if (!wrap || wrap.hidden) return; // only nudge it if it's already showing
+
+  const playPauseBtn = document.getElementById("headerSpotifyPlayPauseBtn");
+  if (!info || !playPauseBtn) return;
+
+  playPauseBtn.innerHTML = info.playing
+    ? '<i class="ti ti-player-pause" aria-hidden="true"></i>'
+    : '<i class="ti ti-player-play" aria-hidden="true"></i>';
 }
 
 function renderRoomPlayerNowPlaying(info) {
@@ -8121,6 +8137,9 @@ async function refreshHeaderNowPlaying() {
   const wrap = document.getElementById("headerNowPlaying");
   if (!wrap) return;
 
+  const controls = document.getElementById("headerNowPlayingControls");
+  const playPauseBtn = document.getElementById("headerSpotifyPlayPauseBtn");
+
   const data = await fetchSpotifyNowPlaying();
 
   if (!data.connected || !data.playing) {
@@ -8143,6 +8162,17 @@ async function refreshHeaderNowPlaying() {
   trackEl.textContent = data.track || "";
   artistEl.textContent = data.artist || "";
   wrap.hidden = false;
+
+  // Controls only make sense for the owner — visitors and signed-out
+  // people get the same read-only info everyone else gets.
+  if (controls) {
+    controls.hidden = !isSpotifyOwner();
+  }
+  if (playPauseBtn) {
+    playPauseBtn.innerHTML = data.playing
+      ? '<i class="ti ti-player-pause" aria-hidden="true"></i>'
+      : '<i class="ti ti-player-play" aria-hidden="true"></i>';
+  }
 }
 
 function startHeaderNowPlayingPolling() {
@@ -8156,8 +8186,9 @@ function startHeaderNowPlayingPolling() {
 // ---- Playback controls (owner only, called from modal buttons) ----
 
 async function spotifyTogglePlayback() {
-  if (!spotifyPlayer) return;
   try {
+    await ensureSpotifyPlayer();
+    if (!spotifyPlayer) return;
     const state = await spotifyPlayer.getCurrentState();
     console.log("Spotify getCurrentState before toggle:", state);
 
@@ -8397,13 +8428,20 @@ function renderSpotifyMatchFound(wrap, record) {
 }
 
 // Renders the track/artist line + keeps the play/pause icon in sync, scoped
-// to the record detail modal's controls.
+// to the record detail modal's controls. Only shows anything if the
+// currently-playing context actually matches the record this modal is
+// open for — otherwise it's leftover state from a previously played
+// record and would be misleading to display here.
 function renderRecordSpotifyNowPlaying(info) {
   const wrap = document.getElementById("recordSpotifyNowPlaying");
   const playPauseBtn = document.getElementById("recordSpotifyPlayPauseBtn");
   if (!wrap) return;
 
-  if (!info) {
+  const openRecord = allRecords.find((r) => r.id === activeDetailRecordId);
+  const matchesOpenRecord =
+    info && openRecord && info.contextUri && info.contextUri === openRecord.spotify_album_uri;
+
+  if (!matchesOpenRecord) {
     wrap.hidden = true;
     wrap.innerHTML = "";
     if (playPauseBtn) {
@@ -8583,6 +8621,10 @@ function setupSpotify() {
   document.getElementById("spotifyPlayPauseBtn")?.addEventListener("click", () => spotifyTogglePlayback());
   document.getElementById("spotifyNextBtn")?.addEventListener("click", () => spotifyNextTrack());
   document.getElementById("spotifyPrevBtn")?.addEventListener("click", () => spotifyPreviousTrack());
+
+  document.getElementById("headerSpotifyPlayPauseBtn")?.addEventListener("click", () => spotifyTogglePlayback());
+  document.getElementById("headerSpotifyNextBtn")?.addEventListener("click", () => spotifyNextTrack());
+  document.getElementById("headerSpotifyPrevBtn")?.addEventListener("click", () => spotifyPreviousTrack());
 
   document.getElementById("closeSpotifyMatchBtn")?.addEventListener("click", () => closeSpotifyMatchPicker());
   document.getElementById("spotifyMatchOverlay")?.addEventListener("click", (e) => {
