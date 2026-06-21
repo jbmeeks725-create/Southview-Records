@@ -8474,8 +8474,17 @@ function renderRecordSpotifyNowPlaying(info) {
 // on this device, it starts the album (same as the old "Play on Spotify"
 // button); once something IS playing, it becomes a plain pause/resume
 // toggle so it doesn't restart the album from track 1 every time.
+// The center transport button does double duty: if this record's album
+// isn't the one currently playing (nothing playing at all, or a
+// DIFFERENT album is active), it starts this album fresh. Only when this
+// exact album is already the active context does it become a plain
+// pause/resume toggle — otherwise pressing play on a new record would
+// just pause/resume whatever was already playing instead of switching.
 async function spotifyHandleRecordPlayPause(albumUri, btn) {
-  if (spotifyLatestState) {
+  const alreadyPlayingThisAlbum =
+    spotifyLatestState && spotifyLatestState.contextUri === albumUri;
+
+  if (alreadyPlayingThisAlbum) {
     await spotifyTogglePlayback();
     return;
   }
