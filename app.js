@@ -2443,7 +2443,7 @@ function renderRoomFrames(theme) {
       placeholder.appendChild(icon);
       const label = document.createElement("span");
       label.className = "room-frame-empty-label";
-      label.textContent = "Favorite an album or use Arrange wall";
+      label.textContent = "Favorite an album to display here";
       placeholder.appendChild(label);
       placeholder.title = "Favorite an album from your collection, or use \u201cArrange wall\u201d above, to display it here";
       el.appendChild(placeholder);
