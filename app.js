@@ -7870,10 +7870,12 @@ async function ensureSpotifyPlayer() {
 
   spotifyPlayer.addListener("ready", ({ device_id }) => {
     spotifyDeviceId = device_id;
+    console.log("Spotify player ready, device_id:", device_id);
   });
 
-  spotifyPlayer.addListener("not_ready", () => {
+  spotifyPlayer.addListener("not_ready", ({ device_id }) => {
     spotifyDeviceId = null;
+    console.warn("Spotify device went offline:", device_id);
   });
 
   spotifyPlayer.addListener("initialization_error", ({ message }) => {
@@ -7891,6 +7893,7 @@ async function ensureSpotifyPlayer() {
   });
 
   spotifyPlayer.addListener("player_state_changed", (state) => {
+    console.log("Spotify player_state_changed:", state);
     if (!state) return;
     renderRoomPlayerNowPlaying({
       track: state.track_window.current_track.name,
@@ -7901,7 +7904,9 @@ async function ensureSpotifyPlayer() {
     });
   });
 
-  await spotifyPlayer.connect();
+  const connected = await spotifyPlayer.connect();
+  console.log("Spotify player.connect() result:", connected);
+
   return spotifyPlayer;
 }
 
@@ -8085,9 +8090,48 @@ async function refreshVisitorNowPlaying() {
 async function spotifyTogglePlayback() {
   if (!spotifyPlayer) return;
   try {
+    const state = await spotifyPlayer.getCurrentState();
+    console.log("Spotify getCurrentState before toggle:", state);
+
+    if (!state) {
+      // No active playback session on this device yet — togglePlay() has
+      // nothing to resume in that case. Transfer playback to this device
+      // so it becomes the active Spotify Connect target, which also
+      // un-pauses whatever was last playing on the account (if anything).
+      showRoomPlayerStatus("Connecting to Spotify…");
+      const token = await getValidSpotifyAccessToken();
+      if (!token || !spotifyDeviceId) {
+        showRoomPlayerStatus("Spotify isn't ready yet. Try again in a moment.");
+        return;
+      }
+
+      const resp = await fetch("https://api.spotify.com/v1/me/player", {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ device_ids: [spotifyDeviceId], play: true }),
+      });
+
+      if (!resp.ok && resp.status !== 204) {
+        const errBody = await resp.json().catch(() => ({}));
+        console.error("Spotify transfer playback failed:", errBody);
+        showRoomPlayerStatus(
+          errBody.error?.message ||
+            "Nothing queued yet \u2014 open a record in your collection and hit \u201cPlay on Spotify\u201d to start something."
+        );
+        return;
+      }
+
+      showRoomPlayerStatus("");
+      return;
+    }
+
     await spotifyPlayer.togglePlay();
   } catch (err) {
     console.error("Spotify toggle playback failed:", err);
+    showRoomPlayerStatus("Couldn't reach Spotify. Try again in a moment.");
   }
 }
 
