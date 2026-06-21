@@ -2314,27 +2314,17 @@ h1 {
 .record-spotify-controls {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
   margin: 10px 0 16px;
-}
-
-.record-spotify-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.record-spotify-play-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  text-align: center;
 }
 
 .record-spotify-transport {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 14px;
 }
 
 .record-spotify-transport-btn {
@@ -2348,8 +2338,36 @@ h1 {
   flex-shrink: 0;
 }
 
+.record-spotify-playpause-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+}
+
+.record-spotify-now-playing {
+  margin-top: 2px;
+}
+
+.record-spotify-now-playing-track {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f3e3c3;
+}
+
+.record-spotify-now-playing-artist {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: rgba(243, 227, 195, 0.65);
+}
+
 .record-spotify-change-match {
-  align-self: flex-start;
   background: none;
   border: none;
   color: #9ca3af;

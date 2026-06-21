@@ -7754,6 +7754,7 @@ let spotifyPlayer = null; // Web Playback SDK instance, once initialized
 let spotifyDeviceId = null;
 let spotifyAccessToken = null;
 let spotifyPollTimer = null;
+let spotifyLatestState = null; // last known { track, artist, album, coverUrl, playing } from the SDK
 
 // ---- PKCE helpers ----
 
@@ -7894,14 +7895,19 @@ async function ensureSpotifyPlayer() {
 
   spotifyPlayer.addListener("player_state_changed", (state) => {
     console.log("Spotify player_state_changed:", state);
-    if (!state) return;
-    renderRoomPlayerNowPlaying({
+    if (!state) {
+      spotifyLatestState = null;
+      renderAllSpotifyNowPlayingSlots(null);
+      return;
+    }
+    spotifyLatestState = {
       track: state.track_window.current_track.name,
       artist: state.track_window.current_track.artists.map((a) => a.name).join(", "),
       album: state.track_window.current_track.album.name,
       coverUrl: state.track_window.current_track.album.images?.[0]?.url || null,
       playing: !state.paused,
-    });
+    };
+    renderAllSpotifyNowPlayingSlots(spotifyLatestState);
     // Nudge the header strip to refresh now rather than waiting for the
     // next poll — Spotify's API reflects the new state almost immediately.
     refreshHeaderNowPlaying();
@@ -7935,6 +7941,15 @@ function showRoomPlayerStatus(message) {
   if (el) el.textContent = message || "";
   const recordEl = document.getElementById("recordSpotifyStatus");
   if (recordEl) recordEl.textContent = message || "";
+}
+
+// Updates every now-playing display currently in the DOM (room modal,
+// record modal) from a single shared state object. Either may be absent
+// depending on which modal is open, so each render function no-ops safely
+// if its target elements aren't present.
+function renderAllSpotifyNowPlayingSlots(info) {
+  renderRoomPlayerNowPlaying(info);
+  renderRecordSpotifyNowPlaying(info);
 }
 
 function renderRoomPlayerNowPlaying(info) {
@@ -8028,6 +8043,9 @@ async function renderRoomPlayerModal() {
 
   try {
     await ensureSpotifyPlayer();
+    // If playback was already underway before this modal opened, reflect
+    // it immediately instead of waiting for the next state-change event.
+    renderRoomPlayerNowPlaying(spotifyLatestState);
   } catch (err) {
     console.error("Spotify player init failed:", err);
     showRoomPlayerStatus("Couldn't start the Spotify player. Make sure this account has Premium.");
@@ -8321,16 +8339,6 @@ function renderSpotifyMatchFound(wrap, record) {
   wrap.innerHTML = "";
   wrap.classList.add("record-spotify-controls-active");
 
-  const row = document.createElement("div");
-  row.className = "record-spotify-row";
-
-  const playBtn = document.createElement("button");
-  playBtn.type = "button";
-  playBtn.className = "btn-primary record-spotify-play-btn";
-  playBtn.innerHTML = '<i class="ti ti-brand-spotify" aria-hidden="true"></i> Play on Spotify';
-  playBtn.addEventListener("click", () => spotifyPlayAlbumByUri(record.spotify_album_uri, playBtn));
-  row.appendChild(playBtn);
-
   const transport = document.createElement("div");
   transport.className = "record-spotify-transport";
 
@@ -8342,6 +8350,17 @@ function renderSpotifyMatchFound(wrap, record) {
   prevBtn.addEventListener("click", () => spotifyPreviousTrack());
   transport.appendChild(prevBtn);
 
+  const playPauseBtn = document.createElement("button");
+  playPauseBtn.type = "button";
+  playPauseBtn.id = "recordSpotifyPlayPauseBtn";
+  playPauseBtn.className = "btn-primary record-spotify-playpause-btn";
+  playPauseBtn.setAttribute("aria-label", "Play or pause");
+  playPauseBtn.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i>';
+  playPauseBtn.addEventListener("click", () =>
+    spotifyHandleRecordPlayPause(record.spotify_album_uri, playPauseBtn)
+  );
+  transport.appendChild(playPauseBtn);
+
   const nextBtn = document.createElement("button");
   nextBtn.type = "button";
   nextBtn.className = "btn-secondary record-spotify-transport-btn";
@@ -8350,8 +8369,13 @@ function renderSpotifyMatchFound(wrap, record) {
   nextBtn.addEventListener("click", () => spotifyNextTrack());
   transport.appendChild(nextBtn);
 
-  row.appendChild(transport);
-  wrap.appendChild(row);
+  wrap.appendChild(transport);
+
+  const nowPlayingEl = document.createElement("div");
+  nowPlayingEl.id = "recordSpotifyNowPlaying";
+  nowPlayingEl.className = "record-spotify-now-playing";
+  nowPlayingEl.hidden = true;
+  wrap.appendChild(nowPlayingEl);
 
   const statusEl = document.createElement("p");
   statusEl.id = "recordSpotifyStatus";
@@ -8366,6 +8390,58 @@ function renderSpotifyMatchFound(wrap, record) {
     changeBtn.addEventListener("click", () => openSpotifyMatchPicker(record));
     wrap.appendChild(changeBtn);
   }
+
+  // Reflect whatever the SDK already knows right now, in case playback
+  // was already underway before this modal opened.
+  renderRecordSpotifyNowPlaying(spotifyLatestState);
+}
+
+// Renders the track/artist line + keeps the play/pause icon in sync, scoped
+// to the record detail modal's controls.
+function renderRecordSpotifyNowPlaying(info) {
+  const wrap = document.getElementById("recordSpotifyNowPlaying");
+  const playPauseBtn = document.getElementById("recordSpotifyPlayPauseBtn");
+  if (!wrap) return;
+
+  if (!info) {
+    wrap.hidden = true;
+    wrap.innerHTML = "";
+    if (playPauseBtn) {
+      playPauseBtn.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i>';
+    }
+    return;
+  }
+
+  wrap.hidden = false;
+  wrap.innerHTML = "";
+
+  const trackEl = document.createElement("p");
+  trackEl.className = "record-spotify-now-playing-track";
+  trackEl.textContent = info.track;
+  wrap.appendChild(trackEl);
+
+  const artistEl = document.createElement("p");
+  artistEl.className = "record-spotify-now-playing-artist";
+  artistEl.textContent = info.artist;
+  wrap.appendChild(artistEl);
+
+  if (playPauseBtn) {
+    playPauseBtn.innerHTML = info.playing
+      ? '<i class="ti ti-player-pause" aria-hidden="true"></i>'
+      : '<i class="ti ti-player-play" aria-hidden="true"></i>';
+  }
+}
+
+// The center transport button does double duty: if nothing's playing yet
+// on this device, it starts the album (same as the old "Play on Spotify"
+// button); once something IS playing, it becomes a plain pause/resume
+// toggle so it doesn't restart the album from track 1 every time.
+async function spotifyHandleRecordPlayPause(albumUri, btn) {
+  if (spotifyLatestState) {
+    await spotifyTogglePlayback();
+    return;
+  }
+  await spotifyPlayAlbumByUri(albumUri, btn);
 }
 
 // ---- Match picker modal (manual override) ----
