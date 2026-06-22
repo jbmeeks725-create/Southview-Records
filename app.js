@@ -3118,11 +3118,14 @@ async function handleGetRecommendations(
     statusEl.textContent = "";
 
     const activeSuggestions = suggestions.filter(
-      (s) => !isSuggestionDismissed(s.artist, s.album)
+      (s) =>
+        !isSuggestionDismissed(s.artist, s.album) &&
+        !isAlbumOwned(s.artist, s.album) &&
+        !isAlbumOnWishlist(s.artist, s.album)
     );
 
     if (activeSuggestions.length === 0) {
-      statusEl.textContent = "You've dismissed all suggestions — clear dismissed list to see new ones.";
+      statusEl.textContent = "All suggestions are already in your collection or wishlist — try dismissing some or getting a fresh set.";
       return;
     }
 
