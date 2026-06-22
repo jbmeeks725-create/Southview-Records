@@ -3807,6 +3807,60 @@ h1 {
   grid-area: recommendations;
 }
 
+.wishlist-suggestions-card {
+  margin: 1rem 1.5rem 0;
+}
+
+.wishlist-suggestions-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.wishlist-suggestions-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: #f3e3c3;
+}
+
+.wishlist-suggestions-btn {
+  flex-shrink: 0;
+}
+
+.wishlist-duplicate-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(253, 186, 116, 0.12);
+  border: 1px solid rgba(253, 186, 116, 0.35);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 0.82rem;
+  color: #fdba74;
+  flex-wrap: wrap;
+}
+
+.wishlist-duplicate-warning i {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.wishlist-duplicate-warning .btn-text {
+  margin-left: auto;
+  padding: 0;
+  font-size: 0.78rem;
+  color: #fdba74;
+  text-decoration-color: rgba(253, 186, 116, 0.5);
+}
+
+.wishlist-duplicate-warning .btn-text:hover {
+  color: #fff;
+}
+
 .home-recommendations .field-hint {
   margin-top: 0;
 }

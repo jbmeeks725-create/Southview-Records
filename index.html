@@ -355,14 +355,6 @@
         </div>
       </div>
 
-      <div class="home-card home-recommendations">
-        <h2>Suggested For You</h2>
-        <p class="field-hint">Based on the albums you've rated "Love" and "Like."</p>
-        <button type="button" id="getRecommendationsBtn" class="btn-primary">Get recommendations</button>
-        <div id="recommendationsStatus" class="form-status"></div>
-        <div id="recommendationsList" class="recommendations-list"></div>
-      </div>
-
     </div>
   </section>
 
@@ -818,6 +810,20 @@
   </section>
 
   <section id="wishlistSection" hidden>
+
+    <!-- Suggested For You — AI-powered wishlist recommendations -->
+    <div class="dna-card wishlist-suggestions-card" id="wishlistSuggestionsCard">
+      <div class="wishlist-suggestions-header">
+        <div>
+          <h3 class="wishlist-suggestions-title">Suggested For You</h3>
+          <p class="field-hint">Based on the albums you've rated "Love" and "Like."</p>
+        </div>
+        <button type="button" id="wishlistGetRecommendationsBtn" class="btn-primary wishlist-suggestions-btn">Get suggestions</button>
+      </div>
+      <div id="wishlistRecommendationsStatus" class="form-status"></div>
+      <div id="wishlistRecommendationsList" class="recommendations-list"></div>
+    </div>
+
     <div class="page-toolbar">
       <div id="wishlistFilters">
         <input type="text" id="wishlistSearchInput" placeholder="Search by artist or album..." />
@@ -839,6 +845,7 @@
         </select>
       </div>
       <div class="page-toolbar-actions">
+        <button type="button" id="shareWishlistBtn" class="btn-secondary"><i class="ti ti-share" aria-hidden="true"></i> Share</button>
         <button type="button" id="addWishlistBtn" class="add-record-btn">+ Add to Wishlist</button>
         <button type="button" id="findAllDiscogsBtn" class="btn-secondary">Find Discogs matches for all</button>
       </div>
@@ -1200,6 +1207,13 @@
 
         <div id="addWishlistStatus" class="form-status"></div>
 
+        <!-- Shown when the album already exists in collection or wishlist -->
+        <div id="wishlistDuplicateWarning" class="wishlist-duplicate-warning" hidden>
+          <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+          <span id="wishlistDuplicateMsg"></span>
+          <button type="button" id="wishlistDuplicateSaveAnywayBtn" class="btn-text">Save anyway</button>
+        </div>
+
         <div class="form-actions">
           <button type="button" id="cancelAddWishlistBtn" class="btn-secondary">Cancel</button>
           <button type="submit" id="submitAddWishlistBtn" class="btn-primary">Add to wishlist</button>
@@ -1413,8 +1427,12 @@
       </div>
 
       <div class="cover-upload-controls">
+        <label for="wishlistDetailCoverFile" class="btn-secondary cover-upload-label">Change cover</label>
+        <input type="file" id="wishlistDetailCoverFile" accept="image/*" hidden />
+        <button type="button" id="wishlistDetailRemoveCoverBtn" class="btn-secondary">Remove cover</button>
         <button type="button" id="wishlistDetailDiscogsBtn" class="btn-secondary">Check Discogs</button>
       </div>
+      <div id="wishlistDetailCoverUploadStatus" class="form-status"></div>
       <div id="wishlistDetailDiscogsStatus" class="form-status"></div>
 
       <form id="wishlistDetailForm">

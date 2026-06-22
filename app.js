@@ -3066,10 +3066,16 @@ function buildTasteProfile() {
   return { loved, liked, ownedArtists, topGenres };
 }
 
-async function handleGetRecommendations() {
-  const btn = document.getElementById("getRecommendationsBtn");
-  const statusEl = document.getElementById("recommendationsStatus");
-  const list = document.getElementById("recommendationsList");
+async function handleGetRecommendations(
+  btnId = "getRecommendationsBtn",
+  statusId = "recommendationsStatus",
+  listId = "recommendationsList"
+) {
+  const btn = document.getElementById(btnId);
+  const statusEl = document.getElementById(statusId);
+  const list = document.getElementById(listId);
+
+  if (!btn || !statusEl || !list) return;
 
   const profile = buildTasteProfile();
 
@@ -5939,6 +5945,10 @@ function openWishlistDetailModal(wishlistId) {
   if (!item) return;
 
   activeDetailWishlistId = wishlistId;
+  pendingWishlistCoverUrlEdit = undefined; // reset cover edit state
+
+  document.getElementById("wishlistDetailCoverUploadStatus").textContent = "";
+  document.getElementById("wishlistDetailCoverUploadStatus").className = "form-status";
 
   document.getElementById("wishlistDetailArtist").value = item.artist || "";
   document.getElementById("wishlistDetailAlbum").value = item.album || "";
@@ -6018,6 +6028,11 @@ async function handleWishlistDetailSubmit(event) {
       genre_id: genreId,
       subgenre_id: subgenreId,
       notes,
+      // Only include cover_url if the user explicitly changed it this session
+      // (uploaded a new one or clicked Remove). `undefined` means untouched.
+      ...(pendingWishlistCoverUrlEdit !== undefined
+        ? { cover_url: pendingWishlistCoverUrlEdit }
+        : {}),
     };
 
     const { error } = await supabaseClient
@@ -6139,16 +6154,43 @@ function resetAddWishlistForm() {
   document.getElementById("addWishlistStatus").textContent = "";
   document.getElementById("wishScanStatus").textContent = "";
   document.getElementById("wishScanStatus").className = "form-status";
+  const warning = document.getElementById("wishlistDuplicateWarning");
+  if (warning) warning.hidden = true;
   pendingWishlistCoverUrl = null;
   pendingWishlistDiscogsId = null;
   populateSubgenreOptionsForGenre(null);
 }
 
+// ---- Duplicate detection for Add to Wishlist ----
+//
+// When the user tries to add something they may already own or already
+// have on their wishlist, we show a dismissable warning instead of
+// silently adding a duplicate. `wishlistDuplicateSaveAnywayBtn` calls
+// doAddWishlistItem(true) to skip the check and save regardless.
+
+
+function checkWishlistDuplicate(artist, album) {
+  const owned = isAlbumOwned(artist, album);
+  if (owned) {
+    return { type: "owned", msg: `You may already own "${album}" by ${artist}.` };
+  }
+  const onWishlist = isAlbumOnWishlist(artist, album);
+  if (onWishlist) {
+    return { type: "wishlist", msg: `"${album}" by ${artist} is already on your Wishlist.` };
+  }
+  return null;
+}
+
 async function handleAddWishlistSubmit(event) {
   event.preventDefault();
+  await doAddWishlistItem(false);
+}
 
+async function doAddWishlistItem(skipDuplicateCheck = false) {
   const statusEl = document.getElementById("addWishlistStatus");
   const submitBtn = document.getElementById("submitAddWishlistBtn");
+  const warningEl = document.getElementById("wishlistDuplicateWarning");
+  const warningMsg = document.getElementById("wishlistDuplicateMsg");
 
   const artist = document.getElementById("wishArtist").value.trim();
   const album = document.getElementById("wishAlbum").value.trim();
@@ -6158,6 +6200,21 @@ async function handleAddWishlistSubmit(event) {
     statusEl.className = "form-status form-status-error";
     return;
   }
+
+  // Duplicate check — fires on first attempt only; "Save anyway" bypasses it.
+  if (!skipDuplicateCheck) {
+    const dupe = checkWishlistDuplicate(artist, album);
+    if (dupe) {
+      warningMsg.textContent = dupe.msg;
+      warningEl.hidden = false;
+      statusEl.textContent = "";
+      statusEl.className = "form-status";
+      return;
+    }
+  }
+
+  // Hide warning (either no dupe, or user chose to save anyway).
+  if (warningEl) warningEl.hidden = true;
 
   const yearVal = parseYearInput(document.getElementById("wishYear").value);
   const label = document.getElementById("wishLabel").value.trim() || null;
@@ -6236,6 +6293,94 @@ async function handleAddWishlistSubmit(event) {
     statusEl.className = "form-status form-status-error";
   } finally {
     submitBtn.disabled = false;
+  }
+}
+
+// ---- Wishlist cover upload ----
+
+let pendingWishlistCoverUrlEdit = undefined; // tracks cover changes in the edit modal
+
+async function handleWishlistCoverFileChange(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file || activeDetailWishlistId === null) return;
+
+  const statusEl = document.getElementById("wishlistDetailCoverUploadStatus");
+  statusEl.textContent = "Uploading cover...";
+  statusEl.className = "form-status";
+
+  try {
+    const blob = await resizeImageFile(file);
+
+    const formData = new FormData();
+    formData.append("file", blob, "cover.jpg");
+    formData.append("wishlistId", String(activeDetailWishlistId));
+
+    const response = await fetch(UPLOAD_COVER_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || `Upload failed (${response.status})`);
+    }
+
+    pendingWishlistCoverUrlEdit = result.url;
+    setWishlistDetailCoverPreview(pendingWishlistCoverUrlEdit);
+
+    statusEl.textContent = "Cover uploaded. Click Save changes to apply.";
+    statusEl.className = "form-status form-status-success";
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't upload cover. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    event.target.value = "";
+  }
+}
+
+function handleWishlistRemoveCover() {
+  pendingWishlistCoverUrlEdit = null;
+  setWishlistDetailCoverPreview(null);
+  const statusEl = document.getElementById("wishlistDetailCoverUploadStatus");
+  statusEl.textContent = "Cover will be removed. Click Save changes to apply.";
+  statusEl.className = "form-status";
+}
+
+// ---- Share Wishlist ----
+
+async function handleShareWishlist() {
+  const btn = document.getElementById("shareWishlistBtn");
+  const url = window.location.origin + window.location.pathname + "?page=wishlist";
+
+  try {
+    if (navigator.share) {
+      await navigator.share({
+        title: "My Vinyl Wishlist — SPIN VINYL",
+        text: "Check out my vinyl wishlist on SPIN VINYL.",
+        url,
+      });
+      return;
+    }
+
+    // Fallback: copy to clipboard
+    await navigator.clipboard.writeText(url);
+
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied!';
+    btn.disabled = true;
+    setTimeout(() => {
+      btn.innerHTML = original;
+      btn.disabled = false;
+    }, 2000);
+  } catch (err) {
+    // Clipboard can fail if not HTTPS or if permission denied; fallback to prompt
+    window.prompt("Copy this link to share your wishlist:", url);
   }
 }
 
@@ -7223,9 +7368,35 @@ function setupEvents() {
       renderSpotlight();
     });
 
+  // Wishlist: Suggested For You (moved from home page)
   document
-    .getElementById("getRecommendationsBtn")
-    .addEventListener("click", () => handleGetRecommendations());
+    .getElementById("wishlistGetRecommendationsBtn")
+    .addEventListener("click", () =>
+      handleGetRecommendations(
+        "wishlistGetRecommendationsBtn",
+        "wishlistRecommendationsStatus",
+        "wishlistRecommendationsList"
+      )
+    );
+
+  // Wishlist: Share button
+  document
+    .getElementById("shareWishlistBtn")
+    .addEventListener("click", () => handleShareWishlist());
+
+  // Wishlist: duplicate check — "Save anyway" bypass
+  document
+    .getElementById("wishlistDuplicateSaveAnywayBtn")
+    .addEventListener("click", () => doAddWishlistItem(true));
+
+  // Wishlist: cover file upload
+  document
+    .getElementById("wishlistDetailCoverFile")
+    .addEventListener("change", handleWishlistCoverFileChange);
+
+  document
+    .getElementById("wishlistDetailRemoveCoverBtn")
+    .addEventListener("click", () => handleWishlistRemoveCover());
 
   const gridColsSelect = document.getElementById("gridColsSelect");
   let savedCols = "auto";
