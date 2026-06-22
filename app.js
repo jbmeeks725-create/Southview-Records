@@ -3321,44 +3321,37 @@ function persistDismissSuggestion(artist, album) {
 function generateBecauseText(suggestion, profile) {
   if (!profile) return null;
 
+  const loved = profile.loved || [];
+  const liked = profile.liked || [];
+  const topGenres = profile.topGenres || [];
+
+  // The suggestion's own subgenre/genre isn't returned by the AI, so we
+  // derive the connection from the taste profile data we do have:
+
+  // 1. If the top genre is explicitly named in the AI's reason, use it —
+  //    the AI chose to mention it, so it's genuinely the reason.
+  //    Only use genres here (not artist names), since artist mentions in
+  //    AI reason text can be incidental comparisons ("Fans of AC/DC...").
   const reasonLower = (suggestion.reason || "").toLowerCase();
 
-  // Check if the reason text mentions any specific loved artist by name
-  const lovedArtistMatch = (profile.loved || []).find(
-    (r) => r.artist && reasonLower.includes(r.artist.toLowerCase())
+  const lovedGenreInReason = loved.find(
+    (r) => r.genre && r.genre.length > 3 && reasonLower.includes(r.genre.toLowerCase())
   );
-  if (lovedArtistMatch) {
-    return `Because you love ${lovedArtistMatch.artist}`;
-  }
+  if (lovedGenreInReason) return `Because you love ${lovedGenreInReason.genre}`;
 
-  // Check liked artists
-  const likedArtistMatch = (profile.liked || []).find(
-    (r) => r.artist && reasonLower.includes(r.artist.toLowerCase())
+  const topGenreInReason = topGenres.find(
+    (g) => g && g.length > 3 && reasonLower.includes(g.toLowerCase())
   );
-  if (likedArtistMatch) {
-    return `Because you like ${likedArtistMatch.artist}`;
-  }
+  if (topGenreInReason) return `Because of your love of ${topGenreInReason}`;
 
-  // Check if any loved record's genre appears in the reason
-  const lovedGenreMatch = (profile.loved || []).find(
-    (r) => r.genre && reasonLower.includes(r.genre.toLowerCase())
+  // 2. Subgenre match
+  const lovedSubgenreInReason = loved.find(
+    (r) => r.subgenre && r.subgenre.length > 3 && reasonLower.includes(r.subgenre.toLowerCase())
   );
-  if (lovedGenreMatch) {
-    return `Because you love ${lovedGenreMatch.genre}`;
-  }
+  if (lovedSubgenreInReason) return `Because you love ${lovedSubgenreInReason.subgenre}`;
 
-  // Check top genres
-  const topGenreMatch = (profile.topGenres || []).find(
-    (g) => g && reasonLower.includes(g.toLowerCase())
-  );
-  if (topGenreMatch) {
-    return `Because of your love of ${topGenreMatch}`;
-  }
-
-  // Fallback: use the first top genre if we have one
-  if (profile.topGenres && profile.topGenres.length > 0) {
-    return `Because of your taste in ${profile.topGenres[0]}`;
-  }
+  // 3. Fallback: top genre regardless of whether it appears in the reason
+  if (topGenres.length > 0) return `Because of your taste in ${topGenres[0]}`;
 
   return null;
 }

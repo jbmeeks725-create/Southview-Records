@@ -3826,6 +3826,16 @@ h1 {
   flex-shrink: 0;
 }
 
+.wishlist-suggestions-actions .btn-text {
+  color: rgba(202, 161, 90, 0.55);
+  font-size: 0.75rem;
+  text-decoration-color: rgba(202, 161, 90, 0.3);
+}
+
+.wishlist-suggestions-actions .btn-text:hover {
+  color: #caa15a;
+}
+
 .wishlist-suggestions-title {
   font-size: 1rem;
   font-weight: 600;
