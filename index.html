@@ -18,6 +18,26 @@
   <meta name="theme-color" content="#0b0c0f" />
 </head>
 <body>
+  <!-- Shared wishlist public view (shown instead of app when ?share=wishlist&uid=... is detected) -->
+  <div id="sharedWishlistView" class="shared-wishlist-view" hidden>
+    <div class="shared-wishlist-header">
+      <div class="shared-wishlist-brand">
+        <img src="icon-512.png" alt="SPIN VINYL" class="shared-wishlist-logo" />
+        <span class="shared-wishlist-brand-name">SPIN VINYL</span>
+      </div>
+      <div class="shared-wishlist-owner">
+        <h1 id="sharedWishlistOwnerName" class="shared-wishlist-owner-name"></h1>
+        <p class="shared-wishlist-subtitle">Vinyl Wishlist</p>
+      </div>
+    </div>
+    <div id="sharedWishlistList" class="shared-wishlist-list"></div>
+    <p id="sharedWishlistEmpty" class="shared-wishlist-empty" hidden>This wishlist is empty.</p>
+    <p id="sharedWishlistError" class="shared-wishlist-error" hidden>This wishlist isn't available publicly.</p>
+    <div class="shared-wishlist-footer">
+      <a href="/" class="shared-wishlist-cta">Build your own vinyl collection on SPIN VINYL</a>
+    </div>
+  </div>
+
   <div id="splashScreen" class="splash-screen" role="presentation">
     <div class="splash-content">
       <div class="splash-disc-wrap">
@@ -845,6 +865,12 @@
         </select>
       </div>
       <div class="page-toolbar-actions">
+        <div class="wishlist-public-toggle">
+          <label class="wishlist-public-label" for="wishlistPublicToggle">
+            <input type="checkbox" id="wishlistPublicToggle" class="wishlist-public-checkbox" />
+            <span class="wishlist-public-toggle-text">Public wishlist</span>
+          </label>
+        </div>
         <button type="button" id="shareWishlistBtn" class="btn-secondary"><i class="ti ti-share" aria-hidden="true"></i> Share</button>
         <button type="button" id="addWishlistBtn" class="add-record-btn">+ Add to Wishlist</button>
         <button type="button" id="findAllDiscogsBtn" class="btn-secondary">Find Discogs matches for all</button>

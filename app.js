@@ -6354,9 +6354,65 @@ function handleWishlistRemoveCover() {
 
 // ---- Share Wishlist ----
 
+// ---- Public Wishlist Sharing ----
+//
+// When `wishlist_public` is true on the owner's profile, anyone with
+// the share URL can view a read-only list of their wishlist items —
+// no login required. The shared URL includes the owner's user_id so
+// Supabase can serve the right rows via the permissive anon RLS policy
+// added in wishlist_share_migration.sql.
+
+function getWishlistShareUrl() {
+  return (
+    window.location.origin +
+    window.location.pathname +
+    "?share=wishlist&uid=" +
+    (currentUser?.id || "")
+  );
+}
+
+async function handleWishlistPublicToggle() {
+  const checkbox = document.getElementById("wishlistPublicToggle");
+  const isPublic = checkbox.checked;
+
+  try {
+    await saveProfileFields({ wishlist_public: isPublic });
+  } catch (err) {
+    console.error("Failed to save wishlist_public:", err);
+    // Revert the checkbox if save failed
+    checkbox.checked = !isPublic;
+  }
+}
+
+function syncWishlistPublicToggle() {
+  const checkbox = document.getElementById("wishlistPublicToggle");
+  if (checkbox) {
+    checkbox.checked = !!currentProfile?.wishlist_public;
+  }
+}
+
 async function handleShareWishlist() {
+  const isPublic = !!currentProfile?.wishlist_public;
+
+  if (!isPublic) {
+    // Guide the owner to enable public sharing first
+    const enable = window.confirm(
+      "Your wishlist is currently private. Enable public sharing so anyone with the link can view it?"
+    );
+    if (!enable) return;
+
+    try {
+      await saveProfileFields({ wishlist_public: true });
+      syncWishlistPublicToggle();
+    } catch (err) {
+      console.error("Failed to enable wishlist sharing:", err);
+      alert("Couldn't enable sharing. Please try again.");
+      return;
+    }
+  }
+
   const btn = document.getElementById("shareWishlistBtn");
-  const url = window.location.origin + window.location.pathname + "?page=wishlist";
+  const url = getWishlistShareUrl();
 
   try {
     if (navigator.share) {
@@ -6368,7 +6424,6 @@ async function handleShareWishlist() {
       return;
     }
 
-    // Fallback: copy to clipboard
     await navigator.clipboard.writeText(url);
 
     const original = btn.innerHTML;
@@ -6379,9 +6434,122 @@ async function handleShareWishlist() {
       btn.disabled = false;
     }, 2000);
   } catch (err) {
-    // Clipboard can fail if not HTTPS or if permission denied; fallback to prompt
     window.prompt("Copy this link to share your wishlist:", url);
   }
+}
+
+// ---- Shared wishlist public view ----
+//
+// Detected at startup (before auth) from ?share=wishlist&uid=... URL params.
+// Uses the anon Supabase client — no session needed — because the RLS
+// policy allows reads when wishlist_public = true.
+
+function getSharedWishlistParams() {
+  const params = new URLSearchParams(window.location.search);
+  const share = params.get("share");
+  const uid = params.get("uid");
+  if (share === "wishlist" && uid) return uid;
+  return null;
+}
+
+async function maybeShowSharedWishlist() {
+  const uid = getSharedWishlistParams();
+  if (!uid) return false;
+
+  // Hide the entire normal app shell immediately.
+  document.getElementById("splashScreen").hidden = true;
+  document.getElementById("authOverlay").hidden = true;
+  const sharedView = document.getElementById("sharedWishlistView");
+  sharedView.hidden = false;
+  document.body.classList.add("shared-wishlist-mode");
+
+  try {
+    // Fetch the owner's profile (display_name / username) — anon read
+    // is allowed by profiles_public_wishlist_read RLS policy.
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("preferred_name, username, wishlist_public")
+      .eq("user_id", uid)
+      .maybeSingle();
+
+    if (profileError || !profile || !profile.wishlist_public) {
+      document.getElementById("sharedWishlistError").hidden = false;
+      return true;
+    }
+
+    const ownerName =
+      profile.preferred_name ||
+      (profile.username ? `@${profile.username}` : "Someone's");
+    document.getElementById("sharedWishlistOwnerName").textContent =
+      `${ownerName}'s Wishlist`;
+    document.title = `${ownerName}'s Wishlist — SPIN VINYL`;
+
+    // Fetch their wishlist — anon read allowed by wishlist_public_read policy.
+    const { data: items, error: wishlistError } = await supabaseClient
+      .from("wishlist")
+      .select("id, artist, album, year, cover_url")
+      .eq("user_id", uid)
+      .order("added_at", { ascending: false });
+
+    if (wishlistError) throw wishlistError;
+
+    const list = document.getElementById("sharedWishlistList");
+    const emptyEl = document.getElementById("sharedWishlistEmpty");
+
+    if (!items || items.length === 0) {
+      emptyEl.hidden = false;
+      return true;
+    }
+
+    items.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "shared-wishlist-item";
+
+      const cover = document.createElement("div");
+      cover.className = "shared-wishlist-cover";
+      if (item.cover_url) {
+        const img = document.createElement("img");
+        img.src = item.cover_url;
+        img.alt = item.album || "";
+        img.loading = "lazy";
+        cover.appendChild(img);
+      } else {
+        const placeholder = document.createElement("div");
+        placeholder.className = "shared-wishlist-cover-placeholder";
+        placeholder.innerHTML = '<i class="ti ti-vinyl" aria-hidden="true"></i>';
+        cover.appendChild(placeholder);
+      }
+      row.appendChild(cover);
+
+      const info = document.createElement("div");
+      info.className = "shared-wishlist-info";
+
+      const artist = document.createElement("p");
+      artist.className = "shared-wishlist-artist";
+      artist.textContent = item.artist || "";
+      info.appendChild(artist);
+
+      const album = document.createElement("p");
+      album.className = "shared-wishlist-album";
+      album.textContent = item.album || "";
+      info.appendChild(album);
+
+      if (item.year) {
+        const year = document.createElement("p");
+        year.className = "shared-wishlist-year";
+        year.textContent = item.year;
+        info.appendChild(year);
+      }
+
+      row.appendChild(info);
+      list.appendChild(row);
+    });
+  } catch (err) {
+    console.error("Failed to load shared wishlist:", err);
+    document.getElementById("sharedWishlistError").hidden = false;
+  }
+
+  return true;
 }
 
 async function removeWishlistItem(wishlistId) {
@@ -7379,6 +7547,11 @@ function setupEvents() {
       )
     );
 
+  // Wishlist: public/private toggle
+  document
+    .getElementById("wishlistPublicToggle")
+    ?.addEventListener("change", () => handleWishlistPublicToggle());
+
   // Wishlist: Share button
   document
     .getElementById("shareWishlistBtn")
@@ -7808,6 +7981,7 @@ async function onSignedIn(user) {
   resetSessionUiState();
   await loadProfile();
   refreshAccountButton();
+  syncWishlistPublicToggle();
   await loadData();
   maybeShowOnboarding();
 }
@@ -9190,7 +9364,12 @@ function setupSplashScreen() {
 }
 
 // 7. Initialize
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  // Check for shared wishlist URL first — if detected, show the public
+  // read-only view and skip the entire authenticated app flow.
+  const isSharedView = await maybeShowSharedWishlist();
+  if (isSharedView) return;
+
   setupSplashScreen();
   setupEvents();
   setupOnboarding();
