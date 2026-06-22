@@ -3117,50 +3117,17 @@ async function handleGetRecommendations(
 
     statusEl.textContent = "";
 
-    suggestions.forEach((s) => {
-      const card = document.createElement("div");
-      card.className = "recommendation-card";
+    const activeSuggestions = suggestions.filter(
+      (s) => !isSuggestionDismissed(s.artist, s.album)
+    );
 
-      const artistEl = document.createElement("div");
-      artistEl.className = "recommendation-artist";
-      artistEl.textContent = s.artist;
+    if (activeSuggestions.length === 0) {
+      statusEl.textContent = "You've dismissed all suggestions — clear dismissed list to see new ones.";
+      return;
+    }
 
-      const albumEl = document.createElement("div");
-      albumEl.className = "recommendation-album";
-      albumEl.textContent = s.album;
-
-      const reasonEl = document.createElement("div");
-      reasonEl.className = "recommendation-reason";
-      reasonEl.textContent = s.reason || "";
-
-      const actions = document.createElement("div");
-      actions.className = "recommendation-actions";
-
-      const addBtn = document.createElement("button");
-      addBtn.type = "button";
-      addBtn.className = "btn-secondary";
-      addBtn.textContent = "Add to Wishlist";
-      addBtn.addEventListener("click", () => addRecommendationToWishlist(s.artist, s.album, addBtn));
-
-      const songBtn = document.createElement("button");
-      songBtn.type = "button";
-      songBtn.className = "btn-secondary";
-      songBtn.textContent = "Find a notable track";
-
-      const songWrap = document.createElement("div");
-      songWrap.className = "recommendation-song-wrap";
-
-      songBtn.addEventListener("click", () => findRecommendationSong(s, songWrap, songBtn));
-
-      actions.appendChild(addBtn);
-      actions.appendChild(songBtn);
-
-      card.appendChild(artistEl);
-      card.appendChild(albumEl);
-      card.appendChild(reasonEl);
-      card.appendChild(actions);
-      card.appendChild(songWrap);
-      list.appendChild(card);
+    activeSuggestions.forEach((s) => {
+      list.appendChild(buildMoreLikeThisCard(s, profile));
     });
   } catch (err) {
     console.error(err);
@@ -3306,14 +3273,104 @@ function isAlbumOnWishlist(artist, album) {
   });
 }
 
-function buildMoreLikeThisCard(suggestion) {
+// ---- Persistent suggestion dismissal ----
+//
+// Dismissed suggestions are stored in localStorage so they survive
+// page reloads and are filtered out of future "Get suggestions" results.
+// Key format: spin-dismissed-suggestions (JSON array of "artist|album" strings).
+// Stored client-side (not DB) since this is a personal preference that
+// doesn't need to sync across devices.
+
+const DISMISSED_SUGGESTIONS_KEY = "spin-dismissed-suggestions";
+
+function getDismissedSuggestions() {
+  try {
+    return JSON.parse(localStorage.getItem(DISMISSED_SUGGESTIONS_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function makeSuggestionKey(artist, album) {
+  return `${(artist || "").toLowerCase().trim()}|${(album || "").toLowerCase().trim()}`;
+}
+
+function isSuggestionDismissed(artist, album) {
+  const key = makeSuggestionKey(artist, album);
+  return getDismissedSuggestions().includes(key);
+}
+
+function persistDismissSuggestion(artist, album) {
+  const key = makeSuggestionKey(artist, album);
+  const dismissed = getDismissedSuggestions();
+  if (!dismissed.includes(key)) {
+    dismissed.push(key);
+    // Cap at 500 entries so localStorage doesn't grow unbounded
+    const capped = dismissed.slice(-500);
+    try {
+      localStorage.setItem(DISMISSED_SUGGESTIONS_KEY, JSON.stringify(capped));
+    } catch {
+      // localStorage can fail in private/incognito if storage quota is exceeded
+    }
+  }
+}
+
+// Generates a "Because you liked..." hook for a suggestion by matching
+// it against the current taste profile (loved/liked records + top genres).
+// Deterministic — no AI call needed since the profile data is already loaded.
+function generateBecauseText(suggestion, profile) {
+  if (!profile) return null;
+
+  const reasonLower = (suggestion.reason || "").toLowerCase();
+
+  // Check if the reason text mentions any specific loved artist by name
+  const lovedArtistMatch = (profile.loved || []).find(
+    (r) => r.artist && reasonLower.includes(r.artist.toLowerCase())
+  );
+  if (lovedArtistMatch) {
+    return `Because you love ${lovedArtistMatch.artist}`;
+  }
+
+  // Check liked artists
+  const likedArtistMatch = (profile.liked || []).find(
+    (r) => r.artist && reasonLower.includes(r.artist.toLowerCase())
+  );
+  if (likedArtistMatch) {
+    return `Because you like ${likedArtistMatch.artist}`;
+  }
+
+  // Check if any loved record's genre appears in the reason
+  const lovedGenreMatch = (profile.loved || []).find(
+    (r) => r.genre && reasonLower.includes(r.genre.toLowerCase())
+  );
+  if (lovedGenreMatch) {
+    return `Because you love ${lovedGenreMatch.genre}`;
+  }
+
+  // Check top genres
+  const topGenreMatch = (profile.topGenres || []).find(
+    (g) => g && reasonLower.includes(g.toLowerCase())
+  );
+  if (topGenreMatch) {
+    return `Because of your love of ${topGenreMatch}`;
+  }
+
+  // Fallback: use the first top genre if we have one
+  if (profile.topGenres && profile.topGenres.length > 0) {
+    return `Because of your taste in ${profile.topGenres[0]}`;
+  }
+
+  return null;
+}
+
+function buildMoreLikeThisCard(suggestion, profile) {
   const card = document.createElement("div");
   card.className = "recommendation-card";
 
   const owned = isAlbumOwned(suggestion.artist, suggestion.album);
   const onWishlist = !owned && isAlbumOnWishlist(suggestion.artist, suggestion.album);
 
-  // Dismiss button — top-right X
+  // Dismiss button — top-right X, persists so it won't resurface
   const dismissBtn = document.createElement("button");
   dismissBtn.type = "button";
   dismissBtn.className = "recommendation-dismiss";
@@ -3321,6 +3378,7 @@ function buildMoreLikeThisCard(suggestion) {
   dismissBtn.textContent = "×";
   dismissBtn.addEventListener("click", (e) => {
     e.stopPropagation();
+    persistDismissSuggestion(suggestion.artist, suggestion.album);
     card.style.transition = "opacity 0.2s ease";
     card.style.opacity = "0";
     setTimeout(() => card.remove(), 200);
@@ -3341,6 +3399,16 @@ function buildMoreLikeThisCard(suggestion) {
 
   card.appendChild(artistEl);
   card.appendChild(albumEl);
+
+  // "Because you liked..." hook — shown before the description in gold italics
+  const becauseText = generateBecauseText(suggestion, profile);
+  if (becauseText) {
+    const becauseEl = document.createElement("div");
+    becauseEl.className = "recommendation-because";
+    becauseEl.textContent = becauseText;
+    card.appendChild(becauseEl);
+  }
+
   card.appendChild(reasonEl);
 
   if (owned) {
@@ -3409,68 +3477,6 @@ async function fetchMoreLikeThis(artist, album, label) {
   return result;
 }
 
-function buildMoreLikeThisCard(suggestion) {
-  const card = document.createElement("div");
-  card.className = "recommendation-card";
-
-  const owned = isAlbumOwned(suggestion.artist, suggestion.album);
-
-  const artistEl = document.createElement("div");
-  artistEl.className = "recommendation-artist";
-  artistEl.textContent = suggestion.artist;
-
-  const albumEl = document.createElement("div");
-  albumEl.className = "recommendation-album";
-  albumEl.textContent = suggestion.album;
-
-  const reasonEl = document.createElement("div");
-  reasonEl.className = "recommendation-reason";
-  reasonEl.textContent = suggestion.reason || "";
-
-  card.appendChild(artistEl);
-  card.appendChild(albumEl);
-  card.appendChild(reasonEl);
-
-  if (owned) {
-    const ownedEl = document.createElement("div");
-    ownedEl.className = "recommendation-owned-tag";
-    ownedEl.textContent = "Already in your collection";
-    card.appendChild(ownedEl);
-  } else {
-    const actions = document.createElement("div");
-    actions.className = "recommendation-actions";
-
-    const addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.className = "btn-secondary";
-    addBtn.textContent = "Add to Wishlist";
-    addBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      addRecommendationToWishlist(suggestion.artist, suggestion.album, addBtn);
-    });
-
-    const songBtn = document.createElement("button");
-    songBtn.type = "button";
-    songBtn.className = "btn-secondary";
-    songBtn.textContent = "Find a notable track";
-
-    const songWrap = document.createElement("div");
-    songWrap.className = "recommendation-song-wrap";
-
-    songBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      findRecommendationSong(suggestion, songWrap, songBtn);
-    });
-
-    actions.appendChild(addBtn);
-    actions.appendChild(songBtn);
-    card.appendChild(actions);
-    card.appendChild(songWrap);
-  }
-
-  return card;
-}
-
 function buildMoreLikeThisBucket(title, items) {
   const bucket = document.createElement("div");
   bucket.className = "more-like-this-bucket";
@@ -3490,7 +3496,7 @@ function buildMoreLikeThisBucket(title, items) {
 
   const grid = document.createElement("div");
   grid.className = "more-like-this-grid";
-  items.forEach((s) => grid.appendChild(buildMoreLikeThisCard(s)));
+  items.forEach((s) => grid.appendChild(buildMoreLikeThisCard(s, null)));
   bucket.appendChild(grid);
 
   return bucket;
@@ -7546,6 +7552,19 @@ function setupEvents() {
         "wishlistRecommendationsList"
       )
     );
+
+  document
+    .getElementById("clearDismissedSuggestionsBtn")
+    ?.addEventListener("click", () => {
+      try {
+        localStorage.removeItem(DISMISSED_SUGGESTIONS_KEY);
+      } catch {}
+      const statusEl = document.getElementById("wishlistRecommendationsStatus");
+      if (statusEl) {
+        statusEl.textContent = "Dismissed suggestions cleared — click Get suggestions to refresh.";
+        statusEl.className = "form-status";
+      }
+    });
 
   // Wishlist: public/private toggle
   document

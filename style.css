@@ -3819,6 +3819,13 @@ h1 {
   flex-wrap: wrap;
 }
 
+.wishlist-suggestions-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .wishlist-suggestions-title {
   font-size: 1rem;
   font-weight: 600;
@@ -4082,6 +4089,13 @@ body.shared-wishlist-mode {
   color: #d1d5db;
   font-style: italic;
   font-size: 0.85rem;
+}
+
+.recommendation-because {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: #caa15a;
+  margin-bottom: 4px;
 }
 
 .recommendation-reason {
