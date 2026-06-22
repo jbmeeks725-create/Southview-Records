@@ -314,7 +314,8 @@
       <button type="button" id="collectionPageBtn" class="view-btn" aria-pressed="false">My Collection</button>
       <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
       <button type="button" id="tasteProfilePageBtn" class="view-btn" aria-pressed="false">My Taste Profile</button>
-      <button type="button" id="genreEvolutionPageBtn" class="view-btn" aria-pressed="false">Genre Evolution</button>
+      <button type="button" id="genreEvolutionPageBtn" class="view-btn" aria-pressed="false">My Taste Evolution</button>
+      <button type="button" id="fellowCollectorsPageBtn" class="view-btn" aria-pressed="false">My Fellow Collectors</button>
       <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Listening Room</button>
     </nav>
   </section>
@@ -838,7 +839,10 @@
           <h3 class="wishlist-suggestions-title">Suggested For You</h3>
           <p class="field-hint">Based on the albums you've rated "Love" and "Like."</p>
         </div>
-        <button type="button" id="wishlistGetRecommendationsBtn" class="btn-primary wishlist-suggestions-btn">Get suggestions</button>
+        <div class="wishlist-suggestions-actions">
+          <button type="button" id="clearDismissedSuggestionsBtn" class="btn-text">Clear dismissed</button>
+          <button type="button" id="wishlistGetRecommendationsBtn" class="btn-primary wishlist-suggestions-btn">Get suggestions</button>
+        </div>
       </div>
       <div id="wishlistRecommendationsStatus" class="form-status"></div>
       <div id="wishlistRecommendationsList" class="recommendations-list"></div>
@@ -928,7 +932,7 @@
   <section id="genreEvolutionSection" hidden>
     <div class="genre-evolution-page">
       <div class="genre-evolution-header">
-        <h2>Genre Evolution</h2>
+        <h2>My Taste Evolution</h2>
         <p class="taste-profile-intro">
           How an artist's sound moved across styles over the years, based on the albums you
           own. Each line follows one artist's catalog in release-year order, tracking the
@@ -954,6 +958,53 @@
         Once you have a few artists with 5 or more albums spanning different styles, their
         evolution will show up here.
       </div>
+    </div>
+  </section>
+
+  <!-- My Fellow Collectors -->
+  <section id="fellowCollectorsSection" hidden>
+    <div class="fellow-collectors-page">
+
+      <div class="fellow-collectors-header">
+        <div>
+          <h2>My Fellow Collectors</h2>
+          <p class="field-hint">Connect with collectors who share your taste. Discover their collections, wishlists, and profiles.</p>
+        </div>
+      </div>
+
+      <!-- Connections -->
+      <div class="fellow-collectors-block">
+        <h3 class="fellow-collectors-block-title">My Connections</h3>
+        <div id="myConnectionsGrid" class="fellow-collectors-grid">
+          <div class="fellow-collectors-empty">
+            <i class="ti ti-users" aria-hidden="true"></i>
+            <p>You haven't connected with any fellow collectors yet.</p>
+            <p class="field-hint">Discover collectors below and send a connection request.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Taste-matched discovery -->
+      <div class="fellow-collectors-block">
+        <div class="fellow-collectors-block-header">
+          <h3 class="fellow-collectors-block-title">On Your Wavelength</h3>
+          <p class="field-hint">Collectors whose taste profile overlaps with yours.</p>
+        </div>
+        <div id="wavelengthGrid" class="fellow-collectors-grid">
+          <div class="fellow-collectors-empty">
+            <i class="ti ti-vinyl" aria-hidden="true"></i>
+            <p>Taste matching is coming soon.</p>
+            <p class="field-hint">Once more collectors join SPIN VINYL, we'll surface the ones whose collection most closely mirrors yours.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Incoming connection requests -->
+      <div class="fellow-collectors-block" id="connectionRequestsBlock" hidden>
+        <h3 class="fellow-collectors-block-title">Connection Requests</h3>
+        <div id="connectionRequestsGrid" class="fellow-collectors-grid"></div>
+      </div>
+
     </div>
   </section>
 

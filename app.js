@@ -5091,6 +5091,7 @@ function setPage(page) {
   const roomBtn = document.getElementById("roomPageBtn");
   const tasteProfileBtn = document.getElementById("tasteProfilePageBtn");
   const genreEvolutionBtn = document.getElementById("genreEvolutionPageBtn");
+  const fellowCollectorsBtn = document.getElementById("fellowCollectorsPageBtn");
 
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
@@ -5098,6 +5099,7 @@ function setPage(page) {
   const roomSection = document.getElementById("roomSection");
   const tasteProfileSection = document.getElementById("tasteProfileSection");
   const genreEvolutionSection = document.getElementById("genreEvolutionSection");
+  const fellowCollectorsSection = document.getElementById("fellowCollectorsSection");
   const collectionDnaSection = document.getElementById("collectionDnaSection");
   const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
@@ -5113,6 +5115,7 @@ function setPage(page) {
   const isRoom = page === "room";
   const isTasteProfile = page === "tasteProfile";
   const isGenreEvolution = page === "genreEvolution";
+  const isFellowCollectors = page === "fellowCollectors";
 
   [
     [homeBtn, isHome],
@@ -5121,6 +5124,7 @@ function setPage(page) {
     [roomBtn, isRoom],
     [tasteProfileBtn, isTasteProfile],
     [genreEvolutionBtn, isGenreEvolution],
+    [fellowCollectorsBtn, isFellowCollectors],
   ].forEach(([btn, active]) => {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-pressed", String(active));
@@ -5132,12 +5136,13 @@ function setPage(page) {
   roomSection.hidden = !isRoom;
   tasteProfileSection.hidden = !isTasteProfile;
   genreEvolutionSection.hidden = !isGenreEvolution;
+  fellowCollectorsSection.hidden = !isFellowCollectors;
   collectionDnaSection.hidden = !isCollection;
   atAGlanceSection.hidden = !isCollection;
   document.getElementById("cardSectionHeader").hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
-  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution;
+  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isFellowCollectors;
   pageNav.hidden = isProfile || isSettings;
 
   if (isProfile) {
@@ -7524,6 +7529,10 @@ function setupEvents() {
   document
     .getElementById("genreEvolutionPageBtn")
     .addEventListener("click", () => setPage("genreEvolution"));
+
+  document
+    .getElementById("fellowCollectorsPageBtn")
+    .addEventListener("click", () => setPage("fellowCollectors"));
 
   document
     .getElementById("genreEvolutionArtistSelect")
