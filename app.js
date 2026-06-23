@@ -9729,94 +9729,84 @@ async function spotifyPlayAlbumByUri(albumUri, triggerBtn) {
 // Listening Room Modes
 // ============================================================
 
-// ---- Shared: play a record and show its album card ----
-async function playRoomRecord(record) {
+// ---- Shared: play a record by URI ----
+async function playRoomRecord(record, statusEl) {
   if (!record) return;
-  // Start Spotify playback if a match exists, otherwise just show the card
-  if (record.spotify_album_uri) {
-    const playBtn = document.getElementById("spotifyPlayPauseBtn");
-    await spotifyPlayAlbumByUri(record.spotify_album_uri, playBtn);
-  } else {
-    // Trigger the auto-match search
-    await renderRecordSpotifyControls(record);
+
+  if (statusEl) {
+    statusEl.textContent = "Starting playback…";
+    statusEl.className = "form-status";
+  }
+
+  try {
+    if (record.spotify_album_uri) {
+      await spotifyPlayAlbumByUri(record.spotify_album_uri, null);
+      if (statusEl) statusEl.textContent = "";
+    } else {
+      // No URI yet — trigger auto-search and save result, then play
+      if (statusEl) statusEl.textContent = "Looking up on Spotify…";
+      try {
+        const candidates = await searchSpotifyAlbumCandidates(record.artist, record.album);
+        if (candidates.length > 0) {
+          const best = candidates[0];
+          await saveRecordSpotifyMatch(record.id, best.uri, "auto");
+          record.spotify_album_uri = best.uri;
+          record.spotify_match_status = "auto";
+          await spotifyPlayAlbumByUri(best.uri, null);
+          if (statusEl) statusEl.textContent = "";
+        } else {
+          if (statusEl) {
+            statusEl.textContent = "No Spotify match found for this album.";
+            statusEl.className = "form-status form-status-error";
+          }
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = "Couldn't find this album on Spotify.";
+          statusEl.className = "form-status form-status-error";
+        }
+      }
+    }
+  } catch (err) {
+    console.error("playRoomRecord failed:", err);
+    if (statusEl) {
+      statusEl.textContent = err.message || "Playback failed. Make sure Spotify is connected.";
+      statusEl.className = "form-status form-status-error";
+    }
   }
 }
 
-function showRoomModeResult(record, subtitle) {
-  const body = document.getElementById("discoverQuizBody");
-  if (!body) return;
+// Shared mini transport bar — reused in Discover result and Deep Listen views
+function buildMiniTransport() {
+  const wrap = document.createElement("div");
+  wrap.className = "room-mode-transport";
 
-  body.innerHTML = "";
+  const prev = document.createElement("button");
+  prev.type = "button";
+  prev.className = "btn-secondary room-mode-transport-btn";
+  prev.setAttribute("aria-label", "Previous track");
+  prev.innerHTML = '<i class="ti ti-player-skip-back" aria-hidden="true"></i>';
+  prev.addEventListener("click", () => spotifyPreviousTrack());
 
-  const result = document.createElement("div");
-  result.className = "discover-result";
+  const playPause = document.createElement("button");
+  playPause.type = "button";
+  playPause.className = "btn-primary room-mode-transport-btn room-mode-transport-btn-primary";
+  playPause.setAttribute("aria-label", "Play or pause");
+  playPause.id = "roomModePlayPauseBtn";
+  playPause.innerHTML = '<i class="ti ti-player-play" aria-hidden="true"></i>';
+  playPause.addEventListener("click", () => spotifyTogglePlayback());
 
-  if (subtitle) {
-    const sub = document.createElement("p");
-    sub.className = "discover-result-subtitle";
-    sub.textContent = subtitle;
-    result.appendChild(sub);
-  }
+  const next = document.createElement("button");
+  next.type = "button";
+  next.className = "btn-secondary room-mode-transport-btn";
+  next.setAttribute("aria-label", "Next track");
+  next.innerHTML = '<i class="ti ti-player-skip-forward" aria-hidden="true"></i>';
+  next.addEventListener("click", () => spotifyNextTrack());
 
-  const cover = document.createElement("img");
-  cover.className = "discover-result-cover";
-  cover.src = record.cover_url || "icon-512.png";
-  cover.alt = record.album || "";
-  result.appendChild(cover);
-
-  const meta = document.createElement("div");
-  meta.className = "discover-result-meta";
-
-  const albumEl = document.createElement("h3");
-  albumEl.className = "discover-result-album";
-  albumEl.textContent = record.album || "";
-  meta.appendChild(albumEl);
-
-  const artistEl = document.createElement("p");
-  artistEl.className = "discover-result-artist";
-  artistEl.textContent = record.artist || "";
-  meta.appendChild(artistEl);
-
-  if (record.year) {
-    const yearEl = document.createElement("p");
-    yearEl.className = "discover-result-year";
-    yearEl.textContent = record.year;
-    meta.appendChild(yearEl);
-  }
-
-  if (record.genre_name) {
-    const genreEl = document.createElement("p");
-    genreEl.className = "discover-result-genre";
-    genreEl.textContent = [record.genre_name, record.subgenre_name].filter(Boolean).join(" · ");
-    meta.appendChild(genreEl);
-  }
-
-  result.appendChild(meta);
-
-  const actions = document.createElement("div");
-  actions.className = "discover-result-actions";
-
-  const playBtn = document.createElement("button");
-  playBtn.type = "button";
-  playBtn.className = "btn-primary";
-  playBtn.innerHTML = '<i class="ti ti-brand-spotify" aria-hidden="true"></i> Play this album';
-  playBtn.addEventListener("click", async () => {
-    playBtn.disabled = true;
-    playBtn.textContent = "Starting playback…";
-    await playRoomRecord(record);
-    closeDiscoverQuiz();
-  });
-  actions.appendChild(playBtn);
-
-  const againBtn = document.createElement("button");
-  againBtn.type = "button";
-  againBtn.className = "btn-secondary";
-  againBtn.textContent = "Try again";
-  againBtn.addEventListener("click", () => openDiscoverQuiz());
-  actions.appendChild(againBtn);
-
-  result.appendChild(actions);
-  body.appendChild(result);
+  wrap.appendChild(prev);
+  wrap.appendChild(playPause);
+  wrap.appendChild(next);
+  return wrap;
 }
 
 // ---- Discover My Collection ----
@@ -9854,14 +9844,12 @@ const DISCOVER_QUESTIONS = [
   },
 ];
 
-// Maps quiz answers to genre/decade scoring weights
 function scoreRecordForAnswers(record, answers) {
   let score = 0;
   const genre = (record.genre_name || "").toLowerCase();
   const subgenre = (record.subgenre_name || "").toLowerCase();
   const year = record.year || 0;
 
-  // Prioritise loved/liked records
   if (record.rating === "love") score += 4;
   else if (record.rating === "like") score += 2;
   else if (record.rating === "dislike") score -= 10;
@@ -9870,7 +9858,6 @@ function scoreRecordForAnswers(record, answers) {
   const setting = answers.setting;
   const era = answers.era;
 
-  // Energy mapping
   if (energy === "chill") {
     if (genre.includes("jazz") || genre.includes("soul") || genre.includes("folk") || genre.includes("ambient") || genre.includes("bossa")) score += 5;
     if (subgenre.includes("cool") || subgenre.includes("chamber") || subgenre.includes("acoustic")) score += 3;
@@ -9885,7 +9872,6 @@ function scoreRecordForAnswers(record, answers) {
     if (subgenre.includes("free") || subgenre.includes("avant") || subgenre.includes("fusion") || subgenre.includes("progressive")) score += 3;
   }
 
-  // Setting mapping
   if (setting === "latenight") {
     if (genre.includes("jazz") || genre.includes("blues") || genre.includes("soul")) score += 3;
     if (year >= 1940 && year <= 1975) score += 2;
@@ -9896,19 +9882,15 @@ function scoreRecordForAnswers(record, answers) {
     if (genre.includes("jazz") || genre.includes("ambient") || genre.includes("classical") || genre.includes("electronic")) score += 3;
     if (subgenre.includes("instrumental") || subgenre.includes("modal") || subgenre.includes("cool")) score += 2;
   } else if (setting === "home") {
-    score += 1; // All records get slight boost — any music works at home
+    score += 1;
     if (genre.includes("rock") || genre.includes("folk") || genre.includes("soul") || genre.includes("pop")) score += 2;
   }
 
-  // Era mapping
   if (era === "old" && year > 0 && year < 1970) score += 5;
   else if (era === "classic" && year >= 1970 && year <= 1999) score += 5;
   else if (era === "modern" && year >= 2000) score += 5;
-  // "any" gets no bonus — truly open
 
-  // Small random tiebreaker so same-score picks vary
   score += Math.random() * 0.5;
-
   return score;
 }
 
@@ -9916,8 +9898,7 @@ let discoverAnswers = {};
 
 function openDiscoverQuiz() {
   discoverAnswers = {};
-  const overlay = document.getElementById("discoverQuizOverlay");
-  overlay.hidden = false;
+  document.getElementById("discoverQuizOverlay").hidden = false;
   renderDiscoverQuestion(0);
 }
 
@@ -9930,21 +9911,18 @@ function renderDiscoverQuestion(index) {
   body.innerHTML = "";
 
   if (index >= DISCOVER_QUESTIONS.length) {
-    // All answered — pick best match
     const scored = allRecords
-      .filter((r) => r.spotify_album_uri) // only records we can actually play
       .map((r) => ({ record: r, score: scoreRecordForAnswers(r, discoverAnswers) }))
       .sort((a, b) => b.score - a.score);
 
-    const pick = scored.length > 0 ? scored[0].record : allRecords[Math.floor(Math.random() * allRecords.length)];
+    const pick = scored.length > 0 ? scored[0].record : null;
 
     if (!pick) {
       body.innerHTML = '<p class="form-status">No records found. Add some to your collection first!</p>';
       return;
     }
 
-    const subtitle = "Based on your mood, here's what we picked from your collection:";
-    showRoomModeResult(pick, subtitle);
+    renderDiscoverResult(body, pick, "Based on your mood, here's what we picked:");
     return;
   }
 
@@ -9978,6 +9956,89 @@ function renderDiscoverQuestion(index) {
   body.appendChild(optionsGrid);
 }
 
+function renderDiscoverResult(container, record, subtitle) {
+  container.innerHTML = "";
+
+  if (subtitle) {
+    const sub = document.createElement("p");
+    sub.className = "discover-result-subtitle";
+    sub.textContent = subtitle;
+    container.appendChild(sub);
+  }
+
+  const result = document.createElement("div");
+  result.className = "discover-result";
+
+  const cover = document.createElement("img");
+  cover.className = "discover-result-cover";
+  cover.src = record.cover_url || "icon-512.png";
+  cover.alt = record.album || "";
+  result.appendChild(cover);
+
+  const meta = document.createElement("div");
+  meta.className = "discover-result-meta";
+
+  const albumEl = document.createElement("h3");
+  albumEl.className = "discover-result-album";
+  albumEl.textContent = record.album || "";
+  meta.appendChild(albumEl);
+
+  const artistEl = document.createElement("p");
+  artistEl.className = "discover-result-artist";
+  artistEl.textContent = record.artist || "";
+  meta.appendChild(artistEl);
+
+  if (record.year) {
+    const yearEl = document.createElement("p");
+    yearEl.className = "discover-result-year";
+    yearEl.textContent = record.year;
+    meta.appendChild(yearEl);
+  }
+
+  if (record.genre_name) {
+    const genreEl = document.createElement("p");
+    genreEl.className = "discover-result-genre";
+    genreEl.textContent = [record.genre_name, record.subgenre_name].filter(Boolean).join(" · ");
+    meta.appendChild(genreEl);
+  }
+
+  result.appendChild(meta);
+  container.appendChild(result);
+
+  // Status for playback feedback
+  const statusEl = document.createElement("p");
+  statusEl.className = "form-status";
+  container.appendChild(statusEl);
+
+  // Transport controls
+  container.appendChild(buildMiniTransport());
+
+  const actions = document.createElement("div");
+  actions.className = "discover-result-actions";
+
+  const playBtn = document.createElement("button");
+  playBtn.type = "button";
+  playBtn.className = "btn-primary";
+  playBtn.innerHTML = '<i class="ti ti-brand-spotify" aria-hidden="true"></i> Play this album';
+  playBtn.addEventListener("click", async () => {
+    playBtn.disabled = true;
+    playBtn.textContent = "Starting…";
+    await playRoomRecord(record, statusEl);
+    playBtn.disabled = false;
+    playBtn.innerHTML = '<i class="ti ti-brand-spotify" aria-hidden="true"></i> Play this album';
+  });
+  actions.appendChild(playBtn);
+
+  const againBtn = document.createElement("button");
+  againBtn.type = "button";
+  againBtn.className = "btn-secondary";
+  againBtn.textContent = "Try again";
+  againBtn.addEventListener("click", () => openDiscoverQuiz());
+  actions.appendChild(againBtn);
+
+  container.appendChild(actions);
+}
+
 // ---- Surprise Me ----
 
 async function playSurpriseAlbum() {
@@ -9986,20 +10047,19 @@ async function playSurpriseAlbum() {
     return;
   }
 
-  // Weight toward loved/liked, exclude disliked
-  const pool = allRecords.filter((r) => r.rating !== "dislike" && r.spotify_album_uri);
+  const pool = allRecords.filter((r) => r.rating !== "dislike");
   const lovedPool = pool.filter((r) => r.rating === "love" || r.rating === "like");
   const candidates = lovedPool.length >= 3 ? lovedPool : pool.length > 0 ? pool : allRecords;
   const pick = candidates[Math.floor(Math.random() * candidates.length)];
 
-  if (!pick) {
-    showRoomPlayerStatus("No playable records found. Try matching some albums to Spotify first.");
-    return;
-  }
+  if (!pick) return;
 
-  // Show result in the discover quiz overlay (reuses the same result UI)
-  openDiscoverQuiz(); // opens the overlay + resets
-  showRoomModeResult(pick, "Here's a random pick from your collection:");
+  // Open the overlay and render result directly — don't go through openDiscoverQuiz()
+  // which would overwrite the body with question UI before we can show the result.
+  document.getElementById("discoverQuizOverlay").hidden = false;
+  document.getElementById("discoverQuizTitle").textContent = "Surprise Me";
+  const body = document.getElementById("discoverQuizBody");
+  renderDiscoverResult(body, pick, "Here's a random pick from your collection:");
 }
 
 // ---- Deep Listening ----
@@ -10032,7 +10092,7 @@ function renderDeepListenPicker() {
         (r.album || "").toLowerCase().includes(search)
       );
     })
-    .slice(0, 40); // cap for performance
+    .slice(0, 40);
 
   if (filtered.length === 0) {
     list.innerHTML = '<p class="field-hint" style="padding:8px">No records found.</p>';
@@ -10084,18 +10144,17 @@ async function selectDeepListenRecord(record) {
   document.getElementById("deepListenAlbumName").textContent = record.album || "";
   document.getElementById("deepListenArtistName").textContent = record.artist || "";
 
-  const story = record.personal_story || record.acquired_date || record.acquired_location
-    ? [
-        record.personal_story,
-        record.acquired_date ? `Acquired: ${record.acquired_date}` : null,
-        record.acquired_location ? `From: ${record.acquired_location}` : null,
-      ].filter(Boolean).join("\n\n")
-    : null;
+  const story = [
+    record.personal_story,
+    record.acquired_date ? `Acquired: ${record.acquired_date}` : null,
+    record.acquired_location ? `From: ${record.acquired_location}` : null,
+  ].filter(Boolean).join("\n\n");
 
   const storyEl = document.getElementById("deepListenStory");
   if (story) {
     storyEl.textContent = story;
     storyEl.style.fontStyle = "normal";
+    storyEl.style.opacity = "1";
   } else {
     storyEl.textContent = "No story written yet. Open the record details to add one.";
     storyEl.style.fontStyle = "italic";
@@ -10106,8 +10165,9 @@ async function selectDeepListenRecord(record) {
   notesEl.value = record.listening_notes || "";
   document.getElementById("deepListenNotesStatus").textContent = "";
 
-  // Start playback
-  await playRoomRecord(record);
+  // Start playback and show status/transport in the header area
+  const statusEl = document.getElementById("deepListenPlayStatus");
+  await playRoomRecord(record, statusEl);
 }
 
 async function saveDeepListenNotes() {
@@ -10127,7 +10187,6 @@ async function saveDeepListenNotes() {
 
     if (error) throw error;
 
-    // Update in-memory record
     const idx = allRecords.findIndex((r) => r.id === deepListenRecordId);
     if (idx !== -1) allRecords[idx].listening_notes = notes;
 

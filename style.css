@@ -2712,6 +2712,59 @@ h1 {
   margin-bottom: 16px;
   padding-bottom: 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  flex-wrap: wrap;
+}
+
+.deep-listen-album-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.deep-listen-transport-wrap {
+  flex-shrink: 0;
+}
+
+.deep-listen-transport-wrap .room-player-transport {
+  margin: 0;
+}
+
+.deep-listen-transport-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.deep-listen-transport-btn.btn-primary {
+  width: 42px;
+  height: 42px;
+}
+
+/* Mini transport for Discover/Surprise result */
+.room-mode-transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 4px 0;
+}
+
+.room-mode-transport-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.room-mode-transport-btn-primary {
+  width: 44px;
+  height: 44px;
 }
 
 .deep-listen-cover {
