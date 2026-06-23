@@ -27,17 +27,22 @@ let importRawRows = [];
 let importParsedRows = [];
 
 const IMPORT_COLUMN_ALIASES = {
-  artist: ["artist"],
-  album: ["album", "title"],
-  year: ["year"],
-  label: ["label"],
-  genre: ["genre"],
-  subgenre: ["subgenre", "subgenres", "style"],
-  description: ["description"],
-  vinylGrade: ["vinylgrade", "mediagrade", "vinyl"],
-  sleeveGrade: ["sleevegrade", "jacketgrade", "covergrade", "sleeve"],
-  notes: ["notes", "comments"],
-  quantity: ["quantity", "qty"],
+  // Discogs CSV exports use: Catalog#, Artist, Title, Label, Format,
+  // Rating, Released, release_id, CollectionFolder, Date Added, styles
+  artist:      ["artist", "Artist"],
+  album:       ["album", "title", "Title", "Release Title"],
+  year:        ["year", "Year", "released", "Released", "year released"],
+  label:       ["label", "Label", "record label"],
+  genre:       ["genre", "Genre", "genres", "Genres"],
+  subgenre:    ["subgenre", "subgenres", "style", "styles", "Styles", "Style"],
+  description: ["description", "Description", "notes", "Notes", "comments", "Comments"],
+  vinylGrade:  ["vinylgrade", "mediagrade", "vinyl", "Media Condition", "media condition"],
+  sleeveGrade: ["sleevegrade", "jacketgrade", "covergrade", "sleeve", "Sleeve Condition", "sleeve condition"],
+  quantity:    ["quantity", "qty", "Quantity"],
+  catalogNum:  ["catalog#", "Catalog#", "catno", "CatNo", "catalog number"],
+  releaseId:   ["release_id", "Release ID", "Discogs ID", "discogs_id"],
+  folder:      ["CollectionFolder", "Folder", "folder"],
+  dateAdded:   ["Date Added", "date_added", "added"],
 };
 
 const RATING_OPTIONS = [
@@ -374,10 +379,44 @@ function renderCards(filtered) {
   grid.innerHTML = "";
 
   if (filtered.length === 0) {
-    const empty = document.createElement("p");
-    empty.className = "field-hint";
-    empty.textContent = "No records match your current filters.";
-    grid.appendChild(empty);
+    // If there are no records at all (not just filtered out), show a
+    // prominent import CTA rather than a generic empty hint.
+    if (allRecords.length === 0) {
+      const emptyState = document.createElement("div");
+      emptyState.className = "collection-empty-state";
+
+      emptyState.innerHTML = `
+        <div class="collection-empty-icon">
+          <i class="ti ti-vinyl" aria-hidden="true"></i>
+        </div>
+        <h3 class="collection-empty-title">Your collection is waiting</h3>
+        <p class="collection-empty-desc">Import your Discogs collection in seconds, or start adding records one by one.</p>
+        <div class="collection-empty-actions">
+          <button type="button" id="emptyStateImportBtn" class="btn-primary collection-empty-btn">
+            <i class="ti ti-brand-discogs" aria-hidden="true"></i>
+            Import from Discogs
+          </button>
+          <button type="button" id="emptyStateAddBtn" class="btn-secondary collection-empty-btn">
+            <i class="ti ti-plus" aria-hidden="true"></i>
+            Add a record
+          </button>
+        </div>
+        <p class="collection-empty-hint">Already on Discogs? Export your collection as a CSV and import it here — it takes about 60 seconds.</p>
+      `;
+
+      // Wire buttons after insert
+      setTimeout(() => {
+        document.getElementById("emptyStateImportBtn")?.addEventListener("click", () => openImportModal());
+        document.getElementById("emptyStateAddBtn")?.addEventListener("click", () => openAddRecordModal());
+      }, 0);
+
+      grid.appendChild(emptyState);
+    } else {
+      const empty = document.createElement("p");
+      empty.className = "field-hint";
+      empty.textContent = "No records match your current filters.";
+      grid.appendChild(empty);
+    }
     return;
   }
 
@@ -7292,8 +7331,8 @@ function buildImportPreview() {
 
   const relevantFields =
     target === "records"
-      ? ["artist", "album", "year", "label", "genre", "subgenre", "description", "vinylGrade", "sleeveGrade", "notes", "quantity"]
-      : ["artist", "album", "year", "label", "genre", "subgenre", "notes"];
+      ? ["artist", "album", "year", "label", "genre", "subgenre", "description", "vinylGrade", "sleeveGrade", "quantity", "catalogNum", "releaseId"]
+      : ["artist", "album", "year", "label", "genre", "subgenre", "description"];
 
   const parsed = [];
   let skipped = 0;
@@ -7316,6 +7355,7 @@ function buildImportPreview() {
 
     const genreRaw = colKeys.genre ? row[colKeys.genre] : null;
     const subgenreRaw = colKeys.subgenre ? row[colKeys.subgenre] : null;
+    const descriptionRaw = colKeys.description ? row[colKeys.description] : null;
 
     const item = {
       artist: artistStr,
@@ -7325,14 +7365,14 @@ function buildImportPreview() {
       label: colKeys.label && row[colKeys.label] != null ? String(row[colKeys.label]).trim() || null : null,
       _genreNorm: normalizeGenre(genreRaw != null ? String(genreRaw) : null),
       _subgenreNorm: normalizeGenre(subgenreRaw != null ? String(subgenreRaw) : null),
-      notes: colKeys.notes && row[colKeys.notes] != null ? String(row[colKeys.notes]).trim() || null : null,
+      notes: descriptionRaw != null ? String(descriptionRaw).trim() || null : null,
+      discogs_release_id: colKeys.releaseId && row[colKeys.releaseId] != null
+        ? String(row[colKeys.releaseId]).trim() || null
+        : null,
     };
 
     if (target === "records") {
-      item.description =
-        colKeys.description && row[colKeys.description] != null
-          ? String(row[colKeys.description]).trim() || null
-          : null;
+      item.description = item.notes;
       item.vinyl_grade =
         colKeys.vinylGrade && row[colKeys.vinylGrade] != null
           ? String(row[colKeys.vinylGrade]).trim() || null
@@ -7506,7 +7546,7 @@ async function handleConfirmImport() {
 
       return {
         ...base,
-        discogs_release_id: null,
+        discogs_release_id: r.discogs_release_id || null,
       };
     });
 
