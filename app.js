@@ -7855,6 +7855,29 @@ function setAuthMode(mode) {
   }
 }
 
+async function handleSocialLogin(provider) {
+  const statusEl = document.getElementById("authSocialStatus");
+  statusEl.textContent = "";
+  statusEl.className = "form-status";
+
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: window.location.origin + window.location.pathname,
+    },
+  });
+
+  if (error) {
+    statusEl.textContent =
+      error.message === "OAuth provider not enabled"
+        ? `${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-in isn't enabled yet.`
+        : error.message;
+    statusEl.className = "form-status form-status-error";
+  }
+  // On success, Supabase redirects to the OAuth provider automatically —
+  // no further action needed here; onAuthStateChange handles the return.
+}
+
 async function handleAuthSubmit(event) {
   event.preventDefault();
 
@@ -9111,6 +9134,17 @@ function setupSpotify() {
 
 function setupAuth() {
   document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
+
+  // Social OAuth buttons
+  document.getElementById("authGoogleBtn").addEventListener("click", () =>
+    handleSocialLogin("google")
+  );
+  document.getElementById("authFacebookBtn").addEventListener("click", () =>
+    handleSocialLogin("facebook")
+  );
+  document.getElementById("authAppleBtn").addEventListener("click", () =>
+    handleSocialLogin("apple")
+  );
 
   document.getElementById("authPasswordToggle").addEventListener("click", () => {
     const input = document.getElementById("authPassword");
