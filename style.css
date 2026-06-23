@@ -2446,6 +2446,341 @@ h1 {
   padding: 0;
 }
 
+/* Listening mode buttons */
+.room-listen-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 4px;
+}
+
+.room-mode-btn {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  align-items: start;
+  background: rgba(202, 161, 90, 0.06);
+  border: 1px solid rgba(202, 161, 90, 0.18);
+  border-radius: 8px;
+  padding: 12px 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.room-mode-btn:hover {
+  background: rgba(202, 161, 90, 0.12);
+  border-color: rgba(202, 161, 90, 0.38);
+}
+
+.room-mode-btn i {
+  grid-row: 1 / 3;
+  color: #caa15a;
+  font-size: 1.1rem;
+  margin-top: 2px;
+}
+
+.room-mode-btn-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f3e3c3;
+}
+
+.room-mode-btn-desc {
+  font-size: 0.75rem;
+  color: rgba(243, 227, 195, 0.55);
+  line-height: 1.4;
+  margin-top: 1px;
+}
+
+/* Discover quiz */
+.modal-wide {
+  max-width: 560px;
+}
+
+.discover-quiz-body {
+  padding: 4px 0 8px;
+}
+
+.discover-progress {
+  font-size: 0.72rem;
+  color: rgba(243, 227, 195, 0.45);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+
+.discover-question {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #f3e3c3;
+  margin: 0 0 18px;
+  line-height: 1.4;
+}
+
+.discover-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.discover-option-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 12px;
+  background: rgba(202, 161, 90, 0.06);
+  border: 1px solid rgba(202, 161, 90, 0.18);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  text-align: center;
+}
+
+.discover-option-btn:hover {
+  background: rgba(202, 161, 90, 0.14);
+  border-color: rgba(202, 161, 90, 0.4);
+  transform: translateY(-1px);
+}
+
+.discover-option-emoji {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.discover-option-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f3e3c3;
+  line-height: 1.3;
+}
+
+/* Discover result */
+.discover-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 4px 0 8px;
+}
+
+.discover-result-subtitle {
+  font-size: 0.8rem;
+  color: rgba(243, 227, 195, 0.55);
+  font-style: italic;
+  margin: 0;
+}
+
+.discover-result-cover {
+  width: 160px;
+  height: 160px;
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.discover-result-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.discover-result-album {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f3e3c3;
+  margin: 0;
+}
+
+.discover-result-artist {
+  font-size: 0.88rem;
+  color: rgba(243, 227, 195, 0.7);
+  margin: 0;
+}
+
+.discover-result-year,
+.discover-result-genre {
+  font-size: 0.75rem;
+  color: rgba(243, 227, 195, 0.45);
+  margin: 2px 0 0;
+}
+
+.discover-result-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+/* Deep Listening */
+.deep-listen-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.deep-listen-search {
+  width: 100%;
+  padding: 10px 12px;
+  background: #0b1220;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  color: #f3e3c3;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.deep-listen-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.deep-listen-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.deep-listen-picker-row:hover {
+  background: rgba(202, 161, 90, 0.08);
+  border-color: rgba(202, 161, 90, 0.2);
+}
+
+.deep-listen-picker-cover {
+  width: 42px;
+  height: 42px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.deep-listen-picker-cover-placeholder {
+  background: rgba(202, 161, 90, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(202, 161, 90, 0.4);
+  font-size: 1.1rem;
+}
+
+.deep-listen-picker-album {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f3e3c3;
+  margin: 0;
+}
+
+.deep-listen-picker-artist {
+  font-size: 0.75rem;
+  color: rgba(243, 227, 195, 0.55);
+  margin: 2px 0 0;
+}
+
+.deep-listen-album-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.deep-listen-cover {
+  width: 72px;
+  height: 72px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.deep-listen-album-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f3e3c3;
+  margin: 0 0 4px;
+}
+
+.deep-listen-artist-name {
+  font-size: 0.85rem;
+  color: rgba(243, 227, 195, 0.65);
+  margin: 0 0 8px;
+}
+
+.deep-listen-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.deep-listen-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.deep-listen-panel-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #caa15a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.deep-listen-story-text {
+  font-size: 0.83rem;
+  color: rgba(243, 227, 195, 0.7);
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-line;
+}
+
+.deep-listen-notes {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px;
+  background: #0b1220;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  color: #f3e3c3;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.deep-listen-notes:focus {
+  outline: none;
+  border-color: rgba(202, 161, 90, 0.5);
+}
+
+@media (max-width: 560px) {
+  .deep-listen-panels {
+    grid-template-columns: 1fr;
+  }
+  .discover-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+
 .record-spotify-controls {
   display: flex;
   flex-direction: column;

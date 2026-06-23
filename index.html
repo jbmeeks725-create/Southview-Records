@@ -1154,6 +1154,25 @@
             </button>
           </div>
 
+          <!-- Three listening modes -->
+          <div class="room-listen-modes">
+            <button type="button" id="discoverModeBtn" class="room-mode-btn">
+              <i class="ti ti-wand" aria-hidden="true"></i>
+              <span class="room-mode-btn-title">Discover My Collection</span>
+              <span class="room-mode-btn-desc">Answer a few questions, we'll pick the perfect album</span>
+            </button>
+            <button type="button" id="deepListenModeBtn" class="room-mode-btn">
+              <i class="ti ti-headphones" aria-hidden="true"></i>
+              <span class="room-mode-btn-title">Deep Listening</span>
+              <span class="room-mode-btn-desc">Choose an album and listen with your story and notes open</span>
+            </button>
+            <button type="button" id="surpriseModeBtn" class="room-mode-btn">
+              <i class="ti ti-dice-3" aria-hidden="true"></i>
+              <span class="room-mode-btn-title">Surprise Me</span>
+              <span class="room-mode-btn-desc">Pick a random album from your collection and play it</span>
+            </button>
+          </div>
+
           <button type="button" id="spotifyDisconnectBtn" class="btn-text" hidden>
             Disconnect Spotify
           </button>
@@ -1168,6 +1187,58 @@
         <p id="roomPlayerVisitorEmpty" class="field-hint">
           Nothing's playing in this room right now.
         </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Discover My Collection quiz modal -->
+  <div id="discoverQuizOverlay" class="modal-overlay" hidden>
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="discoverQuizTitle">
+      <div class="modal-header">
+        <h2 id="discoverQuizTitle">Discover My Collection</h2>
+        <button type="button" id="closeDiscoverQuizBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="discoverQuizBody" class="discover-quiz-body"></div>
+    </div>
+  </div>
+
+  <!-- Deep Listening modal -->
+  <div id="deepListenOverlay" class="modal-overlay" hidden>
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="deepListenTitle">
+      <div class="modal-header">
+        <h2 id="deepListenTitle">Deep Listening</h2>
+        <button type="button" id="closeDeepListenBtn" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="deepListenBody" class="deep-listen-body">
+        <!-- Album picker -->
+        <div id="deepListenPicker" class="deep-listen-picker">
+          <input type="text" id="deepListenSearch" class="deep-listen-search" placeholder="Search your collection…" autocomplete="off" />
+          <div id="deepListenPickerList" class="deep-listen-picker-list"></div>
+        </div>
+        <!-- Active listening view (shown after an album is selected) -->
+        <div id="deepListenActive" class="deep-listen-active" hidden>
+          <div class="deep-listen-album-header">
+            <img id="deepListenCover" class="deep-listen-cover" src="" alt="" />
+            <div class="deep-listen-album-meta">
+              <h3 id="deepListenAlbumName" class="deep-listen-album-name"></h3>
+              <p id="deepListenArtistName" class="deep-listen-artist-name"></p>
+              <button type="button" id="deepListenChangeBtn" class="btn-text">Change album</button>
+            </div>
+          </div>
+          <div class="deep-listen-panels">
+            <div class="deep-listen-panel">
+              <h4 class="deep-listen-panel-title">Your Story</h4>
+              <p id="deepListenStory" class="deep-listen-story-text"></p>
+            </div>
+            <div class="deep-listen-panel">
+              <h4 class="deep-listen-panel-title">Listening Notes</h4>
+              <p class="field-hint">Capture what you're hearing right now.</p>
+              <textarea id="deepListenNotes" class="deep-listen-notes" rows="5" placeholder="What are you noticing? What stands out?"></textarea>
+              <button type="button" id="deepListenSaveNotes" class="btn-secondary">Save notes</button>
+              <p id="deepListenNotesStatus" class="form-status"></p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

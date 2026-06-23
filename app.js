@@ -9725,6 +9725,422 @@ async function spotifyPlayAlbumByUri(albumUri, triggerBtn) {
 
 // ---- Setup ----
 
+// ============================================================
+// Listening Room Modes
+// ============================================================
+
+// ---- Shared: play a record and show its album card ----
+async function playRoomRecord(record) {
+  if (!record) return;
+  // Start Spotify playback if a match exists, otherwise just show the card
+  if (record.spotify_album_uri) {
+    const playBtn = document.getElementById("spotifyPlayPauseBtn");
+    await spotifyPlayAlbumByUri(record.spotify_album_uri, playBtn);
+  } else {
+    // Trigger the auto-match search
+    await renderRecordSpotifyControls(record);
+  }
+}
+
+function showRoomModeResult(record, subtitle) {
+  const body = document.getElementById("discoverQuizBody");
+  if (!body) return;
+
+  body.innerHTML = "";
+
+  const result = document.createElement("div");
+  result.className = "discover-result";
+
+  if (subtitle) {
+    const sub = document.createElement("p");
+    sub.className = "discover-result-subtitle";
+    sub.textContent = subtitle;
+    result.appendChild(sub);
+  }
+
+  const cover = document.createElement("img");
+  cover.className = "discover-result-cover";
+  cover.src = record.cover_url || "icon-512.png";
+  cover.alt = record.album || "";
+  result.appendChild(cover);
+
+  const meta = document.createElement("div");
+  meta.className = "discover-result-meta";
+
+  const albumEl = document.createElement("h3");
+  albumEl.className = "discover-result-album";
+  albumEl.textContent = record.album || "";
+  meta.appendChild(albumEl);
+
+  const artistEl = document.createElement("p");
+  artistEl.className = "discover-result-artist";
+  artistEl.textContent = record.artist || "";
+  meta.appendChild(artistEl);
+
+  if (record.year) {
+    const yearEl = document.createElement("p");
+    yearEl.className = "discover-result-year";
+    yearEl.textContent = record.year;
+    meta.appendChild(yearEl);
+  }
+
+  if (record.genre_name) {
+    const genreEl = document.createElement("p");
+    genreEl.className = "discover-result-genre";
+    genreEl.textContent = [record.genre_name, record.subgenre_name].filter(Boolean).join(" · ");
+    meta.appendChild(genreEl);
+  }
+
+  result.appendChild(meta);
+
+  const actions = document.createElement("div");
+  actions.className = "discover-result-actions";
+
+  const playBtn = document.createElement("button");
+  playBtn.type = "button";
+  playBtn.className = "btn-primary";
+  playBtn.innerHTML = '<i class="ti ti-brand-spotify" aria-hidden="true"></i> Play this album';
+  playBtn.addEventListener("click", async () => {
+    playBtn.disabled = true;
+    playBtn.textContent = "Starting playback…";
+    await playRoomRecord(record);
+    closeDiscoverQuiz();
+  });
+  actions.appendChild(playBtn);
+
+  const againBtn = document.createElement("button");
+  againBtn.type = "button";
+  againBtn.className = "btn-secondary";
+  againBtn.textContent = "Try again";
+  againBtn.addEventListener("click", () => openDiscoverQuiz());
+  actions.appendChild(againBtn);
+
+  result.appendChild(actions);
+  body.appendChild(result);
+}
+
+// ---- Discover My Collection ----
+
+const DISCOVER_QUESTIONS = [
+  {
+    id: "energy",
+    question: "What kind of energy are you in the mood for?",
+    options: [
+      { label: "Chill & mellow", value: "chill", emoji: "🌙" },
+      { label: "Energised & alive", value: "energised", emoji: "⚡" },
+      { label: "Melancholic & reflective", value: "melancholic", emoji: "🌧️" },
+      { label: "Adventurous & curious", value: "adventurous", emoji: "🧭" },
+    ],
+  },
+  {
+    id: "setting",
+    question: "Where are you right now?",
+    options: [
+      { label: "Late night, city lights", value: "latenight", emoji: "🌃" },
+      { label: "Sunny afternoon", value: "sunny", emoji: "☀️" },
+      { label: "Focused & working", value: "working", emoji: "📖" },
+      { label: "Just unwinding at home", value: "home", emoji: "🛋️" },
+    ],
+  },
+  {
+    id: "era",
+    question: "Any pull toward a particular era?",
+    options: [
+      { label: "Old school (pre-1970)", value: "old", emoji: "📻" },
+      { label: "Classic (1970s–1990s)", value: "classic", emoji: "🎸" },
+      { label: "Modern (2000s+)", value: "modern", emoji: "🎛️" },
+      { label: "Surprise me", value: "any", emoji: "🎲" },
+    ],
+  },
+];
+
+// Maps quiz answers to genre/decade scoring weights
+function scoreRecordForAnswers(record, answers) {
+  let score = 0;
+  const genre = (record.genre_name || "").toLowerCase();
+  const subgenre = (record.subgenre_name || "").toLowerCase();
+  const year = record.year || 0;
+
+  // Prioritise loved/liked records
+  if (record.rating === "love") score += 4;
+  else if (record.rating === "like") score += 2;
+  else if (record.rating === "dislike") score -= 10;
+
+  const energy = answers.energy;
+  const setting = answers.setting;
+  const era = answers.era;
+
+  // Energy mapping
+  if (energy === "chill") {
+    if (genre.includes("jazz") || genre.includes("soul") || genre.includes("folk") || genre.includes("ambient") || genre.includes("bossa")) score += 5;
+    if (subgenre.includes("cool") || subgenre.includes("chamber") || subgenre.includes("acoustic")) score += 3;
+  } else if (energy === "energised") {
+    if (genre.includes("rock") || genre.includes("funk") || genre.includes("punk") || genre.includes("metal") || genre.includes("reggae")) score += 5;
+    if (subgenre.includes("hard") || subgenre.includes("power") || subgenre.includes("dance")) score += 3;
+  } else if (energy === "melancholic") {
+    if (genre.includes("blues") || genre.includes("soul") || genre.includes("folk") || genre.includes("country") || genre.includes("singer")) score += 5;
+    if (subgenre.includes("delta") || subgenre.includes("dark") || subgenre.includes("slow")) score += 3;
+  } else if (energy === "adventurous") {
+    if (genre.includes("jazz") || genre.includes("experimental") || genre.includes("world") || genre.includes("latin") || genre.includes("afro")) score += 5;
+    if (subgenre.includes("free") || subgenre.includes("avant") || subgenre.includes("fusion") || subgenre.includes("progressive")) score += 3;
+  }
+
+  // Setting mapping
+  if (setting === "latenight") {
+    if (genre.includes("jazz") || genre.includes("blues") || genre.includes("soul")) score += 3;
+    if (year >= 1940 && year <= 1975) score += 2;
+  } else if (setting === "sunny") {
+    if (genre.includes("pop") || genre.includes("reggae") || genre.includes("latin") || genre.includes("funk") || genre.includes("bossa")) score += 3;
+    if (year >= 1960 && year <= 1985) score += 1;
+  } else if (setting === "working") {
+    if (genre.includes("jazz") || genre.includes("ambient") || genre.includes("classical") || genre.includes("electronic")) score += 3;
+    if (subgenre.includes("instrumental") || subgenre.includes("modal") || subgenre.includes("cool")) score += 2;
+  } else if (setting === "home") {
+    score += 1; // All records get slight boost — any music works at home
+    if (genre.includes("rock") || genre.includes("folk") || genre.includes("soul") || genre.includes("pop")) score += 2;
+  }
+
+  // Era mapping
+  if (era === "old" && year > 0 && year < 1970) score += 5;
+  else if (era === "classic" && year >= 1970 && year <= 1999) score += 5;
+  else if (era === "modern" && year >= 2000) score += 5;
+  // "any" gets no bonus — truly open
+
+  // Small random tiebreaker so same-score picks vary
+  score += Math.random() * 0.5;
+
+  return score;
+}
+
+let discoverAnswers = {};
+
+function openDiscoverQuiz() {
+  discoverAnswers = {};
+  const overlay = document.getElementById("discoverQuizOverlay");
+  overlay.hidden = false;
+  renderDiscoverQuestion(0);
+}
+
+function closeDiscoverQuiz() {
+  document.getElementById("discoverQuizOverlay").hidden = true;
+}
+
+function renderDiscoverQuestion(index) {
+  const body = document.getElementById("discoverQuizBody");
+  body.innerHTML = "";
+
+  if (index >= DISCOVER_QUESTIONS.length) {
+    // All answered — pick best match
+    const scored = allRecords
+      .filter((r) => r.spotify_album_uri) // only records we can actually play
+      .map((r) => ({ record: r, score: scoreRecordForAnswers(r, discoverAnswers) }))
+      .sort((a, b) => b.score - a.score);
+
+    const pick = scored.length > 0 ? scored[0].record : allRecords[Math.floor(Math.random() * allRecords.length)];
+
+    if (!pick) {
+      body.innerHTML = '<p class="form-status">No records found. Add some to your collection first!</p>';
+      return;
+    }
+
+    const subtitle = "Based on your mood, here's what we picked from your collection:";
+    showRoomModeResult(pick, subtitle);
+    return;
+  }
+
+  const q = DISCOVER_QUESTIONS[index];
+
+  const progress = document.createElement("p");
+  progress.className = "discover-progress";
+  progress.textContent = `Question ${index + 1} of ${DISCOVER_QUESTIONS.length}`;
+  body.appendChild(progress);
+
+  const questionEl = document.createElement("h3");
+  questionEl.className = "discover-question";
+  questionEl.textContent = q.question;
+  body.appendChild(questionEl);
+
+  const optionsGrid = document.createElement("div");
+  optionsGrid.className = "discover-options";
+
+  q.options.forEach((opt) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "discover-option-btn";
+    btn.innerHTML = `<span class="discover-option-emoji">${opt.emoji}</span><span class="discover-option-label">${opt.label}</span>`;
+    btn.addEventListener("click", () => {
+      discoverAnswers[q.id] = opt.value;
+      renderDiscoverQuestion(index + 1);
+    });
+    optionsGrid.appendChild(btn);
+  });
+
+  body.appendChild(optionsGrid);
+}
+
+// ---- Surprise Me ----
+
+async function playSurpriseAlbum() {
+  if (allRecords.length === 0) {
+    showRoomPlayerStatus("Add some records to your collection first.");
+    return;
+  }
+
+  // Weight toward loved/liked, exclude disliked
+  const pool = allRecords.filter((r) => r.rating !== "dislike" && r.spotify_album_uri);
+  const lovedPool = pool.filter((r) => r.rating === "love" || r.rating === "like");
+  const candidates = lovedPool.length >= 3 ? lovedPool : pool.length > 0 ? pool : allRecords;
+  const pick = candidates[Math.floor(Math.random() * candidates.length)];
+
+  if (!pick) {
+    showRoomPlayerStatus("No playable records found. Try matching some albums to Spotify first.");
+    return;
+  }
+
+  // Show result in the discover quiz overlay (reuses the same result UI)
+  openDiscoverQuiz(); // opens the overlay + resets
+  showRoomModeResult(pick, "Here's a random pick from your collection:");
+}
+
+// ---- Deep Listening ----
+
+let deepListenRecordId = null;
+
+function openDeepListen() {
+  const overlay = document.getElementById("deepListenOverlay");
+  overlay.hidden = false;
+  document.getElementById("deepListenActive").hidden = true;
+  document.getElementById("deepListenPicker").hidden = false;
+  document.getElementById("deepListenSearch").value = "";
+  renderDeepListenPicker();
+}
+
+function closeDeepListen() {
+  document.getElementById("deepListenOverlay").hidden = true;
+}
+
+function renderDeepListenPicker() {
+  const search = (document.getElementById("deepListenSearch").value || "").toLowerCase();
+  const list = document.getElementById("deepListenPickerList");
+  list.innerHTML = "";
+
+  const filtered = allRecords
+    .filter((r) => {
+      if (!search) return true;
+      return (
+        (r.artist || "").toLowerCase().includes(search) ||
+        (r.album || "").toLowerCase().includes(search)
+      );
+    })
+    .slice(0, 40); // cap for performance
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<p class="field-hint" style="padding:8px">No records found.</p>';
+    return;
+  }
+
+  filtered.forEach((record) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "deep-listen-picker-row";
+    row.addEventListener("click", () => selectDeepListenRecord(record));
+
+    if (record.cover_url) {
+      const img = document.createElement("img");
+      img.src = record.cover_url;
+      img.alt = "";
+      img.className = "deep-listen-picker-cover";
+      row.appendChild(img);
+    } else {
+      const placeholder = document.createElement("div");
+      placeholder.className = "deep-listen-picker-cover deep-listen-picker-cover-placeholder";
+      placeholder.innerHTML = '<i class="ti ti-vinyl" aria-hidden="true"></i>';
+      row.appendChild(placeholder);
+    }
+
+    const meta = document.createElement("div");
+    const albumEl = document.createElement("p");
+    albumEl.className = "deep-listen-picker-album";
+    albumEl.textContent = record.album || "";
+    const artistEl = document.createElement("p");
+    artistEl.className = "deep-listen-picker-artist";
+    artistEl.textContent = record.artist || "";
+    meta.appendChild(albumEl);
+    meta.appendChild(artistEl);
+    row.appendChild(meta);
+
+    list.appendChild(row);
+  });
+}
+
+async function selectDeepListenRecord(record) {
+  deepListenRecordId = record.id;
+
+  document.getElementById("deepListenPicker").hidden = true;
+  const active = document.getElementById("deepListenActive");
+  active.hidden = false;
+
+  document.getElementById("deepListenCover").src = record.cover_url || "icon-512.png";
+  document.getElementById("deepListenAlbumName").textContent = record.album || "";
+  document.getElementById("deepListenArtistName").textContent = record.artist || "";
+
+  const story = record.personal_story || record.acquired_date || record.acquired_location
+    ? [
+        record.personal_story,
+        record.acquired_date ? `Acquired: ${record.acquired_date}` : null,
+        record.acquired_location ? `From: ${record.acquired_location}` : null,
+      ].filter(Boolean).join("\n\n")
+    : null;
+
+  const storyEl = document.getElementById("deepListenStory");
+  if (story) {
+    storyEl.textContent = story;
+    storyEl.style.fontStyle = "normal";
+  } else {
+    storyEl.textContent = "No story written yet. Open the record details to add one.";
+    storyEl.style.fontStyle = "italic";
+    storyEl.style.opacity = "0.5";
+  }
+
+  const notesEl = document.getElementById("deepListenNotes");
+  notesEl.value = record.listening_notes || "";
+  document.getElementById("deepListenNotesStatus").textContent = "";
+
+  // Start playback
+  await playRoomRecord(record);
+}
+
+async function saveDeepListenNotes() {
+  const notes = document.getElementById("deepListenNotes").value.trim();
+  const statusEl = document.getElementById("deepListenNotesStatus");
+
+  if (!deepListenRecordId) return;
+
+  statusEl.textContent = "Saving…";
+  statusEl.className = "form-status";
+
+  try {
+    const { error } = await supabaseClient
+      .from("records")
+      .update({ listening_notes: notes })
+      .eq("id", deepListenRecordId);
+
+    if (error) throw error;
+
+    // Update in-memory record
+    const idx = allRecords.findIndex((r) => r.id === deepListenRecordId);
+    if (idx !== -1) allRecords[idx].listening_notes = notes;
+
+    statusEl.textContent = "Notes saved.";
+    statusEl.className = "form-status form-status-success";
+    setTimeout(() => { statusEl.textContent = ""; }, 2000);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save. Please try again.";
+    statusEl.className = "form-status form-status-error";
+  }
+}
+
 function setupSpotify() {
   document.getElementById("spotifyConnectBtn")?.addEventListener("click", () => startSpotifyConnect());
   document.getElementById("spotifyDisconnectBtn")?.addEventListener("click", () => disconnectSpotify());
@@ -9736,14 +10152,36 @@ function setupSpotify() {
   document.getElementById("headerSpotifyNextBtn")?.addEventListener("click", () => spotifyNextTrack());
   document.getElementById("headerSpotifyPrevBtn")?.addEventListener("click", () => spotifyPreviousTrack());
 
+  // Listening modes
+  document.getElementById("discoverModeBtn")?.addEventListener("click", () => openDiscoverQuiz());
+  document.getElementById("deepListenModeBtn")?.addEventListener("click", () => openDeepListen());
+  document.getElementById("surpriseModeBtn")?.addEventListener("click", () => playSurpriseAlbum());
+
+  // Discover quiz modal
+  document.getElementById("closeDiscoverQuizBtn")?.addEventListener("click", () => closeDiscoverQuiz());
+  document.getElementById("discoverQuizOverlay")?.addEventListener("click", (e) => {
+    if (e.target.id === "discoverQuizOverlay") closeDiscoverQuiz();
+  });
+
+  // Deep Listening modal
+  document.getElementById("closeDeepListenBtn")?.addEventListener("click", () => closeDeepListen());
+  document.getElementById("deepListenOverlay")?.addEventListener("click", (e) => {
+    if (e.target.id === "deepListenOverlay") closeDeepListen();
+  });
+  document.getElementById("deepListenSearch")?.addEventListener("input", () => renderDeepListenPicker());
+  document.getElementById("deepListenChangeBtn")?.addEventListener("click", () => {
+    document.getElementById("deepListenActive").hidden = true;
+    document.getElementById("deepListenPicker").hidden = false;
+    document.getElementById("deepListenSearch").value = "";
+    renderDeepListenPicker();
+  });
+  document.getElementById("deepListenSaveNotes")?.addEventListener("click", () => saveDeepListenNotes());
+
   document.getElementById("closeSpotifyMatchBtn")?.addEventListener("click", () => closeSpotifyMatchPicker());
   document.getElementById("spotifyMatchOverlay")?.addEventListener("click", (e) => {
     if (e.target.id === "spotifyMatchOverlay") closeSpotifyMatchPicker();
   });
 
-  // If startSpotifyConnect() ever opens spotify-callback.html in a popup
-  // instead of a full-page redirect, this picks up the completion message
-  // and refreshes whichever view is currently open.
   window.addEventListener("message", (event) => {
     if (event.data?.type !== "spotify-auth-complete") return;
     const overlay = document.getElementById("roomPlayerOverlay");
