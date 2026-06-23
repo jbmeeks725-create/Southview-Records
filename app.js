@@ -4755,49 +4755,324 @@ const TROPHY_DEFS = [
     ring: "#70a050",
     check: (r, w) => w.length >= 10,
   },
+
+  // ---- 20 new trophies ----
+
+  // Collection milestones (filling the ladder)
+  {
+    id: "collector_25",
+    name: "Finding Rhythm",
+    catalog: "SV-025",
+    label: "Vol. 25",
+    desc: "Reach 25 records — you're finding your groove.",
+    color: "#5a6a8a",
+    ring: "#90a8c8",
+    check: (r) => r.length >= 25,
+  },
+  {
+    id: "collector_1000",
+    name: "The Archive",
+    catalog: "SV-1K",
+    label: "1000 Records",
+    desc: "Reach 1,000 records. This is a serious archive.",
+    color: "#8a2a20",
+    ring: "#d06050",
+    check: (r) => r.length >= 1000,
+  },
+
+  // Wishlist completion
+  {
+    id: "wishlist_25",
+    name: "Deep Wants",
+    catalog: "SV-W25",
+    label: "25 Items",
+    desc: "Build a wishlist of 25 albums.",
+    color: "#2a6a4a",
+    ring: "#50b880",
+    check: (r, w) => w.length >= 25,
+  },
+  {
+    id: "wishlist_50",
+    name: "Endless Crate",
+    catalog: "SV-W50",
+    label: "50 Items",
+    desc: "50 albums on your wishlist. The hunt never ends.",
+    color: "#1a5a3a",
+    ring: "#40a870",
+    check: (r, w) => w.length >= 50,
+  },
+
+  // Rating depth
+  {
+    id: "first_dislike",
+    name: "Discerning",
+    catalog: "SV-R01",
+    label: "Standards",
+    desc: "Rate your first record as Dislike. Not everything makes the cut.",
+    color: "#5a4a3a",
+    ring: "#a08060",
+    check: (r) => r.some((x) => x.rating === "dislike"),
+  },
+  {
+    id: "love_25",
+    name: "Devotional",
+    catalog: "SV-R25",
+    label: "25 Loved",
+    desc: "Rate 25 records as Love.",
+    color: "#7a1a2a",
+    ring: "#c05060",
+    check: (r) => r.filter((x) => x.rating === "love").length >= 25,
+  },
+  {
+    id: "fully_rated",
+    name: "The Critic",
+    catalog: "SV-RC",
+    label: "All Rated",
+    desc: "Rate every record in your collection.",
+    color: "#4a3a6a",
+    ring: "#8870b0",
+    check: (r) => r.length >= 5 && r.every((x) => x.rating && x.rating !== "neutral"),
+  },
+  {
+    id: "high_standards",
+    name: "High Standards",
+    catalog: "SV-RH",
+    label: "50% Loved",
+    desc: "Over half your collection rated Love or Like.",
+    color: "#6a4a1a",
+    ring: "#b08040",
+    check: (r) => {
+      if (r.length < 10) return false;
+      const loved = r.filter((x) => x.rating === "love" || x.rating === "like").length;
+      return loved / r.length >= 0.5;
+    },
+  },
+
+  // Artist/collection breadth
+  {
+    id: "broad_church",
+    name: "Broad Church",
+    catalog: "SV-B20",
+    label: "20 Artists",
+    desc: "Own records from 20 different artists.",
+    color: "#2a4a6a",
+    ring: "#6090b0",
+    check: (r) =>
+      new Set(r.map((x) => (x.artist || "").toLowerCase().trim()).filter(Boolean)).size >= 20,
+  },
+  {
+    id: "curated",
+    name: "Curated",
+    catalog: "SV-CUR",
+    label: "Curated",
+    desc: "Own 3 or more albums from 5 different artists.",
+    color: "#3a5a6a",
+    ring: "#6098b0",
+    check: (r) => {
+      const counts = {};
+      r.forEach((x) => {
+        if (x.artist) {
+          const k = x.artist.toLowerCase().trim();
+          counts[k] = (counts[k] || 0) + 1;
+        }
+      });
+      return Object.values(counts).filter((c) => c >= 3).length >= 5;
+    },
+  },
+
+  // Era / decade specific
+  {
+    id: "golden_age",
+    name: "Golden Age",
+    catalog: "SV-50s",
+    label: "1950s",
+    desc: "Own a record from the 1950s.",
+    color: "#7a6a1a",
+    ring: "#c8b840",
+    check: (r) => r.some((x) => x.year >= 1950 && x.year < 1960),
+  },
+  {
+    id: "full_spectrum",
+    name: "Full Spectrum",
+    catalog: "SV-FS",
+    label: "6 Decades",
+    desc: "Own records from every decade from the 1960s through the 2010s.",
+    color: "#2a3a6a",
+    ring: "#5070c0",
+    check: (r) => {
+      const decades = new Set(
+        r.filter((x) => x.year).map((x) => Math.floor(x.year / 10) * 10)
+      );
+      return [1960, 1970, 1980, 1990, 2000, 2010].every((d) => decades.has(d));
+    },
+  },
+  {
+    id: "staying_current",
+    name: "Staying Current",
+    catalog: "SV-NOW",
+    label: "2020s",
+    desc: "Own a record from the current decade.",
+    color: "#1a5a5a",
+    ring: "#40a8a8",
+    check: (r) => r.some((x) => x.year >= 2020),
+  },
+
+  // Collection quality / engagement
+  {
+    id: "archivist",
+    name: "Archivist",
+    catalog: "SV-ARC",
+    label: "Cover Art",
+    desc: "Upload a custom cover photo for a record.",
+    color: "#5a3a6a",
+    ring: "#a070c0",
+    check: (r) =>
+      r.some(
+        (x) =>
+          x.cover_url &&
+          !x.cover_url.includes("discogs.com") &&
+          !x.cover_url.includes("api.discogs")
+      ),
+  },
+  {
+    id: "storyteller",
+    name: "Storyteller",
+    catalog: "SV-STY",
+    label: "Your Story",
+    desc: "Write a personal story for a record in your collection.",
+    color: "#4a2a5a",
+    ring: "#9060b0",
+    check: (r) => r.some((x) => x.personal_story && x.personal_story.trim().length > 0),
+  },
+
+  // Social / sharing
+  {
+    id: "open_stack",
+    name: "Open Stack",
+    catalog: "SV-PUB",
+    label: "Public",
+    desc: "Make your wishlist public so others can see what you're hunting for.",
+    color: "#1a4a5a",
+    ring: "#3088a8",
+    check: (r, w, p) => !!p?.wishlist_public,
+  },
+
+  // SPIN VINYL — app-specific room trophies
+  {
+    id: "gallery_wall",
+    name: "Gallery Wall",
+    catalog: "SV-GW",
+    label: "5 Frames",
+    desc: "Assign all 5 frames on your Listening Room wall.",
+    color: "#4a2a3a",
+    ring: "#906070",
+    check: (r, w, p) => {
+      const wall = p?.room_wall_albums || [];
+      return wall.filter((x) => x && x !== "").length >= 5;
+    },
+  },
+  {
+    id: "full_shelves",
+    name: "Full Shelves",
+    catalog: "SV-SHF",
+    label: "Shelved",
+    desc: "Fill all four shelf buckets in at least one Listening Room.",
+    color: "#2a3a4a",
+    ring: "#507080",
+    check: (r, w, p) => {
+      const buckets = p?.room_shelf_buckets || {};
+      return Object.values(buckets).some(
+        (roomBuckets) =>
+          Array.isArray(roomBuckets) &&
+          roomBuckets.filter((b) => b?.albums && b.albums.length > 0).length >= 4
+      );
+    },
+  },
+  {
+    id: "night_owl",
+    name: "Night Owl",
+    catalog: "SV-OWL",
+    label: "After Dark",
+    desc: "Own more than 20 jazz or blues records. The late-night listener.",
+    color: "#1a2a4a",
+    ring: "#305090",
+    check: (r) => {
+      const jazzBlues = r.filter((x) => {
+        const g = (x.genre_name || "").toLowerCase();
+        return g.includes("jazz") || g.includes("blues");
+      });
+      return jazzBlues.length >= 20;
+    },
+  },
+  {
+    id: "global_crate",
+    name: "Global Crate",
+    catalog: "SV-GLB",
+    label: "World Music",
+    desc: "Own records from 3 or more distinct world music genres or subgenres.",
+    color: "#3a4a2a",
+    ring: "#708050",
+    check: (r) => {
+      const world = new Set(
+        r
+          .filter((x) => {
+            const g = (x.genre_name || x.subgenre_name || "").toLowerCase();
+            return (
+              g.includes("latin") ||
+              g.includes("afrobeat") ||
+              g.includes("reggae") ||
+              g.includes("bossa") ||
+              g.includes("samba") ||
+              g.includes("cumbia") ||
+              g.includes("salsa") ||
+              g.includes("afro") ||
+              g.includes("world") ||
+              g.includes("flamenco") ||
+              g.includes("fado") ||
+              g.includes("cajun")
+            );
+          })
+          .map((x) => x.genre_name || x.subgenre_name)
+      );
+      return world.size >= 3;
+    },
+  },
 ];
 
 function computeTrophies() {
   return TROPHY_DEFS.map((def) => ({
     ...def,
-    earned: def.check(allRecords, wishlist),
+    earned: def.check(allRecords, wishlist, currentProfile),
   }));
 }
 
-function buildTrophyLabelSvg(def, earned) {
+function buildTrophyLabelSvg(def, earned, size = 150) {
   const c = earned ? def.color : "#2a2a2a";
   const ring = earned ? def.ring : "#3a3a3a";
   const textColor = earned ? "#fff" : "#555";
   const dimText = earned ? "#fff9" : "#444";
-  const size = 150;
   const cx = size / 2;
   const cy = size / 2;
+  const labelR = Math.round(size * 0.307); // label circle radius scales with size
+  const scale = size / 150;               // text/ring sizes scale proportionally
 
-  // Catalog number, name, label text — keep short enough to fit
   const nameWords = def.name.split(" ");
   const line1 = nameWords.slice(0, Math.ceil(nameWords.length / 2)).join(" ");
   const line2 = nameWords.slice(Math.ceil(nameWords.length / 2)).join(" ");
 
-  return `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" class="trophy-label-svg" aria-hidden="true">
-    <!-- Outer vinyl groove ring -->
+  return `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" class="trophy-label-svg" width="${size}" height="${size}" aria-hidden="true">
     <circle cx="${cx}" cy="${cy}" r="${cx - 2}" fill="${earned ? "#111" : "#181818"}" stroke="${ring}22" stroke-width="1"/>
-    <!-- Groove rings (vinyl texture) -->
-    <circle cx="${cx}" cy="${cy}" r="${cx - 8}" fill="none" stroke="${ring}18" stroke-width="0.5"/>
-    <circle cx="${cx}" cy="${cy}" r="${cx - 14}" fill="none" stroke="${ring}18" stroke-width="0.5"/>
-    <circle cx="${cx}" cy="${cy}" r="${cx - 20}" fill="none" stroke="${ring}18" stroke-width="0.5"/>
-    <!-- Label area -->
-    <circle cx="${cx}" cy="${cy}" r="46" fill="${c}" opacity="${earned ? 1 : 0.4}"/>
-    <!-- Label ring accent -->
-    <circle cx="${cx}" cy="${cy}" r="46" fill="none" stroke="${ring}" stroke-width="${earned ? 1.5 : 0.5}" opacity="${earned ? 0.6 : 0.2}"/>
-    <!-- Center spindle hole -->
-    <circle cx="${cx}" cy="${cy}" r="4" fill="${earned ? "#000" : "#111"}"/>
-    <!-- Catalog number (top) -->
-    <text x="${cx}" y="${cy - 22}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="7" font-weight="600" letter-spacing="0.12em" fill="${dimText}" opacity="0.8">${def.catalog}</text>
-    <!-- Trophy name lines -->
-    <text x="${cx}" y="${cy - 6}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="${line2 ? 10 : 11}" font-weight="700" fill="${textColor}">${line1}</text>
-    ${line2 ? `<text x="${cx}" y="${cy + 7}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="10" font-weight="700" fill="${textColor}">${line2}</text>` : ""}
-    <!-- Label text (bottom) -->
-    <text x="${cx}" y="${cy + 22}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="8" font-weight="600" letter-spacing="0.06em" fill="${ring}" opacity="${earned ? 0.9 : 0.3}">${def.label}</text>
+    <circle cx="${cx}" cy="${cy}" r="${cx - 8 * scale}" fill="none" stroke="${ring}18" stroke-width="0.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${cx - 14 * scale}" fill="none" stroke="${ring}18" stroke-width="0.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${cx - 20 * scale}" fill="none" stroke="${ring}18" stroke-width="0.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${cx - 26 * scale}" fill="none" stroke="${ring}18" stroke-width="0.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${labelR}" fill="${c}" opacity="${earned ? 1 : 0.4}"/>
+    <circle cx="${cx}" cy="${cy}" r="${labelR}" fill="none" stroke="${ring}" stroke-width="${earned ? 1.5 : 0.5}" opacity="${earned ? 0.6 : 0.2}"/>
+    <circle cx="${cx}" cy="${cy}" r="${Math.round(4 * scale)}" fill="${earned ? "#000" : "#111"}"/>
+    <text x="${cx}" y="${cy - 22 * scale}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="${7 * scale}" font-weight="600" letter-spacing="0.12em" fill="${dimText}" opacity="0.8">${def.catalog}</text>
+    <text x="${cx}" y="${cy - 6 * scale}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="${(line2 ? 10 : 11) * scale}" font-weight="700" fill="${textColor}">${line1}</text>
+    ${line2 ? `<text x="${cx}" y="${cy + 7 * scale}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="${10 * scale}" font-weight="700" fill="${textColor}">${line2}</text>` : ""}
+    <text x="${cx}" y="${cy + 22 * scale}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="${8 * scale}" font-weight="600" letter-spacing="0.06em" fill="${ring}" opacity="${earned ? 0.9 : 0.3}">${def.label}</text>
   </svg>`;
 }
 
@@ -4823,6 +5098,8 @@ function renderTrophies() {
     const card = document.createElement("div");
     card.className = `trophy-card${t.earned ? " trophy-earned" : " trophy-locked"}`;
     card.setAttribute("title", t.desc);
+    card.style.cursor = "pointer";
+    card.addEventListener("click", () => openTrophyLightbox(t));
 
     const svgWrap = document.createElement("div");
     svgWrap.className = "trophy-svg-wrap";
@@ -4843,6 +5120,33 @@ function renderTrophies() {
 
     grid.appendChild(card);
   });
+}
+
+function openTrophyLightbox(trophy) {
+  const lightbox = document.getElementById("trophyLightbox");
+  const svgEl = document.getElementById("trophyLightboxSvg");
+  const nameEl = document.getElementById("trophyLightboxName");
+  const descEl = document.getElementById("trophyLightboxDesc");
+  const earnedEl = document.getElementById("trophyLightboxEarned");
+
+  // Render a large version of the SVG (300px)
+  svgEl.innerHTML = buildTrophyLabelSvg(trophy, trophy.earned, 300);
+
+  nameEl.textContent = trophy.name;
+  descEl.textContent = trophy.desc;
+  earnedEl.textContent = trophy.earned ? "✓ Earned" : "Not yet earned";
+  earnedEl.className = trophy.earned
+    ? "trophy-lightbox-earned trophy-lightbox-earned-yes"
+    : "trophy-lightbox-earned trophy-lightbox-earned-no";
+
+  lightbox.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closeTrophyLightbox() {
+  const lightbox = document.getElementById("trophyLightbox");
+  lightbox.hidden = true;
+  document.body.style.overflow = "";
 }
 
 function renderGenreEvolution(opts = {}) {
@@ -7727,6 +8031,20 @@ async function loadData() {
 
 // 6. Wire up events
 function setupEvents() {
+  // Trophy lightbox
+  document.getElementById("trophyLightboxClose")
+    .addEventListener("click", closeTrophyLightbox);
+  document.getElementById("trophyLightbox")
+    .addEventListener("click", (e) => {
+      if (e.target.classList.contains("trophy-lightbox-backdrop")) closeTrophyLightbox();
+    });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const lb = document.getElementById("trophyLightbox");
+      if (!lb.hidden) closeTrophyLightbox();
+    }
+  });
+
   document
     .getElementById("searchInput")
     .addEventListener("input", () => render());

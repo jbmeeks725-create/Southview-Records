@@ -3342,6 +3342,103 @@ h1 {
   text-transform: uppercase;
 }
 
+/* Trophy lightbox / zoom */
+
+.trophy-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trophy-lightbox[hidden] {
+  display: none;
+}
+
+.trophy-lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(4px);
+}
+
+.trophy-lightbox-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 2rem;
+  text-align: center;
+  max-width: 380px;
+  animation: trophyZoomIn 0.2s ease;
+}
+
+@keyframes trophyZoomIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.trophy-lightbox-close {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.trophy-lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.trophy-lightbox-svg {
+  filter: drop-shadow(0 8px 32px rgba(202, 161, 90, 0.35));
+}
+
+.trophy-lightbox-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #f3e3c3;
+  margin: 0;
+}
+
+.trophy-lightbox-desc {
+  font-size: 0.88rem;
+  color: rgba(243, 227, 195, 0.7);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.trophy-lightbox-earned {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.trophy-lightbox-earned-yes {
+  color: #caa15a;
+}
+
+.trophy-lightbox-earned-no {
+  color: #555;
+}
+
+
 @media (max-width: 600px) {
   .trophies-grid {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
