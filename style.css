@@ -3247,6 +3247,113 @@ h1 {
   padding: 4px 10px;
 }
 
+/* ---- My Trophies ---- */
+
+.trophies-page {
+  padding: 1rem 1.5rem 3rem;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.trophies-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.trophies-header h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.trophies-summary {
+  font-size: 0.82rem;
+  color: #caa15a;
+  font-weight: 600;
+  align-self: center;
+  background: rgba(202, 161, 90, 0.1);
+  border: 1px solid rgba(202, 161, 90, 0.25);
+  border-radius: 999px;
+  padding: 4px 14px;
+}
+
+.trophies-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 24px;
+}
+
+.trophy-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 4px;
+}
+
+.trophy-svg-wrap {
+  width: 150px;
+  height: 150px;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.trophy-earned .trophy-svg-wrap {
+  filter: drop-shadow(0 4px 16px rgba(202, 161, 90, 0.25));
+}
+
+.trophy-earned .trophy-svg-wrap:hover {
+  transform: scale(1.06);
+  filter: drop-shadow(0 6px 20px rgba(202, 161, 90, 0.4));
+}
+
+.trophy-locked .trophy-svg-wrap {
+  filter: grayscale(0.3) brightness(0.7);
+}
+
+.trophy-label-svg {
+  width: 150px;
+  height: 150px;
+  display: block;
+}
+
+.trophy-desc {
+  font-size: 0.75rem;
+  color: rgba(243, 227, 195, 0.55);
+  margin: 0;
+  line-height: 1.4;
+  max-width: 150px;
+}
+
+.trophy-earned .trophy-desc {
+  color: rgba(243, 227, 195, 0.75);
+}
+
+.trophy-lock-badge {
+  font-size: 0.65rem;
+  color: #555;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 600px) {
+  .trophies-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 16px;
+  }
+
+  .trophy-svg-wrap {
+    width: 120px;
+    height: 120px;
+  }
+}
+
 
 
 .genre-evolution-header {

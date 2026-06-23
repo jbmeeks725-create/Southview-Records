@@ -4555,6 +4555,296 @@ function setGenreEvolutionFocus(artistName) {
   renderGenreEvolution({ skipRebuildSelect: true });
 }
 
+// ============================================================
+// My Trophies
+// ============================================================
+//
+// Trophies are computed entirely client-side from allRecords + wishlist.
+// Definitions are static; earned state is derived on each render.
+// Visual: each trophy is an SVG circle styled like a vinyl record label —
+// catalog number, name, concentric rings. Unearned trophies appear as
+// dark pressed-vinyl silhouettes so you can see what you're working toward.
+
+const TROPHY_DEFS = [
+  // Collection size milestones
+  {
+    id: "first_record",
+    name: "First Groove",
+    catalog: "SV-001",
+    label: "Side A",
+    desc: "Add your first record to the collection.",
+    color: "#c8973a",
+    ring: "#e8c87a",
+    check: (r) => r.length >= 1,
+  },
+  {
+    id: "collector_10",
+    name: "Growing Stack",
+    catalog: "SV-010",
+    label: "Vol. 10",
+    desc: "Reach 10 records in your collection.",
+    color: "#7b6fa0",
+    ring: "#b09fd0",
+    check: (r) => r.length >= 10,
+  },
+  {
+    id: "collector_50",
+    name: "Serious Collector",
+    catalog: "SV-050",
+    label: "Vol. 50",
+    desc: "Reach 50 records in your collection.",
+    color: "#3d7a6b",
+    ring: "#6db8a5",
+    check: (r) => r.length >= 50,
+  },
+  {
+    id: "collector_100",
+    name: "Century Club",
+    catalog: "SV-100",
+    label: "100 RPM",
+    desc: "Reach 100 records in your collection.",
+    color: "#b04040",
+    ring: "#d98080",
+    check: (r) => r.length >= 100,
+  },
+  {
+    id: "collector_250",
+    name: "Deep Stacks",
+    catalog: "SV-250",
+    label: "Vol. 250",
+    desc: "Reach 250 records in your collection.",
+    color: "#2a5c8a",
+    ring: "#5a9cc8",
+    check: (r) => r.length >= 250,
+  },
+  {
+    id: "collector_500",
+    name: "Legendary",
+    catalog: "SV-500",
+    label: "Vol. 500",
+    desc: "Reach 500 records. You are the real thing.",
+    color: "#caa15a",
+    ring: "#f0d090",
+    check: (r) => r.length >= 500,
+  },
+  // Genre breadth
+  {
+    id: "five_genres",
+    name: "Eclectic Ear",
+    catalog: "SV-G05",
+    label: "5 Genres",
+    desc: "Own records across 5 different genres.",
+    color: "#7a4b8a",
+    ring: "#c090d0",
+    check: (r) => new Set(r.map((x) => x.genre_id).filter(Boolean)).size >= 5,
+  },
+  {
+    id: "ten_genres",
+    name: "Omnivore",
+    catalog: "SV-G10",
+    label: "10 Genres",
+    desc: "Own records across 10 different genres.",
+    color: "#2a7a3a",
+    ring: "#60b870",
+    check: (r) => new Set(r.map((x) => x.genre_id).filter(Boolean)).size >= 10,
+  },
+  // Decade reach
+  {
+    id: "four_decades",
+    name: "Time Traveler",
+    catalog: "SV-D04",
+    label: "4 Decades",
+    desc: "Own records from 4 different decades.",
+    color: "#4a6a8a",
+    ring: "#80a8c8",
+    check: (r) =>
+      new Set(
+        r
+          .filter((x) => x.year && x.year > 1900)
+          .map((x) => Math.floor(x.year / 10) * 10)
+      ).size >= 4,
+  },
+  {
+    id: "six_decades",
+    name: "Living History",
+    catalog: "SV-D06",
+    label: "6 Decades",
+    desc: "Own records from 6 different decades.",
+    color: "#6a3a2a",
+    ring: "#b07060",
+    check: (r) =>
+      new Set(
+        r
+          .filter((x) => x.year && x.year > 1900)
+          .map((x) => Math.floor(x.year / 10) * 10)
+      ).size >= 6,
+  },
+  // Vintage
+  {
+    id: "pre_1970",
+    name: "Vintage Crate",
+    catalog: "SV-V70",
+    label: "Pre '70",
+    desc: "Own a record released before 1970.",
+    color: "#8a7a3a",
+    ring: "#c8b870",
+    check: (r) => r.some((x) => x.year && x.year < 1970),
+  },
+  {
+    id: "pre_1960",
+    name: "Rare Wax",
+    catalog: "SV-V60",
+    label: "Pre '60",
+    desc: "Own a record released before 1960.",
+    color: "#5a3a2a",
+    ring: "#a07060",
+    check: (r) => r.some((x) => x.year && x.year < 1960),
+  },
+  // Artist depth
+  {
+    id: "artist_depth",
+    name: "Deep Cut",
+    catalog: "SV-A05",
+    label: "5 Albums",
+    desc: "Own 5 or more albums by the same artist.",
+    color: "#2a6a7a",
+    ring: "#50a8b8",
+    check: (r) => {
+      const counts = {};
+      r.forEach((x) => {
+        if (x.artist) counts[x.artist.toLowerCase()] = (counts[x.artist.toLowerCase()] || 0) + 1;
+      });
+      return Object.values(counts).some((c) => c >= 5);
+    },
+  },
+  {
+    id: "artist_devotion",
+    name: "Devotee",
+    catalog: "SV-A10",
+    label: "10 Albums",
+    desc: "Own 10 or more albums by the same artist.",
+    color: "#6a2a5a",
+    ring: "#b060a0",
+    check: (r) => {
+      const counts = {};
+      r.forEach((x) => {
+        if (x.artist) counts[x.artist.toLowerCase()] = (counts[x.artist.toLowerCase()] || 0) + 1;
+      });
+      return Object.values(counts).some((c) => c >= 10);
+    },
+  },
+  // Ratings
+  {
+    id: "love_streak",
+    name: "True Believer",
+    catalog: "SV-R10",
+    label: "Loved",
+    desc: "Rate 10 or more records as Love.",
+    color: "#8a2a3a",
+    ring: "#d06070",
+    check: (r) => r.filter((x) => x.rating === "love").length >= 10,
+  },
+  // Wishlist
+  {
+    id: "full_wishlist",
+    name: "The Hunt",
+    catalog: "SV-W10",
+    label: "Want List",
+    desc: "Add 10 items to your wishlist.",
+    color: "#3a5a2a",
+    ring: "#70a050",
+    check: (r, w) => w.length >= 10,
+  },
+];
+
+function computeTrophies() {
+  return TROPHY_DEFS.map((def) => ({
+    ...def,
+    earned: def.check(allRecords, wishlist),
+  }));
+}
+
+function buildTrophyLabelSvg(def, earned) {
+  const c = earned ? def.color : "#2a2a2a";
+  const ring = earned ? def.ring : "#3a3a3a";
+  const textColor = earned ? "#fff" : "#555";
+  const dimText = earned ? "#fff9" : "#444";
+  const size = 150;
+  const cx = size / 2;
+  const cy = size / 2;
+
+  // Catalog number, name, label text — keep short enough to fit
+  const nameWords = def.name.split(" ");
+  const line1 = nameWords.slice(0, Math.ceil(nameWords.length / 2)).join(" ");
+  const line2 = nameWords.slice(Math.ceil(nameWords.length / 2)).join(" ");
+
+  return `<svg viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" class="trophy-label-svg" aria-hidden="true">
+    <!-- Outer vinyl groove ring -->
+    <circle cx="${cx}" cy="${cy}" r="${cx - 2}" fill="${earned ? "#111" : "#181818"}" stroke="${ring}22" stroke-width="1"/>
+    <!-- Groove rings (vinyl texture) -->
+    <circle cx="${cx}" cy="${cy}" r="${cx - 8}" fill="none" stroke="${ring}18" stroke-width="0.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${cx - 14}" fill="none" stroke="${ring}18" stroke-width="0.5"/>
+    <circle cx="${cx}" cy="${cy}" r="${cx - 20}" fill="none" stroke="${ring}18" stroke-width="0.5"/>
+    <!-- Label area -->
+    <circle cx="${cx}" cy="${cy}" r="46" fill="${c}" opacity="${earned ? 1 : 0.4}"/>
+    <!-- Label ring accent -->
+    <circle cx="${cx}" cy="${cy}" r="46" fill="none" stroke="${ring}" stroke-width="${earned ? 1.5 : 0.5}" opacity="${earned ? 0.6 : 0.2}"/>
+    <!-- Center spindle hole -->
+    <circle cx="${cx}" cy="${cy}" r="4" fill="${earned ? "#000" : "#111"}"/>
+    <!-- Catalog number (top) -->
+    <text x="${cx}" y="${cy - 22}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="7" font-weight="600" letter-spacing="0.12em" fill="${dimText}" opacity="0.8">${def.catalog}</text>
+    <!-- Trophy name lines -->
+    <text x="${cx}" y="${cy - 6}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="${line2 ? 10 : 11}" font-weight="700" fill="${textColor}">${line1}</text>
+    ${line2 ? `<text x="${cx}" y="${cy + 7}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="10" font-weight="700" fill="${textColor}">${line2}</text>` : ""}
+    <!-- Label text (bottom) -->
+    <text x="${cx}" y="${cy + 22}" text-anchor="middle" font-family="Jost,Inter,system-ui" font-size="8" font-weight="600" letter-spacing="0.06em" fill="${ring}" opacity="${earned ? 0.9 : 0.3}">${def.label}</text>
+  </svg>`;
+}
+
+function renderTrophies() {
+  const grid = document.getElementById("trophiesGrid");
+  const summary = document.getElementById("trophiesSummary");
+  if (!grid) return;
+
+  const trophies = computeTrophies();
+  const earnedCount = trophies.filter((t) => t.earned).length;
+
+  summary.textContent = `${earnedCount} of ${trophies.length} earned`;
+
+  grid.innerHTML = "";
+
+  // Earned first, then unearned
+  const sorted = [
+    ...trophies.filter((t) => t.earned),
+    ...trophies.filter((t) => !t.earned),
+  ];
+
+  sorted.forEach((t) => {
+    const card = document.createElement("div");
+    card.className = `trophy-card${t.earned ? " trophy-earned" : " trophy-locked"}`;
+    card.setAttribute("title", t.desc);
+
+    const svgWrap = document.createElement("div");
+    svgWrap.className = "trophy-svg-wrap";
+    svgWrap.innerHTML = buildTrophyLabelSvg(t, t.earned);
+    card.appendChild(svgWrap);
+
+    const desc = document.createElement("p");
+    desc.className = "trophy-desc";
+    desc.textContent = t.desc;
+    card.appendChild(desc);
+
+    if (!t.earned) {
+      const lock = document.createElement("span");
+      lock.className = "trophy-lock-badge";
+      lock.textContent = "Not yet earned";
+      card.appendChild(lock);
+    }
+
+    grid.appendChild(card);
+  });
+}
+
 function renderGenreEvolution(opts = {}) {
   if (typeof Chart === "undefined") return;
 
@@ -5092,6 +5382,7 @@ function setPage(page) {
   const tasteProfileBtn = document.getElementById("tasteProfilePageBtn");
   const genreEvolutionBtn = document.getElementById("genreEvolutionPageBtn");
   const fellowCollectorsBtn = document.getElementById("fellowCollectorsPageBtn");
+  const trophiesBtn = document.getElementById("trophiesPageBtn");
 
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
@@ -5100,6 +5391,7 @@ function setPage(page) {
   const tasteProfileSection = document.getElementById("tasteProfileSection");
   const genreEvolutionSection = document.getElementById("genreEvolutionSection");
   const fellowCollectorsSection = document.getElementById("fellowCollectorsSection");
+  const trophiesSection = document.getElementById("trophiesSection");
   const collectionDnaSection = document.getElementById("collectionDnaSection");
   const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
@@ -5116,6 +5408,7 @@ function setPage(page) {
   const isTasteProfile = page === "tasteProfile";
   const isGenreEvolution = page === "genreEvolution";
   const isFellowCollectors = page === "fellowCollectors";
+  const isTrophies = page === "trophies";
 
   [
     [homeBtn, isHome],
@@ -5125,6 +5418,7 @@ function setPage(page) {
     [tasteProfileBtn, isTasteProfile],
     [genreEvolutionBtn, isGenreEvolution],
     [fellowCollectorsBtn, isFellowCollectors],
+    [trophiesBtn, isTrophies],
   ].forEach(([btn, active]) => {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-pressed", String(active));
@@ -5137,12 +5431,13 @@ function setPage(page) {
   tasteProfileSection.hidden = !isTasteProfile;
   genreEvolutionSection.hidden = !isGenreEvolution;
   fellowCollectorsSection.hidden = !isFellowCollectors;
+  trophiesSection.hidden = !isTrophies;
   collectionDnaSection.hidden = !isCollection;
   atAGlanceSection.hidden = !isCollection;
   document.getElementById("cardSectionHeader").hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
-  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isFellowCollectors;
+  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isFellowCollectors || isTrophies;
   pageNav.hidden = isProfile || isSettings;
 
   if (isProfile) {
@@ -5167,6 +5462,11 @@ function setPage(page) {
 
   if (isGenreEvolution) {
     renderGenreEvolution();
+    return;
+  }
+
+  if (isTrophies) {
+    renderTrophies();
     return;
   }
 
@@ -7533,6 +7833,10 @@ function setupEvents() {
   document
     .getElementById("fellowCollectorsPageBtn")
     .addEventListener("click", () => setPage("fellowCollectors"));
+
+  document
+    .getElementById("trophiesPageBtn")
+    .addEventListener("click", () => setPage("trophies"));
 
   document
     .getElementById("genreEvolutionArtistSelect")
