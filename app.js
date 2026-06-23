@@ -9060,8 +9060,8 @@ function renderDeepListenNowPlaying(info) {
 // Lightweight sync for the header bar driven directly by SDK events (no
 // network round-trip needed, unlike refreshHeaderNowPlaying's poll path).
 function renderHeaderNowPlayingFromState(info) {
-  const btnWrap = document.getElementById("headerNowPlayingBtn");
-  if (!btnWrap || btnWrap.hidden) return; // only nudge if already showing
+  const wrap = document.getElementById("headerNowPlaying");
+  if (!wrap || wrap.hidden) return;
 
   const playPauseBtn = document.getElementById("headerSpotifyPlayPauseBtn");
   if (!info || !playPauseBtn) return;
@@ -9237,8 +9237,8 @@ async function refreshVisitorNowPlaying() {
 let headerNowPlayingPollTimer = null;
 
 async function refreshHeaderNowPlaying() {
-  const btnWrap = document.getElementById("headerNowPlayingBtn");
-  if (!btnWrap) return;
+  const wrap = document.getElementById("headerNowPlaying");
+  if (!wrap) return;
 
   const controls = document.getElementById("headerNowPlayingControls");
   const playPauseBtn = document.getElementById("headerSpotifyPlayPauseBtn");
@@ -9246,7 +9246,7 @@ async function refreshHeaderNowPlaying() {
   const data = await fetchSpotifyNowPlaying();
 
   if (!data.connected || !data.playing) {
-    btnWrap.hidden = true;
+    wrap.hidden = true;
     return;
   }
 
@@ -9264,7 +9264,7 @@ async function refreshHeaderNowPlaying() {
 
   trackEl.textContent = data.track || "";
   artistEl.textContent = data.artist || "";
-  btnWrap.hidden = false;
+  wrap.hidden = false;
 
   // Controls only make sense for the owner — visitors and signed-out
   // people get the same read-only info everyone else gets.
@@ -10264,30 +10264,14 @@ function setupSpotify() {
   document.getElementById("spotifyNextBtn")?.addEventListener("click", () => spotifyNextTrack());
   document.getElementById("spotifyPrevBtn")?.addEventListener("click", () => spotifyPreviousTrack());
 
-  document.getElementById("headerSpotifyPlayPauseBtn")?.addEventListener("click", (e) => {
-    e.stopPropagation(); // prevent bubble to headerNowPlayingBtn
-    spotifyTogglePlayback();
-  });
-  document.getElementById("headerSpotifyNextBtn")?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    spotifyNextTrack();
-  });
-  document.getElementById("headerSpotifyPrevBtn")?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    spotifyPreviousTrack();
-  });
-
-  // Clicking anywhere on the header bar (outside controls) goes to the Listening Room
-  document.getElementById("headerNowPlayingBtn")?.addEventListener("click", () => {
-    setPage("room");
-  });
+  document.getElementById("headerSpotifyPlayPauseBtn")?.addEventListener("click", () => spotifyTogglePlayback());
+  document.getElementById("headerSpotifyNextBtn")?.addEventListener("click", () => spotifyNextTrack());
+  document.getElementById("headerSpotifyPrevBtn")?.addEventListener("click", () => spotifyPreviousTrack());
 
   // Clicking the room Now Playing sign opens that album's detail modal
   document.getElementById("roomNowPlaying")?.addEventListener("click", () => {
     if (!spotifyLatestState?.contextUri) return;
-    const record = allRecords.find(
-      (r) => r.spotify_album_uri === spotifyLatestState.contextUri
-    );
+    const record = allRecords.find((r) => r.spotify_album_uri === spotifyLatestState.contextUri);
     if (record) openRecordDetailModal(record.id);
   });
 
