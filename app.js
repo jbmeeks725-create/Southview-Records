@@ -8954,6 +8954,9 @@ async function ensureSpotifyPlayer() {
       coverUrl: state.track_window.current_track.album.images?.[0]?.url || null,
       playing: !state.paused,
       contextUri: state.context?.uri || null,
+      position: state.position || 0,       // ms elapsed
+      duration: state.duration || 0,       // ms total
+      positionAt: Date.now(),              // wall-clock time when position was sampled
     };
     renderAllSpotifyNowPlayingSlots(spotifyLatestState);
     // Nudge the header strip to refresh now rather than waiting for the
@@ -8999,9 +9002,59 @@ function renderAllSpotifyNowPlayingSlots(info) {
   renderRoomPlayerNowPlaying(info);
   renderRecordSpotifyNowPlaying(info);
   renderHeaderNowPlayingFromState(info);
-  // The room sign element only exists while "My Listening Room" is the
-  // active page — refreshRoomNowPlayingSign no-ops safely if it's absent.
   refreshRoomNowPlayingSign(info);
+  renderDeepListenNowPlaying(info);
+}
+
+// Format ms to m:ss
+function formatMs(ms) {
+  if (!ms || ms < 0) return "0:00";
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${sec.toString().padStart(2, "0")}`;
+}
+
+let deepListenProgressTimer = null;
+
+function renderDeepListenNowPlaying(info) {
+  const nowPlayingEl = document.getElementById("deepListenNowPlaying");
+  if (!nowPlayingEl) return;
+
+  // Clear any existing tick timer
+  if (deepListenProgressTimer) {
+    clearInterval(deepListenProgressTimer);
+    deepListenProgressTimer = null;
+  }
+
+  if (!info || !info.playing) {
+    nowPlayingEl.hidden = true;
+    return;
+  }
+
+  nowPlayingEl.hidden = false;
+
+  const trackEl = document.getElementById("deepListenTrackName");
+  const posEl = document.getElementById("deepListenPosition");
+  const durEl = document.getElementById("deepListenDuration");
+  const bar = document.getElementById("deepListenProgressBar");
+
+  if (trackEl) trackEl.textContent = info.track || "";
+  if (durEl) durEl.textContent = formatMs(info.duration);
+
+  // Tick forward every second, estimating position since last SDK event
+  function tick() {
+    if (!spotifyLatestState || !spotifyLatestState.playing) return;
+    const elapsed = Date.now() - (spotifyLatestState.positionAt || Date.now());
+    const pos = Math.min(spotifyLatestState.position + elapsed, spotifyLatestState.duration || 0);
+    if (posEl) posEl.textContent = formatMs(pos);
+    if (bar && spotifyLatestState.duration > 0) {
+      bar.style.width = `${(pos / spotifyLatestState.duration) * 100}%`;
+    }
+  }
+
+  tick(); // immediate first render
+  deepListenProgressTimer = setInterval(tick, 1000);
 }
 
 // Lightweight sync for the header bar driven directly by SDK events (no
@@ -10077,6 +10130,10 @@ function openDeepListen() {
 
 function closeDeepListen() {
   document.getElementById("deepListenOverlay").hidden = true;
+  if (deepListenProgressTimer) {
+    clearInterval(deepListenProgressTimer);
+    deepListenProgressTimer = null;
+  }
 }
 
 function renderDeepListenPicker() {

@@ -1229,6 +1229,16 @@
               <button type="button" id="deepListenChangeBtn" class="btn-text">Change album</button>
             </div>
             <div class="deep-listen-transport-wrap">
+              <div id="deepListenNowPlaying" class="deep-listen-now-playing" hidden>
+                <p id="deepListenTrackName" class="deep-listen-track-name"></p>
+                <div class="deep-listen-progress-row">
+                  <span id="deepListenPosition" class="deep-listen-time">0:00</span>
+                  <div class="deep-listen-progress-bar-wrap">
+                    <div id="deepListenProgressBar" class="deep-listen-progress-bar"></div>
+                  </div>
+                  <span id="deepListenDuration" class="deep-listen-time">0:00</span>
+                </div>
+              </div>
               <div class="room-player-transport">
                 <button type="button" class="btn-secondary deep-listen-transport-btn" aria-label="Previous track" onclick="spotifyPreviousTrack()">
                   <i class="ti ti-player-skip-back" aria-hidden="true"></i>
