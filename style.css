@@ -2106,21 +2106,22 @@ h1 {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 2rem 1.75rem;
+  padding: 1.25rem 1.75rem;
   background: #0b0c0f;
   overflow-y: auto;
+  gap: 0;
 }
 
 .landing-logo {
-  width: 200px;
-  height: 200px;
+  width: 100px;
+  height: 100px;
   border-radius: 22%;
-  margin-bottom: 1rem;
+  margin-bottom: 0.6rem;
 }
 
 .landing-title {
   margin: 0;
-  font-size: 3.6rem;
+  font-size: 2.8rem;
   font-weight: 700;
   letter-spacing: 0.25em;
   color: #f9fafb;
@@ -2137,8 +2138,8 @@ h1 {
 }
 
 .landing-tagline {
-  margin: 1.25rem 0 1.5rem;
-  font-size: 1rem;
+  margin: 0.6rem 0 0.9rem;
+  font-size: 0.82rem;
   color: #caa15a;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2201,15 +2202,15 @@ h1 {
 .landing-form-actions {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  margin-top: 0.5rem;
+  gap: 0.45rem;
+  margin-top: 0.4rem;
 }
 
 .auth-social-divider {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 14px 0 10px;
+  margin: 8px 0 6px;
   width: 100%;
   max-width: 320px;
 }
@@ -2244,7 +2245,7 @@ h1 {
   justify-content: center;
   gap: 10px;
   width: 100%;
-  padding: 0.65rem 1rem;
+  padding: 0.5rem 1rem;
   border-radius: 6px;
   font-size: 0.88rem;
   font-weight: 600;
@@ -2291,9 +2292,9 @@ h1 {
 
 .landing-btn {
   width: 100%;
-  padding: 0.7rem 1rem;
+  padding: 0.55rem 1rem;
   border-radius: 6px;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -2323,39 +2324,54 @@ h1 {
 }
 
 .landing-keywords {
-  margin: 1.5rem 0 0.5rem;
-  font-size: 0.8rem;
+  margin: 0.6rem 0 0;
+  font-size: 0.72rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: #6b7280;
 }
 
-/* Take a Tour button */
+/* Take a Tour button — elegant text-link style */
 .landing-tour-btn {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  margin-top: 1rem;
+  gap: 8px;
+  margin-top: 0.9rem;
   background: none;
-  border: 1px solid rgba(202, 161, 90, 0.35);
-  border-radius: 999px;
-  color: rgba(202, 161, 90, 0.8);
-  font-size: 0.82rem;
+  border: none;
+  color: rgba(202, 161, 90, 0.75);
+  font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  padding: 7px 18px;
+  letter-spacing: 0.06em;
+  padding: 0;
   cursor: pointer;
-  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  transition: color 0.15s ease;
+  text-decoration: none;
 }
 
 .landing-tour-btn:hover {
-  border-color: #caa15a;
   color: #caa15a;
-  background: rgba(202, 161, 90, 0.06);
 }
 
-.landing-tour-btn i {
-  font-size: 0.75rem;
+.landing-tour-btn::before {
+  content: "";
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(202, 161, 90, 0.5);
+  background: rgba(202, 161, 90, 0.08);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23caa15a'%3E%3Cpath d='M8 5v14l11-7z'/%3E%3C/svg%3E");
+  background-size: 12px;
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: border-color 0.15s, background-color 0.15s;
+  flex-shrink: 0;
+}
+
+.landing-tour-btn:hover::before {
+  border-color: #caa15a;
+  background-color: rgba(202, 161, 90, 0.15);
 }
 
 /* Tour overlay */
