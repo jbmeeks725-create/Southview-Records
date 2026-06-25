@@ -7370,11 +7370,15 @@ async function renderSharedCollection(uid) {
 
     const { data: records, error: recordsError } = await supabaseClient
       .from("records")
-      .select("id, artist, album, year, cover_url, genre_name, subgenre_name, rating")
+      .select("id, artist, album, year, cover_url, rating, genres ( name ), subgenres ( name )")
       .eq("user_id", uid)
       .order("artist", { ascending: true });
 
-    if (recordsError) throw recordsError;
+    console.log("[SPIN] records fetch — data:", records?.length, "error:", recordsError);
+    if (recordsError) {
+      console.error("[SPIN] records error detail:", JSON.stringify(recordsError));
+      throw recordsError;
+    }
 
     const grid = document.getElementById("sharedCollectionGrid");
     const emptyEl = document.getElementById("sharedCollectionEmpty");
@@ -7414,11 +7418,12 @@ async function renderSharedCollection(uid) {
 
       const meta = document.createElement("p");
       meta.className = "shared-collection-meta";
-      meta.textContent = [record.year, record.genre_name].filter(Boolean).join(" · ");
+      const genreName = record.genres?.name || "";
+      meta.textContent = [record.year, genreName].filter(Boolean).join(" · ");
 
       info.appendChild(album);
       info.appendChild(artist);
-      if (record.year || record.genre_name) info.appendChild(meta);
+      if (record.year || genreName) info.appendChild(meta);
       card.appendChild(info);
 
       grid.appendChild(card);
@@ -7451,7 +7456,7 @@ async function renderSharedTrophies(uid) {
 
     const { data: records, error: recordsError } = await supabaseClient
       .from("records")
-      .select("id, artist, album, year, genre_id, genre_name, subgenre_name, rating, cover_url, personal_story")
+      .select("id, artist, album, year, genre_id, rating, cover_url, personal_story, genres ( name ), subgenres ( name )")
       .eq("user_id", uid);
 
     if (recordsError) throw recordsError;
@@ -7462,8 +7467,12 @@ async function renderSharedTrophies(uid) {
       .select("id")
       .eq("user_id", uid);
 
-    // Compute trophies using same logic as TROPHY_DEFS but against fetched data
-    const fetchedRecords = records || [];
+    // Normalise joined genre names so TROPHY_DEFS.check() finds genre_name
+    const fetchedRecords = (records || []).map((r) => ({
+      ...r,
+      genre_name: r.genres?.name || null,
+      subgenre_name: r.subgenres?.name || null,
+    }));
     const fetchedWishlist = wl || [];
 
     const trophies = TROPHY_DEFS.map((def) => ({
