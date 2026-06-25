@@ -6997,6 +6997,81 @@ function handleWishlistRemoveCover() {
   statusEl.className = "form-status";
 }
 
+// ---- Share Collection ----
+
+function getCollectionShareUrl() {
+  return (
+    window.location.origin +
+    window.location.pathname +
+    "?share=collection&uid=" +
+    (currentUser?.id || "")
+  );
+}
+
+function getTrophiesShareUrl() {
+  return (
+    window.location.origin +
+    window.location.pathname +
+    "?share=trophies&uid=" +
+    (currentUser?.id || "")
+  );
+}
+
+async function handleShareCollection() {
+  await handleSharePublicToggle(
+    "collection_public",
+    "Your collection is currently private. Enable public sharing so anyone with the link can view it?",
+    getCollectionShareUrl(),
+    "shareCollectionBtn",
+    "My Vinyl Collection — SPIN VINYL",
+    "Check out my vinyl collection on SPIN VINYL."
+  );
+}
+
+async function handleShareTrophies() {
+  await handleSharePublicToggle(
+    "collection_public",
+    "Sharing trophies requires your collection to be public. Enable public sharing?",
+    getTrophiesShareUrl(),
+    "shareTrophiesBtn",
+    "My Trophies — SPIN VINYL",
+    "Check out my vinyl trophies on SPIN VINYL."
+  );
+}
+
+// Shared helper — enables the public flag if needed, then copies/shares the URL.
+async function handleSharePublicToggle(flagField, confirmMsg, url, btnId, shareTitle, shareText) {
+  const isPublic = !!currentProfile?.[flagField];
+
+  if (!isPublic) {
+    const enable = window.confirm(confirmMsg);
+    if (!enable) return;
+    try {
+      await saveProfileFields({ [flagField]: true });
+      if (currentProfile) currentProfile[flagField] = true;
+    } catch (err) {
+      console.error("Failed to enable sharing:", err);
+      alert("Couldn't enable sharing. Please try again.");
+      return;
+    }
+  }
+
+  const btn = document.getElementById(btnId);
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: shareTitle, text: shareText, url });
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied!';
+    btn.disabled = true;
+    setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2000);
+  } catch {
+    window.prompt("Copy this link:", url);
+  }
+}
+
 // ---- Share Wishlist ----
 
 // ---- Public Wishlist Sharing ----
@@ -7089,32 +7164,53 @@ async function handleShareWishlist() {
 // Uses the anon Supabase client — no session needed — because the RLS
 // policy allows reads when wishlist_public = true.
 
-function getSharedWishlistParams() {
+function getSharedViewParams() {
   const params = new URLSearchParams(window.location.search);
   const share = params.get("share");
   const uid = params.get("uid");
-  if (share === "wishlist" && uid) return uid;
+  if ((share === "wishlist" || share === "collection" || share === "trophies") && uid) {
+    return { share, uid };
+  }
+  return null;
+}
+
+// Legacy alias — wishlist code calls this directly
+function getSharedWishlistParams() {
+  const result = getSharedViewParams();
+  if (result?.share === "wishlist") return result.uid;
   return null;
 }
 
 async function maybeShowSharedWishlist() {
-  const uid = getSharedWishlistParams();
-  if (!uid) return false;
+  const params = getSharedViewParams();
+  if (!params) return false;
 
   // Hide the entire normal app shell immediately.
   document.getElementById("splashScreen").hidden = true;
   document.getElementById("authOverlay").hidden = true;
-  const sharedView = document.getElementById("sharedWishlistView");
-  sharedView.hidden = false;
   document.body.classList.add("shared-wishlist-mode");
 
+  if (params.share === "collection") {
+    document.getElementById("sharedCollectionView").hidden = false;
+    await renderSharedCollection(params.uid);
+    return true;
+  }
+
+  if (params.share === "trophies") {
+    document.getElementById("sharedTrophiesView").hidden = false;
+    await renderSharedTrophies(params.uid);
+    return true;
+  }
+
+  // Default: wishlist
+  const sharedView = document.getElementById("sharedWishlistView");
+  sharedView.hidden = false;
+
   try {
-    // Fetch the owner's profile (display_name / username) — anon read
-    // is allowed by profiles_public_wishlist_read RLS policy.
     const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
       .select("preferred_name, username, wishlist_public")
-      .eq("user_id", uid)
+      .eq("user_id", params.uid)
       .maybeSingle();
 
     if (profileError || !profile || !profile.wishlist_public) {
@@ -7129,11 +7225,10 @@ async function maybeShowSharedWishlist() {
       `${ownerName}'s Wishlist`;
     document.title = `${ownerName}'s Wishlist — SPIN VINYL`;
 
-    // Fetch their wishlist — anon read allowed by wishlist_public_read policy.
     const { data: items, error: wishlistError } = await supabaseClient
       .from("wishlist")
       .select("id, artist, album, year, cover_url")
-      .eq("user_id", uid)
+      .eq("user_id", params.uid)
       .order("added_at", { ascending: false });
 
     if (wishlistError) throw wishlistError;
@@ -7195,6 +7290,177 @@ async function maybeShowSharedWishlist() {
   }
 
   return true;
+}
+
+async function renderSharedCollection(uid) {
+  try {
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("preferred_name, username, collection_public")
+      .eq("user_id", uid)
+      .maybeSingle();
+
+    if (profileError || !profile || !profile.collection_public) {
+      document.getElementById("sharedCollectionError").hidden = false;
+      return;
+    }
+
+    const ownerName =
+      profile.preferred_name ||
+      (profile.username ? `@${profile.username}` : "Someone's");
+    document.getElementById("sharedCollectionOwnerName").textContent =
+      `${ownerName}'s Collection`;
+    document.title = `${ownerName}'s Collection — SPIN VINYL`;
+
+    const { data: records, error: recordsError } = await supabaseClient
+      .from("records")
+      .select("id, artist, album, year, cover_url, genre_name, subgenre_name, rating")
+      .eq("user_id", uid)
+      .order("artist", { ascending: true });
+
+    if (recordsError) throw recordsError;
+
+    const grid = document.getElementById("sharedCollectionGrid");
+    const emptyEl = document.getElementById("sharedCollectionEmpty");
+
+    if (!records || records.length === 0) {
+      emptyEl.hidden = false;
+      return;
+    }
+
+    records.forEach((record) => {
+      const card = document.createElement("div");
+      card.className = "shared-collection-card";
+
+      const coverWrap = document.createElement("div");
+      coverWrap.className = "shared-collection-cover";
+      if (record.cover_url) {
+        const img = document.createElement("img");
+        img.src = record.cover_url;
+        img.alt = record.album || "";
+        img.loading = "lazy";
+        coverWrap.appendChild(img);
+      } else {
+        coverWrap.innerHTML = '<div class="shared-collection-cover-placeholder"><i class="ti ti-vinyl" aria-hidden="true"></i></div>';
+      }
+      card.appendChild(coverWrap);
+
+      const info = document.createElement("div");
+      info.className = "shared-collection-info";
+
+      const artist = document.createElement("p");
+      artist.className = "shared-collection-artist";
+      artist.textContent = record.artist || "";
+
+      const album = document.createElement("p");
+      album.className = "shared-collection-album";
+      album.textContent = record.album || "";
+
+      const meta = document.createElement("p");
+      meta.className = "shared-collection-meta";
+      meta.textContent = [record.year, record.genre_name].filter(Boolean).join(" · ");
+
+      info.appendChild(album);
+      info.appendChild(artist);
+      if (record.year || record.genre_name) info.appendChild(meta);
+      card.appendChild(info);
+
+      grid.appendChild(card);
+    });
+  } catch (err) {
+    console.error("Failed to load shared collection:", err);
+    document.getElementById("sharedCollectionError").hidden = false;
+  }
+}
+
+async function renderSharedTrophies(uid) {
+  try {
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("preferred_name, username, collection_public")
+      .eq("user_id", uid)
+      .maybeSingle();
+
+    if (profileError || !profile || !profile.collection_public) {
+      document.getElementById("sharedTrophiesError").hidden = false;
+      return;
+    }
+
+    const ownerName =
+      profile.preferred_name ||
+      (profile.username ? `@${profile.username}` : "Someone's");
+    document.getElementById("sharedTrophiesOwnerName").textContent =
+      `${ownerName}'s Trophies`;
+    document.title = `${ownerName}'s Trophies — SPIN VINYL`;
+
+    const { data: records, error: recordsError } = await supabaseClient
+      .from("records")
+      .select("id, artist, album, year, genre_id, genre_name, subgenre_name, rating, cover_url, personal_story")
+      .eq("user_id", uid);
+
+    if (recordsError) throw recordsError;
+
+    // Fetch wishlist for trophy checks that need it
+    const { data: wl } = await supabaseClient
+      .from("wishlist")
+      .select("id")
+      .eq("user_id", uid);
+
+    // Compute trophies using same logic as TROPHY_DEFS but against fetched data
+    const fetchedRecords = records || [];
+    const fetchedWishlist = wl || [];
+
+    const trophies = TROPHY_DEFS.map((def) => ({
+      ...def,
+      earned: def.check(fetchedRecords, fetchedWishlist, profile),
+    }));
+
+    const earnedCount = trophies.filter((t) => t.earned).length;
+    const earnedEl = document.getElementById("sharedTrophiesEarned");
+    earnedEl.textContent = `${earnedCount} of ${trophies.length} trophies earned`;
+
+    const grid = document.getElementById("sharedTrophiesGrid");
+    const emptyEl = document.getElementById("sharedTrophiesEmpty");
+
+    if (earnedCount === 0) {
+      emptyEl.hidden = false;
+      return;
+    }
+
+    // Show earned first then locked
+    const sorted = [
+      ...trophies.filter((t) => t.earned),
+      ...trophies.filter((t) => !t.earned),
+    ];
+
+    sorted.forEach((t) => {
+      const card = document.createElement("div");
+      card.className = `trophy-card ${t.earned ? "trophy-earned" : "trophy-locked"}`;
+      card.setAttribute("title", t.desc);
+
+      const svgWrap = document.createElement("div");
+      svgWrap.className = "trophy-svg-wrap";
+      svgWrap.innerHTML = buildTrophyLabelSvg(t, t.earned);
+      card.appendChild(svgWrap);
+
+      const desc = document.createElement("p");
+      desc.className = "trophy-desc";
+      desc.textContent = t.desc;
+      card.appendChild(desc);
+
+      if (!t.earned) {
+        const lock = document.createElement("span");
+        lock.className = "trophy-lock-badge";
+        lock.textContent = "Not yet earned";
+        card.appendChild(lock);
+      }
+
+      grid.appendChild(card);
+    });
+  } catch (err) {
+    console.error("Failed to load shared trophies:", err);
+    document.getElementById("sharedTrophiesError").hidden = false;
+  }
 }
 
 async function removeWishlistItem(wishlistId) {
@@ -8233,6 +8499,14 @@ function setupEvents() {
   document
     .getElementById("shareWishlistBtn")
     .addEventListener("click", () => handleShareWishlist());
+
+  document
+    .getElementById("shareCollectionBtn")
+    ?.addEventListener("click", () => handleShareCollection());
+
+  document
+    .getElementById("shareTrophiesBtn")
+    ?.addEventListener("click", () => handleShareTrophies());
 
   // Wishlist: duplicate check — "Save anyway" bypass
   document
