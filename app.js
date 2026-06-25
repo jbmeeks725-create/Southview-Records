@@ -10968,6 +10968,7 @@ function setupAuth() {
 
 function maybeShowOnboarding() {
   const screen = document.getElementById("onboardingScreen");
+  if (!screen) return; // element not in DOM
 
   // Never show onboarding again once the user has dismissed it
   if (localStorage.getItem("spin-onboarding-done") === "true") {
@@ -10979,22 +10980,26 @@ function maybeShowOnboarding() {
     showOnboardingStep(1);
     screen.hidden = false;
   } else {
-    // They have data — they've been here before, mark onboarding done
     localStorage.setItem("spin-onboarding-done", "true");
     screen.hidden = true;
   }
 }
 
 function showOnboardingStep(step) {
-  document.getElementById("onboardingStep1").hidden = step !== 1;
-  document.getElementById("onboardingStep2").hidden = step !== 2;
-  document.getElementById("onboardingStep3").hidden = step !== 3;
-  document.getElementById("onboardingStep4").hidden = step !== 4;
+  const s1 = document.getElementById("onboardingStep1");
+  const s2 = document.getElementById("onboardingStep2");
+  const s3 = document.getElementById("onboardingStep3");
+  const s4 = document.getElementById("onboardingStep4");
+  if (s1) s1.hidden = step !== 1;
+  if (s2) s2.hidden = step !== 2;
+  if (s3) s3.hidden = step !== 3;
+  if (s4) s4.hidden = step !== 4;
 }
 
 function dismissOnboarding() {
   localStorage.setItem("spin-onboarding-done", "true");
-  document.getElementById("onboardingScreen").hidden = true;
+  const screen = document.getElementById("onboardingScreen");
+  if (screen) screen.hidden = true;
 }
 
 let onboardingDestination = null;
