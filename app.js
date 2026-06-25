@@ -7201,13 +7201,13 @@ async function handleShareWishlist() {
 // policy allows reads when wishlist_public = true.
 
 function getSharedViewParams() {
-  // Hash-based params survive GitHub Pages redirects intact.
-  // Supports both #share=X&uid=Y (new) and ?share=X&uid=Y (legacy).
   const hash = window.location.hash.slice(1);
   const search = window.location.search;
+  console.log("[SPIN] getSharedViewParams — hash:", hash, "search:", search);
   const params = new URLSearchParams(hash || search);
   const share = params.get("share");
   const uid = params.get("uid");
+  console.log("[SPIN] share:", share, "uid:", uid);
   if ((share === "wishlist" || share === "collection" || share === "trophies") && uid) {
     return { share, uid };
   }
@@ -7334,13 +7334,29 @@ async function maybeShowSharedWishlist() {
 
 async function renderSharedCollection(uid) {
   try {
+    console.log("[SPIN] renderSharedCollection called for uid:", uid);
+
     const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
       .select("preferred_name, username, collection_public")
       .eq("user_id", uid)
       .maybeSingle();
 
-    if (profileError || !profile || !profile.collection_public) {
+    console.log("[SPIN] profile fetch result:", { profile, profileError });
+
+    if (profileError) {
+      console.error("[SPIN] Profile fetch error:", profileError);
+      document.getElementById("sharedCollectionError").hidden = false;
+      return;
+    }
+    if (!profile) {
+      console.error("[SPIN] No profile found for uid:", uid);
+      document.getElementById("sharedCollectionError").hidden = false;
+      return;
+    }
+    if (!profile.collection_public) {
+      console.warn("[SPIN] collection_public is false or missing. Value:", profile.collection_public);
+      console.log("[SPIN] Full profile object:", JSON.stringify(profile));
       document.getElementById("sharedCollectionError").hidden = false;
       return;
     }
