@@ -9182,10 +9182,129 @@ async function loadLandingNowPlaying() {
   }
 }
 
+// ============================================================
+// Take a Tour
+// ============================================================
+
+const TOUR_TOTAL = 5;
+let tourCurrentStep = 1;
+
+function openTour() {
+  tourCurrentStep = 1;
+  document.getElementById("tourOverlay").hidden = false;
+  document.body.style.overflow = "hidden";
+  renderTourStep();
+  buildTourDots();
+  buildTourTrophies();
+}
+
+function closeTour() {
+  document.getElementById("tourOverlay").hidden = true;
+  document.body.style.overflow = "";
+}
+
+function renderTourStep() {
+  document.querySelectorAll(".tour-step").forEach((el) => {
+    el.hidden = parseInt(el.dataset.step) !== tourCurrentStep;
+  });
+
+  // Progress bar
+  const pct = ((tourCurrentStep - 1) / (TOUR_TOTAL - 1)) * 100;
+  document.getElementById("tourProgressBar").style.width = pct + "%";
+
+  // Prev/next buttons
+  const prevBtn = document.getElementById("tourPrevBtn");
+  const nextBtn = document.getElementById("tourNextBtn");
+  prevBtn.hidden = tourCurrentStep === 1;
+  nextBtn.hidden = tourCurrentStep === TOUR_TOTAL;
+
+  // Dots
+  document.querySelectorAll(".tour-dot").forEach((dot, i) => {
+    dot.classList.toggle("tour-dot-active", i + 1 === tourCurrentStep);
+  });
+}
+
+function buildTourDots() {
+  const container = document.getElementById("tourDots");
+  container.innerHTML = "";
+  for (let i = 1; i <= TOUR_TOTAL; i++) {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.className = "tour-dot" + (i === 1 ? " tour-dot-active" : "");
+    dot.setAttribute("aria-label", `Go to step ${i}`);
+    dot.addEventListener("click", () => {
+      tourCurrentStep = i;
+      renderTourStep();
+    });
+    container.appendChild(dot);
+  }
+}
+
+function buildTourTrophies() {
+  // Render 4 sample trophies in the tour using the real SVG builder
+  const container = document.getElementById("tourTrophyRow");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const samples = [
+    { id: "first_record", name: "First Groove", catalog: "SV-001", label: "Side A", color: "#c8973a", ring: "#e8c87a" },
+    { id: "collector_50", name: "Serious Collector", catalog: "SV-050", label: "Vol. 50", color: "#3d7a6b", ring: "#6db8a5" },
+    { id: "six_decades", name: "Living History", catalog: "SV-D06", label: "6 Decades", color: "#6a3a2a", ring: "#b07060" },
+    { id: "love_streak", name: "True Believer", catalog: "SV-R10", label: "Loved", color: "#8a2a3a", ring: "#d06070" },
+  ];
+
+  samples.forEach((def, i) => {
+    const wrap = document.createElement("div");
+    wrap.className = "tour-trophy-item";
+    wrap.innerHTML = buildTrophyLabelSvg(def, i < 3, 110); // first 3 earned, last locked
+    container.appendChild(wrap);
+  });
+}
+
+function setupTour() {
+  document.getElementById("takeTourBtn")
+    ?.addEventListener("click", () => openTour());
+
+  document.getElementById("tourCloseBtn")
+    ?.addEventListener("click", () => closeTour());
+
+  document.getElementById("tourOverlay")
+    ?.addEventListener("click", (e) => {
+      if (e.target.id === "tourOverlay") closeTour();
+    });
+
+  document.getElementById("tourPrevBtn")
+    ?.addEventListener("click", () => {
+      if (tourCurrentStep > 1) { tourCurrentStep--; renderTourStep(); }
+    });
+
+  document.getElementById("tourNextBtn")
+    ?.addEventListener("click", () => {
+      if (tourCurrentStep < TOUR_TOTAL) { tourCurrentStep++; renderTourStep(); }
+    });
+
+  document.getElementById("tourGetStartedBtn")
+    ?.addEventListener("click", () => {
+      closeTour();
+      // Scroll auth form into view and focus the email field
+      document.getElementById("authEmail")?.focus();
+      document.getElementById("authToggleBtn")?.click(); // switch to "Create account"
+    });
+
+  // Keyboard navigation
+  document.addEventListener("keydown", (e) => {
+    const overlay = document.getElementById("tourOverlay");
+    if (!overlay || overlay.hidden) return;
+    if (e.key === "ArrowRight" && tourCurrentStep < TOUR_TOTAL) { tourCurrentStep++; renderTourStep(); }
+    if (e.key === "ArrowLeft" && tourCurrentStep > 1) { tourCurrentStep--; renderTourStep(); }
+    if (e.key === "Escape") closeTour();
+  });
+}
+
 function setupLandingPage() {
   setupLandingVideoCarousel(document.getElementById("landingVideoLeft"), LANDING_VIDEOS.left);
   setupLandingVideoCarousel(document.getElementById("landingVideoRight"), LANDING_VIDEOS.right);
-  loadLandingNowPlaying();
+  setupTour();
 }
 
 // ============================================================
@@ -10743,9 +10862,6 @@ function setupAuth() {
   // Social OAuth buttons
   document.getElementById("authGoogleBtn").addEventListener("click", () =>
     handleSocialLogin("google")
-  );
-  document.getElementById("authFacebookBtn").addEventListener("click", () =>
-    handleSocialLogin("facebook")
   );
   document.getElementById("authAppleBtn").addEventListener("click", () =>
     handleSocialLogin("apple")
