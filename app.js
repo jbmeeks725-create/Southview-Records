@@ -10968,21 +10968,32 @@ function setupAuth() {
 
 function maybeShowOnboarding() {
   const screen = document.getElementById("onboardingScreen");
-  if (!screen) return; // element not in DOM
+  if (!screen) return;
 
-  // Never show onboarding again once the user has dismissed it
-  if (localStorage.getItem("spin-onboarding-done") === "true") {
+  // Check profile flag first (persists across devices/browsers)
+  if (currentProfile?.onboarding_done) {
     screen.hidden = true;
     return;
   }
 
-  if (allRecords.length === 0 && wishlist.length === 0) {
-    showOnboardingStep(1);
-    screen.hidden = false;
-  } else {
-    localStorage.setItem("spin-onboarding-done", "true");
+  // Fall back to localStorage
+  if (localStorage.getItem("spin-onboarding-done") === "true") {
     screen.hidden = true;
+    saveProfileFields({ onboarding_done: true }).catch(() => {});
+    return;
   }
+
+  // If they already have data, they've been here before
+  if (allRecords.length > 0 || wishlist.length > 0) {
+    localStorage.setItem("spin-onboarding-done", "true");
+    saveProfileFields({ onboarding_done: true }).catch(() => {});
+    screen.hidden = true;
+    return;
+  }
+
+  // Truly new user — show onboarding
+  showOnboardingStep(1);
+  screen.hidden = false;
 }
 
 function showOnboardingStep(step) {
@@ -10998,6 +11009,7 @@ function showOnboardingStep(step) {
 
 function dismissOnboarding() {
   localStorage.setItem("spin-onboarding-done", "true");
+  saveProfileFields({ onboarding_done: true }).catch(() => {});
   const screen = document.getElementById("onboardingScreen");
   if (screen) screen.hidden = true;
 }
