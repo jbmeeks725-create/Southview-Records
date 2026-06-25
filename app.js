@@ -6997,6 +6997,18 @@ function handleWishlistRemoveCover() {
   statusEl.className = "form-status";
 }
 
+async function copyShareUrl(url, btn) {
+  try {
+    await navigator.clipboard.writeText(url);
+    const original = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied!';
+    btn.disabled = true;
+    setTimeout(() => { btn.innerHTML = original; btn.disabled = false; }, 2000);
+  } catch {
+    window.prompt("Copy this link:", url);
+  }
+}
+
 // ---- Share Collection ----
 
 function getCollectionShareUrl() {
@@ -7097,18 +7109,40 @@ async function handleWishlistPublicToggle() {
 
   try {
     await saveProfileFields({ wishlist_public: isPublic });
+    syncPrivacySettings();
   } catch (err) {
     console.error("Failed to save wishlist_public:", err);
-    // Revert the checkbox if save failed
     checkbox.checked = !isPublic;
   }
 }
 
 function syncWishlistPublicToggle() {
   const checkbox = document.getElementById("wishlistPublicToggle");
-  if (checkbox) {
-    checkbox.checked = !!currentProfile?.wishlist_public;
-  }
+  if (checkbox) checkbox.checked = !!currentProfile?.wishlist_public;
+  syncPrivacySettings();
+}
+
+function syncPrivacySettings() {
+  const collectionPublic = !!currentProfile?.collection_public;
+  const wishlistPublic = !!currentProfile?.wishlist_public;
+
+  // Settings page toggles
+  const collectionToggle = document.getElementById("settingsCollectionPublicToggle");
+  const wishlistToggle = document.getElementById("settingsWishlistPublicToggle");
+  if (collectionToggle) collectionToggle.checked = collectionPublic;
+  if (wishlistToggle) wishlistToggle.checked = wishlistPublic;
+
+  // Wishlist toolbar checkbox
+  const toolbarWishlistToggle = document.getElementById("wishlistPublicToggle");
+  if (toolbarWishlistToggle) toolbarWishlistToggle.checked = wishlistPublic;
+
+  // Copy link buttons — only show when public
+  const copyCollectionBtn = document.getElementById("settingsCopyCollectionUrlBtn");
+  const copyTrophiesBtn = document.getElementById("settingsCopyTrophiesUrlBtn");
+  const copyWishlistBtn = document.getElementById("settingsCopyWishlistUrlBtn");
+  if (copyCollectionBtn) copyCollectionBtn.hidden = !collectionPublic;
+  if (copyTrophiesBtn) copyTrophiesBtn.hidden = !collectionPublic;
+  if (copyWishlistBtn) copyWishlistBtn.hidden = !wishlistPublic;
 }
 
 async function handleShareWishlist() {
@@ -8490,12 +8524,64 @@ function setupEvents() {
       }
     });
 
-  // Wishlist: public/private toggle
+  // Wishlist: public/private toggle (toolbar)
   document
     .getElementById("wishlistPublicToggle")
     ?.addEventListener("change", () => handleWishlistPublicToggle());
 
-  // Wishlist: Share button
+  // Settings: Privacy & Sharing toggles
+  document
+    .getElementById("settingsCollectionPublicToggle")
+    ?.addEventListener("change", async (e) => {
+      const isPublic = e.target.checked;
+      const statusEl = document.getElementById("settingsPrivacyStatus");
+      try {
+        await saveProfileFields({ collection_public: isPublic });
+        syncPrivacySettings();
+        statusEl.textContent = isPublic ? "Collection is now public." : "Collection is now private.";
+        statusEl.className = "form-status form-status-success";
+        setTimeout(() => { statusEl.textContent = ""; }, 2500);
+      } catch (err) {
+        console.error("Failed to save collection_public:", err);
+        e.target.checked = !isPublic;
+        statusEl.textContent = "Couldn't save. Has the collection_share_migration.sql been run in Supabase?";
+        statusEl.className = "form-status form-status-error";
+      }
+    });
+
+  document
+    .getElementById("settingsWishlistPublicToggle")
+    ?.addEventListener("change", async (e) => {
+      const isPublic = e.target.checked;
+      const statusEl = document.getElementById("settingsPrivacyStatus");
+      try {
+        await saveProfileFields({ wishlist_public: isPublic });
+        syncPrivacySettings();
+        statusEl.textContent = isPublic ? "Wishlist is now public." : "Wishlist is now private.";
+        statusEl.className = "form-status form-status-success";
+        setTimeout(() => { statusEl.textContent = ""; }, 2500);
+      } catch (err) {
+        console.error("Failed to save wishlist_public:", err);
+        e.target.checked = !isPublic;
+        statusEl.textContent = "Couldn't save. Please try again.";
+        statusEl.className = "form-status form-status-error";
+      }
+    });
+
+  // Settings: copy link buttons
+  document
+    .getElementById("settingsCopyCollectionUrlBtn")
+    ?.addEventListener("click", (e) => copyShareUrl(getCollectionShareUrl(), e.currentTarget));
+
+  document
+    .getElementById("settingsCopyTrophiesUrlBtn")
+    ?.addEventListener("click", (e) => copyShareUrl(getTrophiesShareUrl(), e.currentTarget));
+
+  document
+    .getElementById("settingsCopyWishlistUrlBtn")
+    ?.addEventListener("click", (e) => copyShareUrl(getWishlistShareUrl(), e.currentTarget));
+
+  // Wishlist: Share button (toolbar)
   document
     .getElementById("shareWishlistBtn")
     .addEventListener("click", () => handleShareWishlist());
