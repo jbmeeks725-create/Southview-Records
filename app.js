@@ -10969,10 +10969,18 @@ function setupAuth() {
 function maybeShowOnboarding() {
   const screen = document.getElementById("onboardingScreen");
 
+  // Never show onboarding again once the user has dismissed it
+  if (localStorage.getItem("spin-onboarding-done") === "true") {
+    screen.hidden = true;
+    return;
+  }
+
   if (allRecords.length === 0 && wishlist.length === 0) {
     showOnboardingStep(1);
     screen.hidden = false;
   } else {
+    // They have data — they've been here before, mark onboarding done
+    localStorage.setItem("spin-onboarding-done", "true");
     screen.hidden = true;
   }
 }
@@ -10985,6 +10993,7 @@ function showOnboardingStep(step) {
 }
 
 function dismissOnboarding() {
+  localStorage.setItem("spin-onboarding-done", "true");
   document.getElementById("onboardingScreen").hidden = true;
 }
 
