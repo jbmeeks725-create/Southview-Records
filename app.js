@@ -5724,7 +5724,6 @@ function setPage(page) {
   const roomBtn = document.getElementById("roomPageBtn");
   const tasteProfileBtn = document.getElementById("tasteProfilePageBtn");
   const genreEvolutionBtn = document.getElementById("genreEvolutionPageBtn");
-  const fellowCollectorsBtn = document.getElementById("fellowCollectorsPageBtn");
   const trophiesBtn = document.getElementById("trophiesPageBtn");
 
   const homeSection = document.getElementById("homeSection");
@@ -5733,7 +5732,6 @@ function setPage(page) {
   const roomSection = document.getElementById("roomSection");
   const tasteProfileSection = document.getElementById("tasteProfileSection");
   const genreEvolutionSection = document.getElementById("genreEvolutionSection");
-  const fellowCollectorsSection = document.getElementById("fellowCollectorsSection");
   const trophiesSection = document.getElementById("trophiesSection");
   const collectionDnaSection = document.getElementById("collectionDnaSection");
   const atAGlanceSection = document.getElementById("atAGlanceSection");
@@ -5750,7 +5748,6 @@ function setPage(page) {
   const isRoom = page === "room";
   const isTasteProfile = page === "tasteProfile";
   const isGenreEvolution = page === "genreEvolution";
-  const isFellowCollectors = page === "fellowCollectors";
   const isTrophies = page === "trophies";
 
   [
@@ -5760,7 +5757,6 @@ function setPage(page) {
     [roomBtn, isRoom],
     [tasteProfileBtn, isTasteProfile],
     [genreEvolutionBtn, isGenreEvolution],
-    [fellowCollectorsBtn, isFellowCollectors],
     [trophiesBtn, isTrophies],
   ].forEach(([btn, active]) => {
     btn.classList.toggle("active", active);
@@ -5773,14 +5769,13 @@ function setPage(page) {
   roomSection.hidden = !isRoom;
   tasteProfileSection.hidden = !isTasteProfile;
   genreEvolutionSection.hidden = !isGenreEvolution;
-  fellowCollectorsSection.hidden = !isFellowCollectors;
   trophiesSection.hidden = !isTrophies;
   collectionDnaSection.hidden = !isCollection;
   atAGlanceSection.hidden = !isCollection;
   document.getElementById("cardSectionHeader").hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
-  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isFellowCollectors || isTrophies;
+  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies;
   pageNav.hidden = isProfile || isSettings;
 
   if (isProfile) {
@@ -8189,10 +8184,6 @@ function setupEvents() {
     .addEventListener("click", () => setPage("genreEvolution"));
 
   document
-    .getElementById("fellowCollectorsPageBtn")
-    .addEventListener("click", () => setPage("fellowCollectors"));
-
-  document
     .getElementById("trophiesPageBtn")
     .addEventListener("click", () => setPage("trophies"));
 
@@ -10483,6 +10474,7 @@ function showOnboardingStep(step) {
   document.getElementById("onboardingStep1").hidden = step !== 1;
   document.getElementById("onboardingStep2").hidden = step !== 2;
   document.getElementById("onboardingStep3").hidden = step !== 3;
+  document.getElementById("onboardingStep4").hidden = step !== 4;
 }
 
 function dismissOnboarding() {
@@ -10492,6 +10484,19 @@ function dismissOnboarding() {
 let onboardingDestination = null;
 
 function goToOnboardingDestination() {
+  // If the user chose a meaningful destination (import or add manually),
+  // show a brief "Getting Started" step 4 that confirms what's about to
+  // happen and builds excitement before dropping them into the app.
+  // "Explore first" goes straight through — no friction for that path.
+  if (onboardingDestination === "import" || onboardingDestination === "add") {
+    renderOnboardingStep4();
+    showOnboardingStep(4);
+  } else {
+    launchIntoApp();
+  }
+}
+
+function launchIntoApp() {
   dismissOnboarding();
 
   if (onboardingDestination === "import") {
@@ -10505,6 +10510,40 @@ function goToOnboardingDestination() {
   }
 
   onboardingDestination = null;
+}
+
+function renderOnboardingStep4() {
+  const iconEl = document.getElementById("onboardStep4Icon");
+  const titleEl = document.getElementById("onboardStep4Title");
+  const descEl = document.getElementById("onboardStep4Desc");
+  const tipsEl = document.getElementById("onboardStep4Tips");
+  const btn = document.getElementById("onboardStep4Btn");
+
+  if (onboardingDestination === "import") {
+    iconEl.innerHTML = '<i class="ti ti-brand-discogs" aria-hidden="true"></i>';
+    titleEl.textContent = "Let's bring in your collection";
+    descEl.textContent = "In a moment you'll upload your Discogs export. Here's what happens next:";
+    tipsEl.innerHTML = `
+      <li>Your records import instantly — artist, title, year, label, and condition</li>
+      <li>Your Collection DNA and Taste Profile populate automatically</li>
+      <li>You can rate albums, add cover art, and write your story for each one</li>
+      <li>The more you add, the better your recommendations get</li>
+    `;
+    btn.textContent = "Import my collection →";
+  } else {
+    iconEl.innerHTML = '<i class="ti ti-disc" aria-hidden="true"></i>';
+    titleEl.textContent = "Let's add your first record";
+    descEl.textContent = "Start with a record you love — we'll build from there. Here's what you can do:";
+    tipsEl.innerHTML = `
+      <li>Scan a barcode or search by artist and album</li>
+      <li>Rate it, add cover art, and write your story</li>
+      <li>Add a few more and your Taste Profile starts to take shape</li>
+      <li>You can always import from Discogs later if you have a bigger collection</li>
+    `;
+    btn.textContent = "Add my first record →";
+  }
+
+  btn.onclick = () => launchIntoApp();
 }
 
 async function handleOnboardingBasicsSubmit(event) {
