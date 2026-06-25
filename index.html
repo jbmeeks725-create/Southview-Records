@@ -803,6 +803,59 @@
             </div>
           </form>
         </div>
+
+        <div class="profile-card settings-privacy-card">
+          <div class="profile-card-header">
+            <h2>Privacy &amp; Sharing</h2>
+          </div>
+          <p class="field-hint">Control what others can see when you share a link. Private by default — enable to generate a shareable URL.</p>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">My Collection</span>
+              <span class="privacy-toggle-desc">Let anyone with the link browse your full record collection</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Make collection public">
+                <input type="checkbox" id="settingsCollectionPublicToggle" />
+                <span class="privacy-switch-track"></span>
+              </label>
+              <button type="button" id="settingsCopyCollectionUrlBtn" class="btn-text privacy-copy-btn" hidden>
+                <i class="ti ti-copy" aria-hidden="true"></i> Copy link
+              </button>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">My Trophies</span>
+              <span class="privacy-toggle-desc">Share your trophy case — uses the same setting as Collection</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <button type="button" id="settingsCopyTrophiesUrlBtn" class="btn-text privacy-copy-btn" hidden>
+                <i class="ti ti-copy" aria-hidden="true"></i> Copy link
+              </button>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">My Wishlist</span>
+              <span class="privacy-toggle-desc">Let anyone with the link see what you're hunting for</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Make wishlist public">
+                <input type="checkbox" id="settingsWishlistPublicToggle" />
+                <span class="privacy-switch-track"></span>
+              </label>
+              <button type="button" id="settingsCopyWishlistUrlBtn" class="btn-text privacy-copy-btn" hidden>
+                <i class="ti ti-copy" aria-hidden="true"></i> Copy link
+              </button>
+            </div>
+          </div>
+
+          <p id="settingsPrivacyStatus" class="form-status"></p>
+        </div>
       </div>
     </div>
   </section>

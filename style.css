@@ -745,7 +745,112 @@ header {
   margin: 0.5rem 0 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #f9fafb;
+}
+
+/* Privacy & Sharing card */
+.settings-privacy-card {
+  grid-column: 1 / -1;
+}
+
+.privacy-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.privacy-toggle-row:last-of-type {
+  border-bottom: none;
+}
+
+.privacy-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.privacy-toggle-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f3e3c3;
+}
+
+.privacy-toggle-desc {
+  font-size: 0.75rem;
+  color: rgba(243, 227, 195, 0.45);
+  line-height: 1.4;
+}
+
+.privacy-toggle-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Toggle switch */
+.privacy-switch {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.privacy-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.privacy-switch-track {
+  display: block;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: background 0.2s ease, border-color 0.2s ease;
+  position: relative;
+}
+
+.privacy-switch-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.privacy-switch input:checked + .privacy-switch-track {
+  background: rgba(202, 161, 90, 0.7);
+  border-color: #caa15a;
+}
+
+.privacy-switch input:checked + .privacy-switch-track::after {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+.privacy-copy-btn {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  color: #caa15a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.privacy-copy-btn:hover {
+  color: #f0d090;
 }
 
 .profile-card-header {
