@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>SPIN VINYL — Share Diagnostic</title>
+  <style>
+    body { font-family: monospace; background: #0b0c0f; color: #f3e3c3; padding: 2rem; }
+    pre { background: #111; padding: 1rem; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; font-size: 0.85rem; }
+    .ok { color: #4ade80; }
+    .err { color: #f87171; }
+    .warn { color: #fbbf24; }
+    h2 { color: #caa15a; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <h1>SPIN VINYL Share Diagnostic</h1>
+  <p>Testing anon Supabase access for collection sharing.</p>
+  <div id="out"></div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://wdgiskawukblqgapkmig.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkZ2lza2F3dWtibHFnYXBrbWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDk5MzQxMTQsImV4cCI6MjAyNTUxMDExNH0.pKzmO1tXVYHxbU7eBxHRrS1RO7LalWBSQkIBBbCFb5E";
+const TEST_UID = "7450ce03-630d-487a-ab59-60a0c7ccab74";
+
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const out = document.getElementById("out");
+
+function log(label, data, isErr) {
+  const h = document.createElement("h2");
+  h.textContent = label;
+  const pre = document.createElement("pre");
+  pre.className = isErr ? "err" : "ok";
+  pre.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+  out.appendChild(h);
+  out.appendChild(pre);
+}
+
+async function run() {
+  log("Test UID", TEST_UID);
+
+  // Step 1: profile
+  log("Step 1: Fetch profile (anon)", "querying...");
+  const { data: profile, error: profileError } = await client
+    .from("profiles")
+    .select("preferred_name, username, collection_public, wishlist_public")
+    .eq("user_id", TEST_UID)
+    .maybeSingle();
+
+  if (profileError) {
+    log("Profile ERROR", profileError, true);
+  } else if (!profile) {
+    log("Profile", "NULL — no row returned. RLS blocking anon read.", true);
+  } else {
+    log("Profile OK", profile);
+    log("collection_public value", String(profile.collection_public));
+  }
+
+  // Step 2: records with join
+  log("Step 2: Fetch records with genre join (anon)", "querying...");
+  const { data: records, error: recordsError } = await client
+    .from("records")
+    .select("id, artist, album, year, genres ( name ), subgenres ( name )")
+    .eq("user_id", TEST_UID)
+    .limit(3);
+
+  if (recordsError) {
+    log("Records ERROR", recordsError, true);
+    log("Records error detail", { message: recordsError.message, code: recordsError.code, details: recordsError.details, hint: recordsError.hint }, true);
+  } else {
+    log("Records OK — first 3", records);
+  }
+
+  // Step 3: records simple (no join)
+  log("Step 3: Fetch records simple, no join (anon)", "querying...");
+  const { data: records2, error: recordsError2 } = await client
+    .from("records")
+    .select("id, artist, album")
+    .eq("user_id", TEST_UID)
+    .limit(3);
+
+  if (recordsError2) {
+    log("Records simple ERROR", recordsError2, true);
+  } else {
+    log("Records simple OK", records2);
+  }
+}
+
+run().catch(e => log("Uncaught error", e, true));
+</script>
+</body>
+</html>
