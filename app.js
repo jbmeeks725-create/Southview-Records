@@ -7139,9 +7139,11 @@ function syncPrivacySettings() {
   // Copy link buttons — only show when public
   const copyCollectionBtn = document.getElementById("settingsCopyCollectionUrlBtn");
   const copyTrophiesBtn = document.getElementById("settingsCopyTrophiesUrlBtn");
+  const trophiesLinkedBadge = document.getElementById("settingsTrophiesLinkedBadge");
   const copyWishlistBtn = document.getElementById("settingsCopyWishlistUrlBtn");
   if (copyCollectionBtn) copyCollectionBtn.hidden = !collectionPublic;
   if (copyTrophiesBtn) copyTrophiesBtn.hidden = !collectionPublic;
+  if (trophiesLinkedBadge) trophiesLinkedBadge.hidden = !collectionPublic;
   if (copyWishlistBtn) copyWishlistBtn.hidden = !wishlistPublic;
 }
 

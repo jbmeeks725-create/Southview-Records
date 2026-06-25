@@ -853,6 +853,15 @@ header {
   color: #f0d090;
 }
 
+.privacy-linked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: rgba(202, 161, 90, 0.5);
+  letter-spacing: 0.03em;
+}
+
 .profile-card-header {
   display: flex;
   align-items: center;
