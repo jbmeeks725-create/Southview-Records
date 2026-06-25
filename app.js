@@ -7015,7 +7015,7 @@ function getCollectionShareUrl() {
   return (
     window.location.origin +
     window.location.pathname +
-    "?share=collection&uid=" +
+    "#share=collection&uid=" +
     (currentUser?.id || "")
   );
 }
@@ -7024,7 +7024,7 @@ function getTrophiesShareUrl() {
   return (
     window.location.origin +
     window.location.pathname +
-    "?share=trophies&uid=" +
+    "#share=trophies&uid=" +
     (currentUser?.id || "")
   );
 }
@@ -7098,7 +7098,7 @@ function getWishlistShareUrl() {
   return (
     window.location.origin +
     window.location.pathname +
-    "?share=wishlist&uid=" +
+    "#share=wishlist&uid=" +
     (currentUser?.id || "")
   );
 }
@@ -7201,7 +7201,11 @@ async function handleShareWishlist() {
 // policy allows reads when wishlist_public = true.
 
 function getSharedViewParams() {
-  const params = new URLSearchParams(window.location.search);
+  // Hash-based params survive GitHub Pages redirects intact.
+  // Supports both #share=X&uid=Y (new) and ?share=X&uid=Y (legacy).
+  const hash = window.location.hash.slice(1);
+  const search = window.location.search;
+  const params = new URLSearchParams(hash || search);
   const share = params.get("share");
   const uid = params.get("uid");
   if ((share === "wishlist" || share === "collection" || share === "trophies") && uid) {
