@@ -46,6 +46,346 @@
       });
     }
   </script>
+
+  <!-- ── Mobile UX overrides (max-width: 768px) — desktop untouched ── -->
+  <style>
+  @media (max-width: 768px) {
+
+    /* ── 1. Hide desktop horizontal nav, replaced by bottom nav ── */
+    #controls {
+      display: none !important;
+    }
+
+    /* ── 2. Bottom navigation bar ── */
+    #mobileBottomNav {
+      display: flex;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 58px;
+      background: #0d0d11;
+      border-top: 1px solid #1e1c24;
+      z-index: 900;
+      align-items: stretch;
+    }
+    .mob-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      padding: 6px 0 8px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mob-nav-icon {
+      font-size: 18px;
+      line-height: 1;
+      color: #6b6470;
+      transition: color 0.15s;
+    }
+    .mob-nav-label {
+      font-size: 9px;
+      color: #6b6470;
+      font-family: Inter, sans-serif;
+      transition: color 0.15s;
+    }
+    .mob-nav-item.active .mob-nav-icon,
+    .mob-nav-item.active .mob-nav-label {
+      color: #c9a84c;
+    }
+    .mob-nav-pip {
+      width: 4px; height: 4px;
+      border-radius: 50%;
+      background: #c9a84c;
+      margin-top: 2px;
+    }
+
+    /* ── 3. Push page content above bottom nav ── */
+    body {
+      padding-bottom: 68px;
+    }
+
+    /* ── 4. Compact the suggestions card to a single inline strip ── */
+    .wishlist-suggestions-card {
+      padding: 10px 12px !important;
+    }
+    .wishlist-suggestions-header {
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 10px !important;
+    }
+    .wishlist-suggestions-header > div:first-child {
+      flex: 1;
+      min-width: 0;
+    }
+    .wishlist-suggestions-title {
+      font-size: 13px !important;
+      margin-bottom: 0 !important;
+    }
+    .wishlist-suggestions-header .field-hint {
+      display: none !important;
+    }
+    .wishlist-suggestions-actions {
+      flex-direction: row !important;
+      gap: 6px !important;
+      flex-shrink: 0;
+    }
+    #clearDismissedSuggestionsBtn {
+      display: none !important;
+    }
+    .wishlist-suggestions-btn {
+      padding: 6px 10px !important;
+      font-size: 12px !important;
+      white-space: nowrap;
+    }
+
+    /* ── 5. Collapse the 3 wishlist filter dropdowns + toolbar actions ── */
+    /* Hide the desktop toolbar actions row on mobile */
+    #wishlistSection .page-toolbar-actions {
+      display: none !important;
+    }
+    /* Show only search + our mobile filter button in the filter row */
+    #wishlistSection .page-toolbar {
+      flex-direction: column !important;
+      gap: 8px !important;
+    }
+    #wishlistFilters {
+      display: flex !important;
+      gap: 8px !important;
+      align-items: center !important;
+    }
+    #wishlistSearchInput {
+      flex: 1 !important;
+    }
+    /* Hide the 3 dropdowns — they move to the bottom sheet */
+    #wishlistGenreFilter,
+    #wishlistSubgenreFilter,
+    #wishlistSortSelect {
+      display: none !important;
+    }
+    /* Mobile filter button injected via JS */
+    #mobileWishlistFilterBtn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #1e1c24;
+      border: 1px solid #2a2830;
+      border-radius: 6px;
+      padding: 7px 11px;
+      font-size: 12px;
+      color: #e8e0d0;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: Inter, sans-serif;
+      flex-shrink: 0;
+    }
+    #mobileWishlistFilterBtn .mob-filter-dot {
+      width: 6px; height: 6px;
+      background: #c9a84c;
+      border-radius: 50%;
+      display: none;
+    }
+    #mobileWishlistFilterBtn.has-filters .mob-filter-dot {
+      display: block;
+    }
+
+    /* ── 6. Filter bottom sheet ── */
+    #mobileFilterSheet {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 910;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    #mobileFilterSheet.visible {
+      display: flex;
+    }
+    .mob-sheet-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+    }
+    .mob-sheet-body {
+      position: relative;
+      background: #1a1820;
+      border-radius: 16px 16px 0 0;
+      border-top: 1px solid #2a2830;
+      padding: 16px 16px 32px;
+      z-index: 1;
+    }
+    .mob-sheet-handle {
+      width: 36px; height: 4px;
+      background: #2a2830;
+      border-radius: 2px;
+      margin: 0 auto 14px;
+    }
+    .mob-sheet-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #c9a84c;
+      font-family: Jost, sans-serif;
+      margin-bottom: 14px;
+    }
+    .mob-sheet-label {
+      font-size: 11px;
+      color: #6b6470;
+      margin-bottom: 4px;
+      margin-top: 10px;
+      display: block;
+    }
+    .mob-sheet-select {
+      width: 100%;
+      background: #0d0d11;
+      border: 1px solid #2a2830;
+      border-radius: 6px;
+      padding: 9px 10px;
+      font-size: 13px;
+      color: #e8e0d0;
+      font-family: Inter, sans-serif;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .mob-sheet-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .mob-sheet-clear {
+      flex: 1;
+      background: transparent;
+      border: 1px solid #2a2830;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 13px;
+      color: #6b6470;
+      cursor: pointer;
+      font-family: Inter, sans-serif;
+    }
+    .mob-sheet-apply {
+      flex: 2;
+      background: #c9a84c;
+      border: none;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #0d0d11;
+      cursor: pointer;
+      font-family: Inter, sans-serif;
+    }
+
+    /* ── 7. FAB button ── */
+    #mobileFab {
+      display: flex;
+      position: fixed;
+      bottom: 70px;
+      right: 18px;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: #c9a84c;
+      color: #0d0d11;
+      font-size: 28px;
+      font-weight: 300;
+      border: none;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(201,168,76,0.45);
+      z-index: 905;
+      transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1), background 0.18s ease;
+      line-height: 1;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #mobileFab.open {
+      transform: rotate(45deg);
+      background: #5a5570;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    /* FAB only visible in wishlist section */
+    #mobileFab { display: none; }
+    body.wishlist-active #mobileFab { display: flex; }
+
+    /* ── 8. FAB backdrop ── */
+    #mobileFabBackdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 903;
+    }
+    #mobileFabBackdrop.visible { display: block; }
+
+    /* ── 9. FAB option buttons ── */
+    #mobileFabOptions {
+      position: fixed;
+      bottom: 134px;
+      right: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-end;
+      z-index: 904;
+      pointer-events: none;
+    }
+    .mob-fab-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      transform: translateY(10px) scale(0.95);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      pointer-events: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mob-fab-option:nth-child(1) { transition-delay: 0.05s; }
+    .mob-fab-option:nth-child(2) { transition-delay: 0.01s; }
+    .mob-fab-option.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: all;
+    }
+    .mob-fab-label {
+      background: #1e1c24;
+      border: 1px solid #2e2b38;
+      border-radius: 20px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #e8e0d0;
+      white-space: nowrap;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+      font-family: Inter, sans-serif;
+    }
+    .mob-fab-icon {
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    }
+    .mob-fab-icon.gold  { background: #c9a84c; }
+    .mob-fab-icon.slate { background: #1e1c24; border: 1px solid #2e2b38; }
+
+  }
+
+  /* Hide bottom nav on desktop */
+  @media (min-width: 769px) {
+    #mobileBottomNav,
+    #mobileFab,
+    #mobileFabBackdrop,
+    #mobileFabOptions,
+    #mobileFilterSheet,
+    #mobileWishlistFilterBtn { display: none !important; }
+  }
+  </style>
 </head>
 <body>
   <!-- Shared wishlist public view (shown instead of app when ?share=wishlist&uid=... is detected) -->
@@ -606,7 +946,30 @@
       </div>
     </div>
   </header>
-  <section id="controls">
+
+  <!-- ── Mobile bottom navigation (hidden on desktop via CSS) ── -->
+  <nav id="mobileBottomNav" aria-label="Main navigation" style="display:none">
+    <button type="button" class="mob-nav-item" id="mobNavHome" aria-label="Home">
+      <i class="ti ti-home mob-nav-icon"></i>
+      <span class="mob-nav-label">Home</span>
+    </button>
+    <button type="button" class="mob-nav-item" id="mobNavCollection" aria-label="My Collection">
+      <i class="ti ti-disc mob-nav-icon"></i>
+      <span class="mob-nav-label">Collection</span>
+    </button>
+    <button type="button" class="mob-nav-item" id="mobNavWishlist" aria-label="My Wishlist">
+      <i class="ti ti-heart mob-nav-icon"></i>
+      <span class="mob-nav-label">Wishlist</span>
+    </button>
+    <button type="button" class="mob-nav-item" id="mobNavTaste" aria-label="My Taste Profile">
+      <i class="ti ti-chart-radar mob-nav-icon"></i>
+      <span class="mob-nav-label">Taste</span>
+    </button>
+    <button type="button" class="mob-nav-item" id="mobNavRoom" aria-label="My Listening Room">
+      <i class="ti ti-armchair mob-nav-icon"></i>
+      <span class="mob-nav-label">Room</span>
+    </button>
+  </nav>
     <nav id="pageNav" role="group" aria-label="Page">
       <button type="button" id="homePageBtn" class="view-btn" aria-pressed="false">Home</button>
       <button type="button" id="collectionPageBtn" class="view-btn" aria-pressed="false">My Collection</button>
@@ -1270,6 +1633,11 @@
           <option value="year-desc">Year: Newest first</option>
           <option value="year-asc">Year: Oldest first</option>
         </select>
+        <!-- Mobile-only filter button — shown via CSS only on small screens -->
+        <button type="button" id="mobileWishlistFilterBtn" aria-label="Filter and sort">
+          <i class="ti ti-adjustments-horizontal"></i> Filter
+          <span class="mob-filter-dot"></span>
+        </button>
       </div>
       <div class="page-toolbar-actions">
         <div class="wishlist-public-toggle">
@@ -2331,7 +2699,6 @@
   <!-- Barcode scanning -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-
   <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -2341,5 +2708,251 @@
   <!-- Supabase JS (client-side) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script src="app.js"></script>
+
+  <!-- ── Mobile FAB (Wishlist) ── -->
+  <div id="mobileFabBackdrop"></div>
+    <div class="mob-fab-option" id="mobFabManual" role="button" tabindex="0" aria-label="Add manually">
+      <span class="mob-fab-label">Add Manually</span>
+      <span class="mob-fab-icon gold"><i class="ti ti-pencil"></i></span>
+    </div>
+    <div class="mob-fab-option" id="mobFabScanner" role="button" tabindex="0" aria-label="Barcode scanner">
+      <span class="mob-fab-label">Barcode Scanner</span>
+      <span class="mob-fab-icon slate"><i class="ti ti-scan"></i></span>
+    </div>
+  </div>
+  <button type="button" id="mobileFab" aria-label="Add to wishlist" aria-expanded="false">+</button>
+
+  <!-- ── Mobile filter bottom sheet ── -->
+  <div id="mobileFilterSheet" role="dialog" aria-modal="true" aria-label="Filter and sort">
+    <div class="mob-sheet-backdrop" id="mobileFilterSheetBackdrop"></div>
+    <div class="mob-sheet-body">
+      <div class="mob-sheet-handle"></div>
+      <div class="mob-sheet-title">Filter &amp; Sort</div>
+      <span class="mob-sheet-label">Genre</span>
+      <select class="mob-sheet-select" id="mobileGenreFilter">
+        <option value="">All genres</option>
+      </select>
+      <span class="mob-sheet-label">Subgenre</span>
+      <select class="mob-sheet-select" id="mobileSubgenreFilter">
+        <option value="">All subgenres</option>
+      </select>
+      <span class="mob-sheet-label">Sort by</span>
+      <select class="mob-sheet-select" id="mobileSortSelect">
+        <option value="added-desc">Recently added</option>
+        <option value="added-asc">Oldest added</option>
+        <option value="artist-asc">Artist: A–Z</option>
+        <option value="artist-desc">Artist: Z–A</option>
+        <option value="album-asc">Album: A–Z</option>
+        <option value="album-desc">Album: Z–A</option>
+        <option value="year-desc">Year: Newest first</option>
+        <option value="year-asc">Year: Oldest first</option>
+      </select>
+      <div class="mob-sheet-actions">
+        <button type="button" class="mob-sheet-clear" id="mobileFilterClear">Clear all</button>
+        <button type="button" class="mob-sheet-apply" id="mobileFilterApply">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Mobile UX JavaScript ── -->
+  <script>
+  (function () {
+    // Only wire up on mobile — mirrors the CSS breakpoint
+    function isMobile() { return window.innerWidth <= 768; }
+
+    // ── Helpers to map desktop nav button IDs to bottom nav IDs ──
+    const NAV_MAP = {
+      mobNavHome:       'homePageBtn',
+      mobNavCollection: 'collectionPageBtn',
+      mobNavWishlist:   'wishlistPageBtn',
+      mobNavTaste:      'tasteProfilePageBtn',
+      mobNavRoom:       'roomPageBtn',
+    };
+
+    function setActiveTab(activeId) {
+      document.querySelectorAll('.mob-nav-item').forEach(btn => {
+        btn.classList.remove('active');
+        // Remove existing pip
+        const pip = btn.querySelector('.mob-nav-pip');
+        if (pip) pip.remove();
+      });
+      const activeBtn = document.getElementById(activeId);
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+        const pip = document.createElement('span');
+        pip.className = 'mob-nav-pip';
+        activeBtn.appendChild(pip);
+      }
+      // Toggle wishlist-active on body so FAB shows only on wishlist
+      document.body.classList.toggle('wishlist-active', activeId === 'mobNavWishlist');
+    }
+
+    // Wire bottom nav buttons → desktop nav buttons
+    Object.entries(NAV_MAP).forEach(([mobId, desktopId]) => {
+      const mobBtn = document.getElementById(mobId);
+      if (!mobBtn) return;
+      mobBtn.addEventListener('click', () => {
+        const desktopBtn = document.getElementById(desktopId);
+        if (desktopBtn) desktopBtn.click();
+        setActiveTab(mobId);
+      });
+    });
+
+    // Mirror active state: watch which desktop view-btn gets aria-pressed=true
+    // so that external JS (e.g. deep links) keeps mobile nav in sync
+    const desktopNav = document.getElementById('pageNav');
+    if (desktopNav) {
+      const observer = new MutationObserver(() => {
+        const active = desktopNav.querySelector('.view-btn[aria-pressed="true"]');
+        if (!active) return;
+        const mobId = Object.keys(NAV_MAP).find(k => NAV_MAP[k] === active.id);
+        if (mobId) setActiveTab(mobId);
+      });
+      observer.observe(desktopNav, { attributes: true, subtree: true, attributeFilter: ['aria-pressed'] });
+    }
+
+    // ── FAB (+ button) ──
+    const fab         = document.getElementById('mobileFab');
+    const fabBackdrop = document.getElementById('mobileFabBackdrop');
+    const fabOptions  = document.getElementById('mobileFabOptions');
+    const optScanner  = document.getElementById('mobFabScanner');
+    const optManual   = document.getElementById('mobFabManual');
+
+    function openFab() {
+      fab.classList.add('open');
+      fab.setAttribute('aria-expanded', 'true');
+      fabBackdrop.classList.add('visible');
+      requestAnimationFrame(() => {
+        fabOptions.querySelectorAll('.mob-fab-option').forEach(o => o.classList.add('visible'));
+      });
+    }
+    function closeFab() {
+      fab.classList.remove('open');
+      fab.setAttribute('aria-expanded', 'false');
+      fabBackdrop.classList.remove('visible');
+      fabOptions.querySelectorAll('.mob-fab-option').forEach(o => o.classList.remove('visible'));
+    }
+
+    if (fab) {
+      fab.addEventListener('click', () => fab.classList.contains('open') ? closeFab() : openFab());
+      fabBackdrop.addEventListener('click', closeFab);
+    }
+
+    // Barcode scanner option → clicks the real #scanInStoreBtn
+    if (optScanner) {
+      optScanner.addEventListener('click', () => {
+        closeFab();
+        setTimeout(() => {
+          const btn = document.getElementById('scanInStoreBtn');
+          if (btn) btn.click();
+        }, 120);
+      });
+      optScanner.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') optScanner.click(); });
+    }
+
+    // Add Manually option → clicks the real #addWishlistBtn
+    if (optManual) {
+      optManual.addEventListener('click', () => {
+        closeFab();
+        setTimeout(() => {
+          const btn = document.getElementById('addWishlistBtn');
+          if (btn) btn.click();
+        }, 120);
+      });
+      optManual.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') optManual.click(); });
+    }
+
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeFab(); closeFilterSheet(); } });
+
+    // ── Filter bottom sheet ──
+    const filterSheet        = document.getElementById('mobileFilterSheet');
+    const filterSheetBackdrop = document.getElementById('mobileFilterSheetBackdrop');
+    const filterBtn          = document.getElementById('mobileWishlistFilterBtn');
+    const mobileGenre        = document.getElementById('mobileGenreFilter');
+    const mobileSubgenre     = document.getElementById('mobileSubgenreFilter');
+    const mobileSort         = document.getElementById('mobileSortSelect');
+
+    // Mirror genre/subgenre options from the real selects once they're populated
+    function syncSheetOptions() {
+      const srcGenre    = document.getElementById('wishlistGenreFilter');
+      const srcSubgenre = document.getElementById('wishlistSubgenreFilter');
+      if (srcGenre && mobileGenre && mobileGenre.options.length <= 1) {
+        mobileGenre.innerHTML = srcGenre.innerHTML;
+      }
+      if (srcSubgenre && mobileSubgenre && mobileSubgenre.options.length <= 1) {
+        mobileSubgenre.innerHTML = srcSubgenre.innerHTML;
+      }
+    }
+
+    function openFilterSheet() {
+      syncSheetOptions();
+      // Pre-select current values from real selects
+      const sg = document.getElementById('wishlistGenreFilter');
+      const ss = document.getElementById('wishlistSubgenreFilter');
+      const so = document.getElementById('wishlistSortSelect');
+      if (sg) mobileGenre.value    = sg.value;
+      if (ss) mobileSubgenre.value = ss.value;
+      if (so) mobileSort.value     = so.value;
+      filterSheet.classList.add('visible');
+    }
+    function closeFilterSheet() {
+      filterSheet.classList.remove('visible');
+    }
+    function updateFilterDot() {
+      const sg = document.getElementById('wishlistGenreFilter');
+      const ss = document.getElementById('wishlistSubgenreFilter');
+      const hasActive = (sg && sg.value) || (ss && ss.value);
+      filterBtn && filterBtn.classList.toggle('has-filters', !!hasActive);
+    }
+
+    if (filterBtn)          filterBtn.addEventListener('click', openFilterSheet);
+    if (filterSheetBackdrop) filterSheetBackdrop.addEventListener('click', closeFilterSheet);
+
+    document.getElementById('mobileFilterApply')?.addEventListener('click', () => {
+      // Push values back to real selects and trigger change events
+      const sg = document.getElementById('wishlistGenreFilter');
+      const ss = document.getElementById('wishlistSubgenreFilter');
+      const so = document.getElementById('wishlistSortSelect');
+      if (sg) { sg.value = mobileGenre.value;    sg.dispatchEvent(new Event('change')); }
+      if (ss) { ss.value = mobileSubgenre.value; ss.dispatchEvent(new Event('change')); }
+      if (so) { so.value = mobileSort.value;     so.dispatchEvent(new Event('change')); }
+      updateFilterDot();
+      closeFilterSheet();
+    });
+
+    document.getElementById('mobileFilterClear')?.addEventListener('click', () => {
+      mobileGenre.value    = '';
+      mobileSubgenre.value = '';
+      mobileSort.value     = 'added-desc';
+      const sg = document.getElementById('wishlistGenreFilter');
+      const ss = document.getElementById('wishlistSubgenreFilter');
+      const so = document.getElementById('wishlistSortSelect');
+      if (sg) { sg.value = '';           sg.dispatchEvent(new Event('change')); }
+      if (ss) { ss.value = '';           ss.dispatchEvent(new Event('change')); }
+      if (so) { so.value = 'added-desc'; so.dispatchEvent(new Event('change')); }
+      updateFilterDot();
+      closeFilterSheet();
+    });
+
+    // Watch real selects for external changes (e.g. clicking genre from DNA card)
+    ['wishlistGenreFilter','wishlistSubgenreFilter'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', updateFilterDot);
+    });
+
+    // Initial active tab — detect which view-btn is already active on load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!isMobile()) return;
+      const active = document.querySelector('#pageNav .view-btn[aria-pressed="true"]');
+      if (active) {
+        const mobId = Object.keys(NAV_MAP).find(k => NAV_MAP[k] === active.id);
+        if (mobId) setActiveTab(mobId);
+      } else {
+        setActiveTab('mobNavHome'); // default
+      }
+    });
+
+  })();
+  </script>
+
 </body>
 </html>
