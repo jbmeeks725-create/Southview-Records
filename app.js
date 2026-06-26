@@ -6706,6 +6706,223 @@ const ADD_WISHLIST_SCAN_CONFIG = {
   },
 };
 
+// In-store scan config — goes to Album Intel modal instead of a form
+const IN_STORE_SCAN_CONFIG = {
+  videoId: "inStoreScannerVideo",
+  wrapId: "albumIntelScannerState",
+  btnId: "scanInStoreBtn",
+  cancelBtnId: "cancelInStoreScanBtn",
+  statusId: "inStoreScanStatus",
+  onResult: (result) => showAlbumIntel(result),
+};
+
+// ============================================================
+// Album Intel Modal
+// ============================================================
+
+let albumIntelPendingResult = null;
+
+function openAlbumIntelModal() {
+  document.getElementById("albumIntelOverlay").hidden = false;
+  document.body.style.overflow = "hidden";
+  showAlbumIntelState("scanner");
+  startBarcodeScan(IN_STORE_SCAN_CONFIG);
+}
+
+function closeAlbumIntelModal() {
+  stopBarcodeScan();
+  document.getElementById("albumIntelOverlay").hidden = true;
+  document.body.style.overflow = "";
+  albumIntelPendingResult = null;
+  document.getElementById("albumIntelActionStatus").textContent = "";
+}
+
+function showAlbumIntelState(state) {
+  document.getElementById("albumIntelScannerState").hidden = state !== "scanner";
+  document.getElementById("albumIntelLoadingState").hidden = state !== "loading";
+  document.getElementById("albumIntelResultState").hidden = state !== "result";
+}
+
+async function showAlbumIntel(result) {
+  showAlbumIntelState("loading");
+  document.getElementById("albumIntelLoadingText").textContent = "Looking up album...";
+
+  // Start with what the barcode lookup already gave us
+  let intel = {
+    artist: result.artist || null,
+    album: result.album || null,
+    year: result.year || null,
+    label: result.label || null,
+    genre: result.genre || null,
+    cover_url: result.cover_url || null,
+    description: null,
+    discogs_release_id: result.discogs_release_id || null,
+    lowest_price: null,
+    median_price: null,
+    currency: "USD",
+  };
+
+  // Try to enrich with Discogs pricing if we have a release ID
+  if (intel.discogs_release_id) {
+    try {
+      document.getElementById("albumIntelLoadingText").textContent = "Fetching pricing data...";
+      const priceRes = await fetch(DISCOGS_LOOKUP_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ release_id: intel.discogs_release_id, action: "price" }),
+      });
+      if (priceRes.ok) {
+        const priceData = await priceRes.json();
+        if (priceData.lowest_price) intel.lowest_price = priceData.lowest_price;
+        if (priceData.median_price) intel.median_price = priceData.median_price;
+        if (priceData.currency) intel.currency = priceData.currency;
+      }
+    } catch { /* pricing is optional — fail silently */ }
+  }
+
+  // If MusicBrainz gave us a description, use it
+  if (!intel.description && intel.artist && intel.album) {
+    try {
+      document.getElementById("albumIntelLoadingText").textContent = "Fetching album info...";
+      const mbResults = await mbSearchRelease(intel.artist, intel.album);
+      if (mbResults.length > 0 && mbResults[0].rgMbid && !intel.cover_url) {
+        const coverUrl = await mbFetchCoverUrlByGroup(mbResults[0].rgMbid);
+        if (coverUrl) intel.cover_url = coverUrl;
+      }
+    } catch { /* fail silently */ }
+  }
+
+  albumIntelPendingResult = intel;
+  renderAlbumIntel(intel);
+  showAlbumIntelState("result");
+}
+
+function renderAlbumIntel(intel) {
+  // Cover art
+  const coverImg = document.getElementById("albumIntelCover");
+  const coverPlaceholder = document.getElementById("albumIntelCoverPlaceholder");
+  if (intel.cover_url) {
+    coverImg.src = intel.cover_url;
+    coverImg.hidden = false;
+    coverPlaceholder.hidden = true;
+  } else {
+    coverImg.hidden = true;
+    coverPlaceholder.hidden = false;
+  }
+
+  // Text
+  document.getElementById("albumIntelArtist").textContent = intel.artist || "";
+  document.getElementById("albumIntelTitle").textContent = intel.album || "Unknown Album";
+
+  // Meta pills — year, label, genre
+  const metaEl = document.getElementById("albumIntelMeta");
+  metaEl.innerHTML = "";
+  [intel.year, intel.label, intel.genre].filter(Boolean).forEach((val) => {
+    const pill = document.createElement("span");
+    pill.className = "album-intel-meta-pill";
+    pill.textContent = val;
+    metaEl.appendChild(pill);
+  });
+
+  // Description
+  const descEl = document.getElementById("albumIntelDescription");
+  descEl.textContent = intel.description || "";
+  descEl.hidden = !intel.description;
+
+  // Pricing
+  const pricingEl = document.getElementById("albumIntelPricing");
+  const pricingText = document.getElementById("albumIntelPricingText");
+  if (intel.lowest_price || intel.median_price) {
+    const parts = [];
+    if (intel.lowest_price) parts.push(`From ${intel.currency} ${intel.lowest_price}`);
+    if (intel.median_price) parts.push(`median ${intel.currency} ${intel.median_price}`);
+    pricingText.textContent = parts.join(" · ") + " on Discogs";
+    pricingEl.hidden = false;
+  } else {
+    pricingEl.hidden = true;
+  }
+}
+
+async function albumIntelAddToWishlist() {
+  const intel = albumIntelPendingResult;
+  if (!intel) return;
+  const statusEl = document.getElementById("albumIntelActionStatus");
+  statusEl.textContent = "Adding to wishlist...";
+
+  try {
+    const payload = {
+      user_id: currentUser.id,
+      artist: intel.artist,
+      album: intel.album,
+      year: intel.year || null,
+      label: intel.label || null,
+      cover_url: intel.cover_url || null,
+      discogs_release_id: intel.discogs_release_id || null,
+    };
+    const { error } = await supabaseClient.from("wishlist").insert(payload);
+    if (error) throw error;
+    statusEl.textContent = "✓ Added to wishlist!";
+    statusEl.className = "form-status form-status-success";
+    await loadData();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't add to wishlist. Try again.";
+    statusEl.className = "form-status form-status-error";
+  }
+}
+
+async function albumIntelAddToCollection() {
+  const intel = albumIntelPendingResult;
+  if (!intel) return;
+
+  // Close modal and open Add Record form pre-filled
+  closeAlbumIntelModal();
+  openAddRecordModal();
+
+  if (intel.artist) document.getElementById("fieldArtist").value = intel.artist;
+  if (intel.album) document.getElementById("fieldAlbum").value = intel.album;
+  if (intel.year) document.getElementById("fieldYear").value = intel.year;
+  if (intel.label) document.getElementById("fieldLabel").value = intel.label;
+  if (intel.cover_url) {
+    pendingScannedCoverUrl = intel.cover_url;
+    setCoverPreview(intel.cover_url);
+  }
+}
+
+function setupAlbumIntelModal() {
+  document.getElementById("scanInStoreBtn")
+    ?.addEventListener("click", () => openAlbumIntelModal());
+
+  document.getElementById("albumIntelCloseBtn")
+    ?.addEventListener("click", () => closeAlbumIntelModal());
+
+  document.getElementById("albumIntelOverlay")
+    ?.addEventListener("click", (e) => {
+      if (e.target.id === "albumIntelOverlay") closeAlbumIntelModal();
+    });
+
+  document.getElementById("cancelInStoreScanBtn")
+    ?.addEventListener("click", () => closeAlbumIntelModal());
+
+  document.getElementById("albumIntelAddWishlistBtn")
+    ?.addEventListener("click", () => albumIntelAddToWishlist());
+
+  document.getElementById("albumIntelAddCollectionBtn")
+    ?.addEventListener("click", () => albumIntelAddToCollection());
+
+  document.getElementById("albumIntelScanAgainBtn")
+    ?.addEventListener("click", () => {
+      albumIntelPendingResult = null;
+      document.getElementById("albumIntelActionStatus").textContent = "";
+      showAlbumIntelState("scanner");
+      startBarcodeScan(IN_STORE_SCAN_CONFIG);
+    });
+}
+
 // ------------ Add Record ------------
 
 async function getOrCreateGenreId(genreNameRaw) {
@@ -9076,6 +9293,8 @@ async function loadData() {
 
 // 6. Wire up events
 function setupEvents() {
+  setupAlbumIntelModal();
+
   // Trophy lightbox
   document.getElementById("trophyLightboxClose")
     .addEventListener("click", closeTrophyLightbox);
