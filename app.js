@@ -9832,7 +9832,14 @@ async function loadData() {
       })) || [];
 
     renderFilters();
-    render();
+
+    // If #admin hash is present and user is owner, show admin panel instead of home
+    if (window.location.hash === "#admin" && isOwner()) {
+      setPage("admin");
+      loadAdminFeedback();
+    } else {
+      render();
+    }
 
     // Background: silently fetch cover art for records missing it.
     // 2s delay ensures the UI is fully rendered and responsive first.
@@ -12823,12 +12830,13 @@ async function setupAdmin() {
   // Activate via #admin hash
   function checkAdminHash() {
     if (window.location.hash === "#admin") {
-      showPage("admin");
+      setPage("admin");
       loadAdminFeedback();
     }
   }
   window.addEventListener("hashchange", checkAdminHash);
-  checkAdminHash();
+  // Don't call checkAdminHash() here — loadData handles the initial hash.
+  // hashchange handles subsequent navigation to #admin.
 
   // Wire filter + refresh
   document.getElementById("adminTypeFilter")?.addEventListener("change", loadAdminFeedback);
