@@ -474,6 +474,27 @@ header {
   border-radius: 999px;
   padding: 6px 10px 6px 12px;
   max-width: 380px;
+
+/* Clickable info section (track + cover + dot) */
+.header-now-playing-info-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: opacity 0.15s ease;
+  text-align: left;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.header-now-playing-info-btn:hover {
+  opacity: 0.75;
+}
+
   min-width: 0;
 }
 

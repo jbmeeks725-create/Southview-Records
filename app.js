@@ -9167,6 +9167,10 @@ function setupEvents() {
     .addEventListener("click", () => setPage("room"));
 
   document
+    .getElementById("headerNowPlayingRoomLink")
+    ?.addEventListener("click", () => setPage("room"));
+
+  document
     .getElementById("tasteProfilePageBtn")
     .addEventListener("click", () => setPage("tasteProfile"));
 
