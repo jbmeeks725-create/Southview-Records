@@ -10068,7 +10068,7 @@ function setupLandingVideoCarousel(videoEl, files) {
 // Take a Tour
 // ============================================================
 
-const TOUR_TOTAL = 5;
+const TOUR_TOTAL = 6;
 let tourCurrentStep = 1;
 
 function openTour() {
