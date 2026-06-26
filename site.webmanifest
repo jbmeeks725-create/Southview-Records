@@ -1,11 +1,14 @@
 {
-  "name": "Spin Vinyl",
-  "short_name": "Spin Vinyl",
-  "description": "Your vinyl record collection, on the go.",
-  "start_url": ".",
+  "name": "SPIN VINYL",
+  "short_name": "SPIN VINYL",
+  "description": "The digital home for your vinyl collection",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#0b0c0f",
   "theme_color": "#0b0c0f",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
   "icons": [
     {
       "src": "icon-192.png",
@@ -18,6 +21,31 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "categories": ["music", "entertainment", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "My Collection",
+      "short_name": "Collection",
+      "description": "Browse your vinyl collection",
+      "url": "/#collection",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Wishlist",
+      "short_name": "Wishlist",
+      "description": "View your vinyl wishlist",
+      "url": "/#wishlist",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
