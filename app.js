@@ -12773,7 +12773,7 @@ function setupFeedback() {
 
     try {
       // Get the live session JWT — the anon key won't pass auth.getUser() in the Edge Function
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabaseClient.auth.getSession();
       const jwt = session?.access_token;
       if (!jwt) throw new Error("Not authenticated");
 
