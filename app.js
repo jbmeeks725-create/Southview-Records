@@ -6181,10 +6181,43 @@ async function startBarcodeScan(scanConfig) {
   const scanStatus = document.getElementById(scanConfig.statusId);
   const scanBtn = document.getElementById(scanConfig.btnId);
 
-  scanStatus.textContent = "Point camera at barcode";
+  scanStatus.textContent = "Starting camera…";
   scanStatus.className = "form-status";
   scannerWrap.hidden = false;
   scanBtn.hidden = true;
+
+  // Step 1: Request camera permission explicitly FIRST.
+  // iOS Safari requires a clean getUserMedia call to show the permission prompt.
+  // If we skip this and go straight to html5QrCode.start(), iOS silently fails.
+  try {
+    const testStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+    });
+    // Permission granted — stop the test stream immediately, the library
+    // will open its own stream in Step 2.
+    testStream.getTracks().forEach((t) => t.stop());
+  } catch (permErr) {
+    const isDenied =
+      permErr.name === "NotAllowedError" ||
+      permErr.name === "PermissionDeniedError";
+
+    if (isDenied) {
+      scanStatus.innerHTML =
+        "Camera access was denied. To fix this:<br>" +
+        "<strong>iPhone:</strong> Settings → Safari → Camera → Allow<br>" +
+        "<strong>Android:</strong> tap the camera icon in the address bar.";
+    } else {
+      scanStatus.textContent =
+        "No camera found. Make sure your device has a camera and try again.";
+    }
+    scanStatus.className = "form-status form-status-error";
+    scannerWrap.hidden = true;
+    scanBtn.hidden = false;
+    return;
+  }
+
+  // Step 2: Permission confirmed — start the barcode library.
+  scanStatus.textContent = "Point camera at barcode";
 
   html5QrCode = new Html5Qrcode(scanConfig.videoId);
 
@@ -6207,11 +6240,7 @@ async function startBarcodeScan(scanConfig) {
     ],
   };
 
-  // Try camera access in order of preference.
-  // iOS Safari rejects { exact: "environment" } before permission is granted,
-  // so we progressively relax constraints until something works.
   const attempts = [
-    // Attempt 1: ideal rear camera with HD + continuous focus
     {
       cameraId: { facingMode: "environment" },
       config: {
@@ -6223,12 +6252,10 @@ async function startBarcodeScan(scanConfig) {
         },
       },
     },
-    // Attempt 2: basic rear camera, no extra constraints
     {
       cameraId: { facingMode: "environment" },
       config: baseConfig,
     },
-    // Attempt 3: any camera (works on desktop, some restricted iOS contexts)
     {
       cameraId: { facingMode: "user" },
       config: baseConfig,
@@ -6242,23 +6269,24 @@ async function startBarcodeScan(scanConfig) {
         attempt.cameraId,
         attempt.config,
         (decodedText) => onBarcodeDetected(decodedText),
-        () => {} // per-frame failure — normal
+        () => {}
       );
       started = true;
       addTorchButton(scanConfig);
       break;
     } catch (err) {
       console.warn("[Scanner] Attempt failed:", err?.message || err);
-      // Clean up between attempts
       try { html5QrCode.clear(); } catch {}
       html5QrCode = new Html5Qrcode(scanConfig.videoId);
     }
   }
 
   if (!started) {
-    scanStatus.textContent = "Couldn't access camera. Please check that Safari has camera permission in Settings → Safari → Camera.";
+    scanStatus.innerHTML =
+      "Camera couldn't start. Try closing other apps using the camera, then tap Scan again.";
     scanStatus.className = "form-status form-status-error";
-    stopBarcodeScan();
+    scannerWrap.hidden = true;
+    scanBtn.hidden = false;
   }
 }
 
