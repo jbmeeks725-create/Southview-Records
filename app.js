@@ -6307,6 +6307,7 @@ function setPage(page) {
   const isTasteProfile = page === "tasteProfile";
   const isGenreEvolution = page === "genreEvolution";
   const isTrophies = page === "trophies";
+  const isAdmin = page === "admin";
 
   [
     [homeBtn, isHome],
@@ -6333,8 +6334,10 @@ function setPage(page) {
   document.getElementById("cardSectionHeader").hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
+  const adminSection = document.getElementById("adminSection");
+  if (adminSection) adminSection.hidden = !isAdmin;
   statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies;
-  pageNav.hidden = isProfile || isSettings;
+  pageNav.hidden = isProfile || isSettings || isAdmin;
 
   if (isProfile) {
     renderProfile();
@@ -12772,24 +12775,19 @@ function setupFeedback() {
     statusEl.className = "form-status";
 
     try {
-      // Get the live session JWT — the anon key won't pass auth.getUser() in the Edge Function
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      const jwt = session?.access_token;
-      if (!jwt) throw new Error("Not authenticated");
-
       const res = await fetch(FEEDBACK_FUNCTION_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${jwt}`,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           type,
           message,
-          username: currentProfile?.username || null,
-          url: window.location.href,
-          user_agent: navigator.userAgent,
+          page: document.title,
+          user_email: currentUser?.email || null,
+          user_id: currentUser?.id || null,
         }),
       });
 
@@ -12811,6 +12809,110 @@ function setupFeedback() {
   });
 }
 
+
+// ── Admin Panel ────────────────────────────────────────────────────────────────
+const OWNER_USER_ID = "7450ce03-630d-487a-ab59-60a0c7ccab74";
+
+function isOwner() {
+  return currentUser?.id === OWNER_USER_ID;
+}
+
+async function setupAdmin() {
+  if (!isOwner()) return;
+
+  // Activate via #admin hash
+  function checkAdminHash() {
+    if (window.location.hash === "#admin") {
+      showPage("admin");
+      loadAdminFeedback();
+    }
+  }
+  window.addEventListener("hashchange", checkAdminHash);
+  checkAdminHash();
+
+  // Wire filter + refresh
+  document.getElementById("adminTypeFilter")?.addEventListener("change", loadAdminFeedback);
+  document.getElementById("adminRefreshBtn")?.addEventListener("click", loadAdminFeedback);
+}
+
+async function loadAdminFeedback() {
+  if (!isOwner()) return;
+
+  const listEl    = document.getElementById("adminFeedbackList");
+  const emptyEl   = document.getElementById("adminEmpty");
+  const errorEl   = document.getElementById("adminError");
+  const subtitleEl = document.getElementById("adminSubtitle");
+  const typeFilter = document.getElementById("adminTypeFilter")?.value || "";
+
+  listEl.innerHTML = "<p style=\"color:#6b6470;font-size:13px;padding:20px 0\">Loading…</p>";
+  emptyEl.hidden = true;
+  errorEl.hidden = true;
+
+  try {
+    let query = supabaseClient
+      .from("feedback")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (typeFilter) query = query.eq("type", typeFilter);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    listEl.innerHTML = "";
+
+    if (!data || data.length === 0) {
+      emptyEl.hidden = false;
+      subtitleEl.textContent = "No feedback yet.";
+      return;
+    }
+
+    // Counts by type
+    const counts = data.reduce((acc, r) => {
+      acc[r.type] = (acc[r.type] || 0) + 1;
+      return acc;
+    }, {});
+    const countStr = Object.entries(counts)
+      .map(([t, n]) => `${n} ${t}`)
+      .join(" · ");
+    subtitleEl.textContent = `${data.length} total — ${countStr}`;
+
+    const TYPE_LABELS = { bug: "🐛 Bug", feature: "✨ Feature idea", general: "💬 General" };
+
+    data.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "admin-card";
+
+      const date = new Date(item.created_at).toLocaleString("en-US", {
+        month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+        hour12: true, timeZone: "America/New_York"
+      });
+
+      const escapedMsg = item.message
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+      card.innerHTML = `
+        <div class="admin-card-header">
+          <span class="admin-type-badge ${item.type}">${TYPE_LABELS[item.type] || item.type}</span>
+          <span class="admin-card-user">${item.username || "anonymous"}</span>
+          <span class="admin-card-meta">${date} ET</span>
+        </div>
+        <p class="admin-card-message">${escapedMsg}</p>
+        ${item.url ? `<p class="admin-card-url">📍 ${item.url}</p>` : ""}
+      `;
+      listEl.appendChild(card);
+    });
+
+  } catch (err) {
+    console.error("[Admin] Failed to load feedback:", err);
+    listEl.innerHTML = "";
+    errorEl.hidden = false;
+    subtitleEl.textContent = "Error loading feedback.";
+  }
+}
+// ── End Admin Panel ─────────────────────────────────────────────────────────────
+
 // 7. Initialize
 document.addEventListener("DOMContentLoaded", async () => {
   // Check for shared wishlist URL first — if detected, show the public
@@ -12829,5 +12931,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupAuth();
   setupSpotify();
   setupFeedback();
+  setupAdmin();
   startHeaderNowPlayingPolling();
 });
