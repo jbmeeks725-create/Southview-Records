@@ -7297,3 +7297,170 @@ body.shared-wishlist-mode {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ============================================================
+   Feedback
+   ============================================================ */
+
+.feedback-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 300;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #caa15a;
+  border: none;
+  color: #0a0a0a;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(202, 161, 90, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.feedback-fab:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(202, 161, 90, 0.55);
+  background: #d4b06a;
+}
+
+.feedback-fab:active {
+  transform: scale(0.96);
+}
+
+.feedback-modal {
+  background: #0d1117;
+  border: 1px solid rgba(202, 161, 90, 0.2);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  padding: 1.5rem;
+  animation: modalFadeIn 0.2s ease;
+}
+
+.feedback-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.feedback-modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f3e3c3;
+  margin: 0;
+}
+
+.feedback-modal-desc {
+  font-size: 0.82rem;
+  color: rgba(243, 227, 195, 0.5);
+  margin: 0 0 1.25rem;
+}
+
+.feedback-type-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.feedback-type-option {
+  display: flex;
+  align-items: center;
+}
+
+.feedback-type-option input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.feedback-type-option span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(243, 227, 195, 0.6);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  user-select: none;
+}
+
+.feedback-type-option input:checked + span {
+  border-color: #caa15a;
+  color: #caa15a;
+  background: rgba(202, 161, 90, 0.1);
+}
+
+.feedback-type-option span:hover {
+  border-color: rgba(202, 161, 90, 0.4);
+  color: rgba(243, 227, 195, 0.85);
+}
+
+.feedback-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #f3e3c3;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.feedback-textarea:focus {
+  outline: none;
+  border-color: rgba(202, 161, 90, 0.4);
+}
+
+.feedback-char-count {
+  text-align: right;
+  font-size: 0.68rem;
+  color: rgba(243, 227, 195, 0.3);
+  margin: 3px 0 0;
+}
+
+.feedback-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+.feedback-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 1.5rem 0;
+  color: #4ade80;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.feedback-success i {
+  font-size: 2.5rem;
+}
+
+@media (max-width: 480px) {
+  .feedback-fab {
+    bottom: 16px;
+    right: 16px;
+  }
+}

@@ -1567,6 +1567,69 @@
     </div>
   </div>
 
+  <!-- Feedback floating button -->
+  <button type="button" id="feedbackBtn" class="feedback-fab" aria-label="Send feedback" title="Send feedback">
+    <i class="ti ti-message-circle" aria-hidden="true"></i>
+  </button>
+
+  <!-- Feedback modal -->
+  <div id="feedbackOverlay" class="modal-overlay" hidden>
+    <div class="feedback-modal">
+      <div class="feedback-modal-header">
+        <h2 class="feedback-modal-title">Send feedback</h2>
+        <button type="button" id="feedbackCloseBtn" class="modal-close-btn" aria-label="Close">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+      <p class="feedback-modal-desc">Found a bug? Have an idea? We read everything.</p>
+
+      <form id="feedbackForm">
+        <div class="feedback-type-row">
+          <label class="feedback-type-option">
+            <input type="radio" name="feedbackType" value="bug" />
+            <span>🐛 Bug</span>
+          </label>
+          <label class="feedback-type-option">
+            <input type="radio" name="feedbackType" value="feature" checked />
+            <span>✨ Feature idea</span>
+          </label>
+          <label class="feedback-type-option">
+            <input type="radio" name="feedbackType" value="general" />
+            <span>💬 General</span>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <textarea
+            id="feedbackMessage"
+            class="feedback-textarea"
+            placeholder="Tell us what's on your mind..."
+            rows="4"
+            required
+            maxlength="2000"
+          ></textarea>
+          <p class="feedback-char-count"><span id="feedbackCharCount">0</span> / 2000</p>
+        </div>
+
+        <div id="feedbackStatus" class="form-status"></div>
+
+        <div class="feedback-modal-actions">
+          <button type="submit" id="feedbackSubmitBtn" class="btn-primary">
+            Send feedback
+          </button>
+          <button type="button" id="feedbackCancelBtn" class="btn-text">Cancel</button>
+        </div>
+      </form>
+
+      <div id="feedbackSuccessState" hidden>
+        <div class="feedback-success">
+          <i class="ti ti-circle-check" aria-hidden="true"></i>
+          <p>Thanks — we'll take a look!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="trophyLightbox" class="trophy-lightbox" hidden aria-modal="true" role="dialog">
     <div class="trophy-lightbox-backdrop"></div>
     <div class="trophy-lightbox-content">

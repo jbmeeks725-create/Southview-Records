@@ -6,6 +6,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_KkcpYXwoOXi2XVv-UqIoiw_5G8q21CT";
 const UPLOAD_COVER_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/upload-cover";
 const DISCOGS_LOOKUP_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/discogs-lookup";
 const RECOMMENDATIONS_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/get-recommendations";
+const FEEDBACK_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/submit-feedback";
 
 // ============================================================
 // Starter Collection — curated records shown to new users
@@ -12717,6 +12718,94 @@ function setupSplashScreen() {
   }, 4000);
 }
 
+// ============================================================
+// Feedback
+// ============================================================
+
+function setupFeedback() {
+  const btn = document.getElementById("feedbackBtn");
+  const overlay = document.getElementById("feedbackOverlay");
+  const form = document.getElementById("feedbackForm");
+  const closeBtn = document.getElementById("feedbackCloseBtn");
+  const cancelBtn = document.getElementById("feedbackCancelBtn");
+  const textarea = document.getElementById("feedbackMessage");
+  const charCount = document.getElementById("feedbackCharCount");
+  const statusEl = document.getElementById("feedbackStatus");
+  const successState = document.getElementById("feedbackSuccessState");
+  const submitBtn = document.getElementById("feedbackSubmitBtn");
+
+  function openFeedback() {
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
+    form.hidden = false;
+    successState.hidden = true;
+    form.reset();
+    charCount.textContent = "0";
+    statusEl.textContent = "";
+    textarea.focus();
+  }
+
+  function closeFeedback() {
+    overlay.hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  btn?.addEventListener("click", openFeedback);
+  closeBtn?.addEventListener("click", closeFeedback);
+  cancelBtn?.addEventListener("click", closeFeedback);
+  overlay?.addEventListener("click", (e) => {
+    if (e.target === overlay) closeFeedback();
+  });
+
+  textarea?.addEventListener("input", () => {
+    charCount.textContent = textarea.value.length;
+  });
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const type = form.querySelector("input[name=feedbackType]:checked")?.value || "general";
+    const message = textarea.value.trim();
+    if (!message) return;
+
+    submitBtn.disabled = true;
+    statusEl.textContent = "Sending…";
+    statusEl.className = "form-status";
+
+    try {
+      const res = await fetch(FEEDBACK_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          type,
+          message,
+          page: document.title,
+          user_email: currentUser?.email || null,
+          user_id: currentUser?.id || null,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      form.hidden = true;
+      successState.hidden = false;
+      setTimeout(() => closeFeedback(), 2500);
+    } catch (err) {
+      console.error("[Feedback]", err);
+      statusEl.textContent = "Couldn't send — please try again.";
+      statusEl.className = "form-status form-status-error";
+      submitBtn.disabled = false;
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !overlay?.hidden) closeFeedback();
+  });
+}
+
 // 7. Initialize
 document.addEventListener("DOMContentLoaded", async () => {
   // Check for shared wishlist URL first — if detected, show the public
@@ -12734,5 +12823,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupLandingPage();
   setupAuth();
   setupSpotify();
+  setupFeedback();
   startHeaderNowPlayingPolling();
 });
