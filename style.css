@@ -6210,6 +6210,286 @@ h1 {
   line-height: 1.5;
 }
 
+/* ---- Starter Collection (#10) ---- */
+.starter-collection {
+  width: 100%;
+  max-width: 900px;
+  margin-top: 2.5rem;
+  text-align: left;
+}
+
+.starter-collection-header {
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.starter-collection-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f3e3c3;
+  margin: 0 0 4px;
+}
+
+.starter-collection-desc {
+  font-size: 0.78rem;
+  color: rgba(243, 227, 195, 0.5);
+  margin: 0;
+}
+
+.starter-collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.starter-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s;
+  position: relative;
+}
+
+.starter-card:hover {
+  border-color: rgba(202, 161, 90, 0.3);
+}
+
+.starter-card-added {
+  border-color: rgba(202, 161, 90, 0.5);
+  background: rgba(202, 161, 90, 0.06);
+}
+
+.starter-card-cover {
+  aspect-ratio: 1;
+  background: rgba(202, 161, 90, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(202, 161, 90, 0.25);
+  font-size: 2rem;
+  overflow: hidden;
+}
+
+.starter-card-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.starter-card-info {
+  padding: 8px 10px 10px;
+  flex: 1;
+}
+
+.starter-card-album {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f3e3c3;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.starter-card-artist {
+  font-size: 0.7rem;
+  color: rgba(243, 227, 195, 0.5);
+  margin: 0 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.starter-card-genre {
+  font-size: 0.62rem;
+  background: rgba(202, 161, 90, 0.12);
+  color: #caa15a;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 600;
+}
+
+.starter-card-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(10, 10, 20, 0.75);
+  border: 1px solid rgba(202, 161, 90, 0.4);
+  color: #caa15a;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, transform 0.15s;
+  backdrop-filter: blur(4px);
+}
+
+.starter-card-btn:hover {
+  background: rgba(202, 161, 90, 0.2);
+  transform: scale(1.1);
+}
+
+.starter-card-btn-added {
+  background: rgba(202, 161, 90, 0.25);
+  border-color: #caa15a;
+  color: #caa15a;
+}
+
+/* ---- Record Shops (#11) ---- */
+.record-shops-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.record-shop-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(202, 161, 90, 0.06);
+  border: 1px solid rgba(202, 161, 90, 0.15);
+  border-radius: 6px;
+  padding: 7px 12px;
+}
+
+.record-shop-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f3e3c3;
+  flex: 1;
+}
+
+.record-shop-links {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.record-shop-link {
+  color: rgba(202, 161, 90, 0.6);
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+}
+
+.record-shop-link:hover {
+  color: #caa15a;
+}
+
+/* Shop editor in form */
+.record-shops-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.record-shops-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.record-shops-editor-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.record-shops-editor-name {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #f3e3c3;
+  flex: 1;
+}
+
+.record-shops-editor-url {
+  font-size: 0.72rem;
+  color: rgba(243, 227, 195, 0.4);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.record-shops-editor-remove {
+  background: none;
+  border: none;
+  color: rgba(243, 227, 195, 0.35);
+  cursor: pointer;
+  padding: 2px;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.record-shops-editor-remove:hover { color: #f87171; }
+
+.record-shops-add-row {
+  display: flex;
+  gap: 6px;
+}
+
+.record-shops-add-row input {
+  flex: 1;
+  padding: 7px 10px;
+  background: #0b1220;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  color: #f3e3c3;
+  font-size: 0.82rem;
+}
+
+/* ---- Cover Identify (#13) ---- */
+.cover-identify-video {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+  background: #000;
+}
+
+.cover-identify-canvas {
+  display: none;
+}
+
+.cover-identify-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.cover-identify-confidence {
+  font-size: 0.78rem;
+  margin: 4px 0 0;
+}
+
+.cover-identify-confidence-high { color: #4ade80; }
+.cover-identify-confidence-medium { color: #fbbf24; }
+.cover-identify-confidence-low { color: #f87171; }
+
+
+
 /* Discogs import guide */
 .import-discogs-guide {
   background: rgba(202, 161, 90, 0.06);

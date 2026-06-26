@@ -7,6 +7,134 @@ const UPLOAD_COVER_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/func
 const DISCOGS_LOOKUP_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/discogs-lookup";
 const RECOMMENDATIONS_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/get-recommendations";
 
+// ============================================================
+// Starter Collection — curated records shown to new users
+// ============================================================
+// Cover art from Cover Art Archive via release-group MBIDs.
+// Organised by genre so the grid feels balanced, not random.
+
+const STARTER_RECORDS = [
+  // Jazz
+  { artist: "Miles Davis", album: "Kind of Blue", year: 1959, genre: "Jazz", cover: "https://coverartarchive.org/release-group/8e8a594f-2175-38c7-a871-abb68ec363e7/front-250" },
+  { artist: "John Coltrane", album: "A Love Supreme", year: 1964, genre: "Jazz", cover: "https://coverartarchive.org/release-group/77cf47ba-58cd-3f3d-a5f9-79bf89860421/front-250" },
+  { artist: "Dave Brubeck", album: "Time Out", year: 1959, genre: "Jazz", cover: "https://coverartarchive.org/release-group/f9b4e0d6-0c4e-3adb-a94a-c9e8e8f0b9f3/front-250" },
+  { artist: "Art Blakey", album: "Moanin'", year: 1958, genre: "Jazz", cover: null },
+  // Rock
+  { artist: "Led Zeppelin", album: "Led Zeppelin IV", year: 1971, genre: "Rock", cover: "https://coverartarchive.org/release-group/2e61da88-39e9-3473-81d2-c964cb394952/front-250" },
+  { artist: "Fleetwood Mac", album: "Rumours", year: 1977, genre: "Rock", cover: "https://coverartarchive.org/release-group/416bb5e5-c7d1-3977-8fd7-7c9daf6c2be6/front-250" },
+  { artist: "The Beatles", album: "Abbey Road", year: 1969, genre: "Rock", cover: "https://coverartarchive.org/release-group/4162e65c-6a1b-3c5e-9b7b-d3e2c3b4e8f2/front-250" },
+  { artist: "Pink Floyd", album: "The Dark Side of the Moon", year: 1973, genre: "Rock", cover: null },
+  // Blues
+  { artist: "Robert Johnson", album: "King of the Delta Blues Singers", year: 1961, genre: "Blues", cover: null },
+  { artist: "Muddy Waters", album: "Hard Again", year: 1977, genre: "Blues", cover: null },
+  // Soul / R&B
+  { artist: "Marvin Gaye", album: "What's Going On", year: 1971, genre: "Soul", cover: "https://coverartarchive.org/release-group/d6f9c677-3c89-3a51-a924-d3e2a4b5c7f1/front-250" },
+  { artist: "Stevie Wonder", album: "Songs in the Key of Life", year: 1976, genre: "Soul", cover: null },
+  { artist: "Aretha Franklin", album: "I Never Loved a Man the Way I Love You", year: 1967, genre: "Soul", cover: null },
+  // Classical
+  { artist: "Glenn Gould", album: "Goldberg Variations", year: 1955, genre: "Classical", cover: null },
+  // Electronic / Experimental
+  { artist: "Kraftwerk", album: "Autobahn", year: 1974, genre: "Electronic", cover: null },
+  { artist: "Brian Eno", album: "Ambient 1: Music for Airports", year: 1978, genre: "Ambient", cover: null },
+  // Latin
+  { artist: "João Gilberto", album: "Getz/Gilberto", year: 1964, genre: "Bossa Nova", cover: null },
+  // Reggae
+  { artist: "Bob Marley", album: "Catch a Fire", year: 1973, genre: "Reggae", cover: null },
+  // Country / Folk
+  { artist: "Johnny Cash", album: "At Folsom Prison", year: 1968, genre: "Country", cover: null },
+  { artist: "Joni Mitchell", album: "Blue", year: 1971, genre: "Folk", cover: null },
+];
+
+async function renderStarterCollection() {
+  const grid = document.getElementById("starterCollectionGrid");
+  if (!grid) return;
+
+  // Group by genre
+  const byGenre = {};
+  STARTER_RECORDS.forEach((r) => {
+    if (!byGenre[r.genre]) byGenre[r.genre] = [];
+    byGenre[r.genre].push(r);
+  });
+
+  STARTER_RECORDS.forEach((record) => {
+    const card = document.createElement("div");
+    card.className = "starter-card";
+
+    const cover = document.createElement("div");
+    cover.className = "starter-card-cover";
+
+    if (record.cover) {
+      const img = document.createElement("img");
+      img.src = record.cover;
+      img.alt = record.album;
+      img.loading = "lazy";
+      img.onerror = () => {
+        img.remove();
+        cover.innerHTML = '<i class="ti ti-vinyl" aria-hidden="true"></i>';
+      };
+      cover.appendChild(img);
+    } else {
+      cover.innerHTML = '<i class="ti ti-vinyl" aria-hidden="true"></i>';
+    }
+
+    const info = document.createElement("div");
+    info.className = "starter-card-info";
+
+    const albumEl = document.createElement("p");
+    albumEl.className = "starter-card-album";
+    albumEl.textContent = record.album;
+
+    const artistEl = document.createElement("p");
+    artistEl.className = "starter-card-artist";
+    artistEl.textContent = record.artist;
+
+    const genrePill = document.createElement("span");
+    genrePill.className = "starter-card-genre";
+    genrePill.textContent = record.genre;
+
+    info.appendChild(albumEl);
+    info.appendChild(artistEl);
+    info.appendChild(genrePill);
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "starter-card-btn";
+    addBtn.innerHTML = '<i class="ti ti-heart" aria-hidden="true"></i>';
+    addBtn.setAttribute("aria-label", `Add ${record.album} to wishlist`);
+    addBtn.setAttribute("title", "Add to wishlist");
+
+    addBtn.addEventListener("click", async () => {
+      if (addBtn.dataset.added) return;
+      addBtn.disabled = true;
+      addBtn.innerHTML = '<i class="ti ti-loader" aria-hidden="true"></i>';
+      try {
+        const { error } = await supabaseClient.from("wishlist").insert({
+          user_id: currentUser.id,
+          artist: record.artist,
+          album: record.album,
+          year: record.year,
+          cover_url: record.cover || null,
+        });
+        if (error) throw error;
+        addBtn.dataset.added = "1";
+        addBtn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>';
+        addBtn.classList.add("starter-card-btn-added");
+        card.classList.add("starter-card-added");
+        await loadData();
+      } catch (err) {
+        console.error(err);
+        addBtn.disabled = false;
+        addBtn.innerHTML = '<i class="ti ti-heart" aria-hidden="true"></i>';
+      }
+    });
+
+    card.appendChild(cover);
+    card.appendChild(info);
+    card.appendChild(addBtn);
+    grid.appendChild(card);
+  });
+}
+
 // 2. Create Supabase client
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -402,12 +530,19 @@ function renderCards(filtered) {
           </button>
         </div>
         <p class="collection-empty-hint">Already on Discogs? Export your collection as a CSV and import it here — it takes about 60 seconds.</p>
+        <div class="starter-collection">
+          <div class="starter-collection-header">
+            <h4 class="starter-collection-title">Or seed your wishlist with some classics</h4>
+            <p class="starter-collection-desc">Tap any album to add it to your wishlist — a great way to start building your taste profile.</p>
+          </div>
+          <div class="starter-collection-grid" id="starterCollectionGrid"></div>
+        </div>
       `;
 
-      // Wire buttons after insert
       setTimeout(() => {
         document.getElementById("emptyStateImportBtn")?.addEventListener("click", () => openImportModal());
         document.getElementById("emptyStateAddBtn")?.addEventListener("click", () => openAddRecordModal());
+        renderStarterCollection();
       }, 0);
 
       grid.appendChild(emptyState);
@@ -1662,6 +1797,71 @@ function buildProfileField(label, value) {
   return row;
 }
 
+function buildRecordShopsRow(shops) {
+  const row = document.createElement("div");
+  row.className = "profile-field profile-field-stacked";
+
+  const labelEl = document.createElement("span");
+  labelEl.className = "profile-field-label";
+  labelEl.textContent = "My Favorite Record Shops";
+  row.appendChild(labelEl);
+
+  if (!shops || shops.length === 0) {
+    const emptyEl = document.createElement("span");
+    emptyEl.className = "profile-field-value profile-field-value-empty";
+    emptyEl.textContent = "Nothing here yet";
+    row.appendChild(emptyEl);
+    return row;
+  }
+
+  const list = document.createElement("div");
+  list.className = "record-shops-list";
+
+  shops.forEach((shop) => {
+    const name = typeof shop === "string" ? shop : shop.name;
+    const url = typeof shop === "object" ? shop.url : null;
+    if (!name) return;
+
+    const chip = document.createElement("div");
+    chip.className = "record-shop-chip";
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "record-shop-name";
+    nameEl.textContent = name;
+    chip.appendChild(nameEl);
+
+    const links = document.createElement("div");
+    links.className = "record-shop-links";
+
+    if (url) {
+      const siteLink = document.createElement("a");
+      siteLink.href = url.startsWith("http") ? url : `https://${url}`;
+      siteLink.target = "_blank";
+      siteLink.rel = "noopener noreferrer";
+      siteLink.className = "record-shop-link";
+      siteLink.innerHTML = '<i class="ti ti-world" aria-hidden="true"></i>';
+      siteLink.setAttribute("title", "Visit website");
+      links.appendChild(siteLink);
+    }
+
+    // Always add a Google Maps search link
+    const mapsLink = document.createElement("a");
+    mapsLink.href = `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
+    mapsLink.target = "_blank";
+    mapsLink.rel = "noopener noreferrer";
+    mapsLink.className = "record-shop-link";
+    mapsLink.innerHTML = '<i class="ti ti-map-pin" aria-hidden="true"></i>';
+    mapsLink.setAttribute("title", "Find on Google Maps");
+    links.appendChild(mapsLink);
+
+    chip.appendChild(links);
+    list.appendChild(chip);
+  });
+
+  row.appendChild(list);
+  return row;
+}
+
 function buildProfileTagRow(label, items, options) {
   const stacked = options?.stacked === true;
 
@@ -1763,6 +1963,14 @@ function renderWishlistPersonalityView() {
   view.appendChild(buildProfileField("My Best Score", p.my_best_score));
   view.appendChild(buildProfileField("My Guiltiest Pleasure", p.my_guilty_pleasure));
   view.appendChild(buildProfileTagRow("My Favorite Record Shops", p.my_record_shops, { stacked: true }));
+  // Upgraded shops from new jsonb column
+  const shops = p.record_shops || [];
+  if (shops.length > 0) {
+    // Replace the plain tag row with rich linked version
+    const lastChild = view.lastElementChild;
+    if (lastChild) lastChild.remove();
+    view.appendChild(buildRecordShopsRow(shops));
+  }
 }
 
 function renderSystemView() {
@@ -2220,7 +2428,64 @@ function fillWishlistPersonalityForm() {
   document.getElementById("wishWhaleInput").value = p.my_white_whale || "";
   document.getElementById("wishScoreInput").value = p.my_best_score || "";
   document.getElementById("wishGuiltyInput").value = p.my_guilty_pleasure || "";
-  setTagInputValues(document.getElementById("wishShopsTagInput"), p.my_record_shops || []);
+  populateShopsEditor(p.record_shops || []);
+}
+
+function populateShopsEditor(shops) {
+  const list = document.getElementById("recordShopsEditorList");
+  if (!list) return;
+  list.innerHTML = "";
+  shops.forEach((shop) => addShopEditorRow(list, shop.name, shop.url));
+}
+
+function addShopEditorRow(list, name, url) {
+  if (!name?.trim()) return;
+  const row = document.createElement("div");
+  row.className = "record-shops-editor-item";
+  row.dataset.name = name.trim();
+  row.dataset.url = url?.trim() || "";
+
+  const nameEl = document.createElement("span");
+  nameEl.className = "record-shops-editor-name";
+  nameEl.textContent = name.trim();
+
+  const urlEl = document.createElement("span");
+  urlEl.className = "record-shops-editor-url";
+  urlEl.textContent = url?.trim() || "No URL";
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "record-shops-editor-remove";
+  removeBtn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
+  removeBtn.addEventListener("click", () => row.remove());
+
+  row.appendChild(nameEl);
+  row.appendChild(urlEl);
+  row.appendChild(removeBtn);
+  list.appendChild(row);
+}
+
+function setupShopsEditor() {
+  document.getElementById("addShopBtn")?.addEventListener("click", () => {
+    const nameInput = document.getElementById("newShopNameInput");
+    const urlInput = document.getElementById("newShopUrlInput");
+    const name = nameInput.value.trim();
+    const url = urlInput.value.trim();
+    if (!name) { nameInput.focus(); return; }
+    const list = document.getElementById("recordShopsEditorList");
+    addShopEditorRow(list, name, url);
+    nameInput.value = "";
+    urlInput.value = "";
+    nameInput.focus();
+  });
+
+  // Allow pressing Enter in name field to trigger Add
+  document.getElementById("newShopNameInput")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      document.getElementById("addShopBtn")?.click();
+    }
+  });
 }
 
 function fillTasteForm() {
@@ -2301,12 +2566,19 @@ async function handleWishlistPersonalitySubmit(event) {
   statusEl.textContent = "Saving...";
   statusEl.className = "form-status";
   try {
+    // Collect shops from the editor
+    const shopRows = document.querySelectorAll(".record-shops-editor-item");
+    const recordShops = Array.from(shopRows).map((row) => ({
+      name: row.dataset.name,
+      url: row.dataset.url || null,
+    }));
+
     await saveProfileFields({
       my_grail: document.getElementById("wishGrailInput").value.trim() || null,
       my_white_whale: document.getElementById("wishWhaleInput").value.trim() || null,
       my_best_score: document.getElementById("wishScoreInput").value.trim() || null,
       my_guilty_pleasure: document.getElementById("wishGuiltyInput").value.trim() || null,
-      my_record_shops: getTagInputValues(document.getElementById("wishShopsTagInput")),
+      record_shops: recordShops,
     });
     statusEl.textContent = "Saved.";
     statusEl.className = "form-status form-status-success";
@@ -2481,6 +2753,7 @@ async function handleAvatarFileChange(event) {
 
 function setupProfile() {
   setupProfileSpotlights();
+  setupShopsEditor();
   document.getElementById("editBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", true));
   document.getElementById("cancelBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", false));
   document.getElementById("basicsForm").addEventListener("submit", handleBasicsSubmit);
@@ -6745,6 +7018,254 @@ const IN_STORE_SCAN_CONFIG = {
 };
 
 // ============================================================
+// Cover Identify — Google Lens-style album ID from photo (#13)
+// ============================================================
+// Flow: open camera → user taps "Identify" → capture frame as
+// base64 JPEG → send to Claude Vision API → parse artist/album
+// → look up on MusicBrainz → show Album Intel card
+
+let coverIdentifyStream = null;
+let coverIdentifyPendingResult = null;
+
+async function openCoverIdentifyModal() {
+  document.getElementById("coverIdentifyOverlay").hidden = false;
+  document.body.style.overflow = "hidden";
+  showCoverIdentifyState("camera");
+  await startCoverIdentifyCamera();
+}
+
+function closeCoverIdentifyModal() {
+  stopCoverIdentifyCamera();
+  document.getElementById("coverIdentifyOverlay").hidden = true;
+  document.body.style.overflow = "";
+  coverIdentifyPendingResult = null;
+  document.getElementById("coverIdentifyActionStatus").textContent = "";
+}
+
+function showCoverIdentifyState(state) {
+  document.getElementById("coverIdentifyCameraState").hidden = state !== "camera";
+  document.getElementById("coverIdentifyLoadingState").hidden = state !== "loading";
+  document.getElementById("coverIdentifyResultState").hidden = state !== "result";
+}
+
+async function startCoverIdentifyCamera() {
+  const video = document.getElementById("coverIdentifyVideo");
+  const statusEl = document.getElementById("coverIdentifyCameraStatus");
+
+  try {
+    coverIdentifyStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+    });
+    video.srcObject = coverIdentifyStream;
+  } catch (err) {
+    const denied = err.name === "NotAllowedError" || err.name === "PermissionDeniedError";
+    statusEl.textContent = denied
+      ? "Camera access denied. Check Settings → Safari → Camera."
+      : "Couldn't start camera. Try again.";
+    statusEl.className = "form-status form-status-error";
+  }
+}
+
+function stopCoverIdentifyCamera() {
+  coverIdentifyStream?.getTracks().forEach((t) => t.stop());
+  coverIdentifyStream = null;
+  const video = document.getElementById("coverIdentifyVideo");
+  video.srcObject = null;
+}
+
+async function captureAndIdentifyCover() {
+  const video = document.getElementById("coverIdentifyVideo");
+  const canvas = document.getElementById("coverIdentifyCanvas");
+
+  // Capture a frame from the video
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+
+  // Convert to base64 JPEG
+  const base64 = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+
+  stopCoverIdentifyCamera();
+  showCoverIdentifyState("loading");
+  document.getElementById("coverIdentifyLoadingText").textContent = "Analysing cover art…";
+
+  try {
+    // Ask Claude to identify the album
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 256,
+        messages: [{
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: { type: "base64", media_type: "image/jpeg", data: base64 },
+            },
+            {
+              type: "text",
+              text: "This is a photo of a vinyl record album cover. Identify the album. Reply with ONLY a JSON object with these fields: {\"artist\": \"...\", \"album\": \"...\", \"year\": 1234, \"confidence\": \"high|medium|low\"}. If you cannot identify the album, return {\"artist\": null, \"album\": null, \"confidence\": \"low\"}. No other text.",
+            },
+          ],
+        }],
+      }),
+    });
+
+    if (!response.ok) throw new Error(`API error ${response.status}`);
+    const data = await response.json();
+    const text = data.content?.[0]?.text || "";
+
+    let parsed;
+    try {
+      parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+    } catch {
+      throw new Error("Couldn't parse AI response");
+    }
+
+    if (!parsed.artist || !parsed.album) {
+      document.getElementById("coverIdentifyLoadingText").textContent = "Couldn't identify — trying again…";
+      showCoverIdentifyState("camera");
+      await startCoverIdentifyCamera();
+      document.getElementById("coverIdentifyCameraStatus").textContent =
+        "Couldn't identify that cover. Try a clearer angle or better lighting.";
+      document.getElementById("coverIdentifyCameraStatus").className = "form-status form-status-error";
+      return;
+    }
+
+    // Look up on MusicBrainz
+    document.getElementById("coverIdentifyLoadingText").textContent = "Looking up on MusicBrainz…";
+    const mbResults = await mbLookupByTitle(parsed.album, parsed.artist);
+
+    const intel = {
+      artist: parsed.artist,
+      album: parsed.album,
+      year: mbResults[0]?.year || parsed.year || null,
+      label: mbResults[0]?.label || null,
+      cover_url: null,
+      confidence: parsed.confidence || "medium",
+    };
+
+    // Fetch cover art
+    if (mbResults[0]?.mbid) {
+      let cover = await mbFetchCoverUrl(mbResults[0].mbid);
+      if (!cover && mbResults[0].rgMbid) cover = await mbFetchCoverUrlByGroup(mbResults[0].rgMbid);
+      if (cover) intel.cover_url = cover;
+    }
+
+    coverIdentifyPendingResult = intel;
+    renderCoverIdentifyResult(intel);
+    showCoverIdentifyState("result");
+
+  } catch (err) {
+    console.error("[CoverID]", err);
+    showCoverIdentifyState("camera");
+    await startCoverIdentifyCamera();
+    document.getElementById("coverIdentifyCameraStatus").textContent =
+      "Something went wrong. Check your connection and try again.";
+    document.getElementById("coverIdentifyCameraStatus").className = "form-status form-status-error";
+  }
+}
+
+function renderCoverIdentifyResult(intel) {
+  const coverImg = document.getElementById("coverIdentifyResultCover");
+  const placeholder = document.getElementById("coverIdentifyResultPlaceholder");
+  if (intel.cover_url) {
+    coverImg.src = intel.cover_url;
+    coverImg.hidden = false;
+    placeholder.hidden = true;
+  } else {
+    coverImg.hidden = true;
+    placeholder.hidden = false;
+  }
+
+  document.getElementById("coverIdentifyResultArtist").textContent = intel.artist || "";
+  document.getElementById("coverIdentifyResultTitle").textContent = intel.album || "Unknown Album";
+
+  const metaEl = document.getElementById("coverIdentifyResultMeta");
+  metaEl.innerHTML = "";
+  [intel.year, intel.label].filter(Boolean).forEach((val) => {
+    const pill = document.createElement("span");
+    pill.className = "album-intel-meta-pill";
+    pill.textContent = val;
+    metaEl.appendChild(pill);
+  });
+
+  const confEl = document.getElementById("coverIdentifyConfidence");
+  const confMap = { high: "✓ High confidence match", medium: "~ Medium confidence — please verify", low: "? Low confidence — please verify" };
+  confEl.textContent = confMap[intel.confidence] || "";
+  confEl.className = `cover-identify-confidence cover-identify-confidence-${intel.confidence}`;
+}
+
+async function coverIdentifyAddToWishlist() {
+  const intel = coverIdentifyPendingResult;
+  if (!intel) return;
+  const statusEl = document.getElementById("coverIdentifyActionStatus");
+  statusEl.textContent = "Adding to wishlist…";
+  try {
+    await supabaseClient.from("wishlist").insert({
+      user_id: currentUser.id,
+      artist: intel.artist,
+      album: intel.album,
+      year: intel.year || null,
+      cover_url: intel.cover_url || null,
+    });
+    statusEl.textContent = "✓ Added to wishlist!";
+    statusEl.className = "form-status form-status-success";
+    await loadData();
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't add. Try again.";
+    statusEl.className = "form-status form-status-error";
+  }
+}
+
+function setupCoverIdentifyModal() {
+  document.getElementById("identifyCoverBtn")
+    ?.addEventListener("click", () => openCoverIdentifyModal());
+
+  document.getElementById("coverIdentifyCloseBtn")
+    ?.addEventListener("click", () => closeCoverIdentifyModal());
+
+  document.getElementById("coverIdentifyOverlay")
+    ?.addEventListener("click", (e) => {
+      if (e.target.id === "coverIdentifyOverlay") closeCoverIdentifyModal();
+    });
+
+  document.getElementById("coverIdentifyCaptureBtn")
+    ?.addEventListener("click", () => captureAndIdentifyCover());
+
+  document.getElementById("coverIdentifyCancelBtn")
+    ?.addEventListener("click", () => closeCoverIdentifyModal());
+
+  document.getElementById("coverIdentifyTryAgainBtn")
+    ?.addEventListener("click", async () => {
+      coverIdentifyPendingResult = null;
+      showCoverIdentifyState("camera");
+      await startCoverIdentifyCamera();
+    });
+
+  document.getElementById("coverIdentifyAddWishlistBtn")
+    ?.addEventListener("click", () => coverIdentifyAddToWishlist());
+
+  document.getElementById("coverIdentifyAddCollectionBtn")
+    ?.addEventListener("click", () => {
+      const intel = coverIdentifyPendingResult;
+      if (!intel) return;
+      closeCoverIdentifyModal();
+      openAddRecordModal();
+      if (intel.artist) document.getElementById("fieldArtist").value = intel.artist;
+      if (intel.album) document.getElementById("fieldAlbum").value = intel.album;
+      if (intel.year) document.getElementById("fieldYear").value = intel.year;
+      if (intel.cover_url) {
+        pendingScannedCoverUrl = intel.cover_url;
+        setCoverPreview(intel.cover_url);
+      }
+    });
+}
+
+// ============================================================
 // Album Intel Modal
 // ============================================================
 
@@ -9322,6 +9843,7 @@ async function loadData() {
 // 6. Wire up events
 function setupEvents() {
   setupAlbumIntelModal();
+  setupCoverIdentifyModal();
 
   // Trophy lightbox
   document.getElementById("trophyLightboxClose")

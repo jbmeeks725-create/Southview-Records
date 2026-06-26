@@ -853,11 +853,15 @@
               <input type="text" id="wishGuiltyInput" placeholder="e.g. a soft spot for..." />
             </div>
             <div class="form-row">
-              <label for="wishShopsInput">My Favorite Record Shops</label>
-              <p class="field-hint">Sharing is caring!</p>
-              <div class="tag-input free-list-input" id="wishShopsTagInput">
-                <div class="tag-input-chips"></div>
-                <input type="text" id="wishShopsInput" placeholder="Type a shop name, press Enter..." autocomplete="off" />
+              <label>My Favorite Record Shops</label>
+              <p class="field-hint">Add shops you love — include a website URL if they have one.</p>
+              <div id="recordShopsEditor" class="record-shops-editor">
+                <div id="recordShopsEditorList" class="record-shops-editor-list"></div>
+                <div class="record-shops-add-row">
+                  <input type="text" id="newShopNameInput" placeholder="Shop name" autocomplete="off" />
+                  <input type="text" id="newShopUrlInput" placeholder="Website (optional)" autocomplete="off" />
+                  <button type="button" id="addShopBtn" class="btn-secondary">Add</button>
+                </div>
               </div>
             </div>
             <div id="wishlistPersonalityStatus" class="form-status"></div>
@@ -1279,6 +1283,9 @@
         <button type="button" id="scanInStoreBtn" class="btn-secondary">
           <i class="ti ti-scan" aria-hidden="true"></i> Scan in store
         </button>
+        <button type="button" id="identifyCoverBtn" class="btn-secondary">
+          <i class="ti ti-camera" aria-hidden="true"></i> Identify cover
+        </button>
         <button type="button" id="findAllDiscogsBtn" class="btn-secondary">Find Discogs matches for all</button>
       </div>
     </div>
@@ -1495,6 +1502,71 @@
 
     </div>
   </div>
+  <!-- Cover Identify Modal (#13 — Google Lens-style album ID) -->
+  <div id="coverIdentifyOverlay" class="modal-overlay" hidden>
+    <div class="album-intel-modal">
+      <button type="button" id="coverIdentifyCloseBtn" class="modal-close-btn" aria-label="Close">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+
+      <!-- Camera capture state -->
+      <div id="coverIdentifyCameraState">
+        <p class="album-intel-scan-label">
+          <i class="ti ti-camera" aria-hidden="true"></i>
+          Point camera at the album cover
+        </p>
+        <video id="coverIdentifyVideo" class="cover-identify-video" autoplay playsinline muted></video>
+        <canvas id="coverIdentifyCanvas" class="cover-identify-canvas" hidden></canvas>
+        <div class="cover-identify-actions">
+          <button type="button" id="coverIdentifyCaptureBtn" class="btn-primary">
+            <i class="ti ti-camera" aria-hidden="true"></i> Identify this cover
+          </button>
+          <button type="button" id="coverIdentifyCancelBtn" class="btn-text">Cancel</button>
+        </div>
+        <p id="coverIdentifyCameraStatus" class="form-status"></p>
+      </div>
+
+      <!-- Loading state (reuse album intel loading) -->
+      <div id="coverIdentifyLoadingState" hidden>
+        <div class="album-intel-loading">
+          <div class="album-intel-spinner"></div>
+          <p id="coverIdentifyLoadingText">Analysing cover art...</p>
+        </div>
+      </div>
+
+      <!-- Result state (reuses Album Intel result UI) -->
+      <div id="coverIdentifyResultState" hidden>
+        <div class="album-intel-result">
+          <div class="album-intel-cover-wrap">
+            <img id="coverIdentifyResultCover" class="album-intel-cover" alt="" />
+            <div id="coverIdentifyResultPlaceholder" class="album-intel-cover-placeholder" hidden>
+              <i class="ti ti-vinyl" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="album-intel-info">
+            <p id="coverIdentifyResultArtist" class="album-intel-artist"></p>
+            <h2 id="coverIdentifyResultTitle" class="album-intel-title"></h2>
+            <div id="coverIdentifyResultMeta" class="album-intel-meta"></div>
+            <p id="coverIdentifyConfidence" class="cover-identify-confidence"></p>
+          </div>
+        </div>
+        <div class="album-intel-actions">
+          <button type="button" id="coverIdentifyAddWishlistBtn" class="btn-primary">
+            <i class="ti ti-heart" aria-hidden="true"></i> Add to Wishlist
+          </button>
+          <button type="button" id="coverIdentifyAddCollectionBtn" class="btn-secondary">
+            <i class="ti ti-disc" aria-hidden="true"></i> Add to Collection
+          </button>
+          <button type="button" id="coverIdentifyTryAgainBtn" class="btn-text">
+            <i class="ti ti-camera" aria-hidden="true"></i> Try again
+          </button>
+        </div>
+        <p id="coverIdentifyActionStatus" class="form-status"></p>
+      </div>
+
+    </div>
+  </div>
+
   <div id="trophyLightbox" class="trophy-lightbox" hidden aria-modal="true" role="dialog">
     <div class="trophy-lightbox-backdrop"></div>
     <div class="trophy-lightbox-content">
