@@ -2971,11 +2971,12 @@ h1 {
 
 #scannerVideo {
   width: 100%;
-  max-width: 320px;
+  max-width: 400px;
   margin: 0 auto 0.5rem;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
   background: #000;
+  position: relative;
 }
 
 #scannerVideo video {
@@ -2985,16 +2986,54 @@ h1 {
 
 #wishScannerVideo {
   width: 100%;
-  max-width: 320px;
+  max-width: 400px;
   margin: 0 auto 0.5rem;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
   background: #000;
+  position: relative;
 }
 
 #wishScannerVideo video {
   width: 100%;
   display: block;
+}
+
+/* Torch / flashlight button */
+.scanner-torch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px auto 0;
+  padding: 7px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: rgba(243, 227, 195, 0.7);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  display: flex;
+}
+
+.scanner-torch-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #f3e3c3;
+}
+
+.scanner-torch-btn-on {
+  background: rgba(202, 161, 90, 0.2);
+  border-color: rgba(202, 161, 90, 0.5);
+  color: #caa15a;
+}
+
+@media (max-width: 480px) {
+  #scannerVideo,
+  #wishScannerVideo {
+    max-width: 100%;
+    border-radius: 4px;
+  }
 }
 
 /* ------------ Wishlist ------------ */

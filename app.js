@@ -5887,49 +5887,112 @@ function buildRatingControls(record) {
 let pendingScannedCoverUrl = null;
 let html5QrCode = null;
 let activeScanConfig = null;
+let scannerTorchOn = false;
 
 async function startBarcodeScan(scanConfig) {
   activeScanConfig = scanConfig;
+  scannerTorchOn = false;
 
   const scannerWrap = document.getElementById(scanConfig.wrapId);
   const scanStatus = document.getElementById(scanConfig.statusId);
   const scanBtn = document.getElementById(scanConfig.btnId);
 
-  scanStatus.textContent = "";
+  scanStatus.textContent = "Point camera at barcode";
   scanStatus.className = "form-status";
   scannerWrap.hidden = false;
   scanBtn.hidden = true;
 
   html5QrCode = new Html5Qrcode(scanConfig.videoId);
 
+  // Use a percentage-based qrbox so it scales with the viewport on any device
+  const qrboxFn = (viewfinderWidth, viewfinderHeight) => {
+    const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+    const boxSize = Math.floor(minEdge * 0.72);
+    return { width: boxSize, height: Math.floor(boxSize * 0.55) };
+  };
+
   const config = {
-    fps: 10,
-    qrbox: { width: 250, height: 150 },
+    fps: 24,                   // 24fps — much smoother decode on mobile
+    qrbox: qrboxFn,
+    aspectRatio: 1.777,        // 16:9 — matches rear camera native aspect
+    disableFlip: false,        // allow mirrored barcodes
     formatsToSupport: [
       Html5QrcodeSupportedFormats.EAN_13,
       Html5QrcodeSupportedFormats.EAN_8,
       Html5QrcodeSupportedFormats.UPC_A,
       Html5QrcodeSupportedFormats.UPC_E,
     ],
+    videoConstraints: {
+      facingMode: { exact: "environment" },   // rear camera only
+      width: { ideal: 1280 },                 // request HD — helps decode distance
+      height: { ideal: 720 },
+      focusMode: "continuous",                // keep autofocus running
+    },
   };
 
   try {
     await html5QrCode.start(
-      { facingMode: "environment" },
+      { facingMode: { exact: "environment" } },
       config,
       (decodedText) => {
         onBarcodeDetected(decodedText);
       },
       () => {
-        // ignore per-frame scan failures
+        // per-frame failure — normal, ignore
       }
     );
+
+    // Add torch button after scanner starts (only on devices that support it)
+    addTorchButton(scanConfig);
+
   } catch (err) {
-    console.error(err);
-    scanStatus.textContent = "Couldn't access camera. Check permissions.";
-    scanStatus.className = "form-status form-status-error";
-    stopBarcodeScan();
+    // exact "environment" can fail on desktop — fall back to basic facingMode
+    try {
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { ...config, videoConstraints: undefined },
+        (decodedText) => { onBarcodeDetected(decodedText); },
+        () => {}
+      );
+    } catch (err2) {
+      console.error(err2);
+      scanStatus.textContent = "Couldn't access camera. Please check permissions.";
+      scanStatus.className = "form-status form-status-error";
+      stopBarcodeScan();
+    }
   }
+}
+
+function addTorchButton(scanConfig) {
+  const scannerWrap = document.getElementById(scanConfig.wrapId);
+  if (!scannerWrap || scannerWrap.querySelector(".scanner-torch-btn")) return;
+
+  // Only add if the track supports torch
+  const track = html5QrCode?.getRunningTrackCapabilities?.();
+  const supportsTorch = track?.torch !== undefined;
+
+  const torchBtn = document.createElement("button");
+  torchBtn.type = "button";
+  torchBtn.className = "scanner-torch-btn";
+  torchBtn.innerHTML = '<i class="ti ti-bulb" aria-hidden="true"></i> Light';
+  torchBtn.setAttribute("aria-label", "Toggle flashlight");
+
+  torchBtn.addEventListener("click", async () => {
+    try {
+      scannerTorchOn = !scannerTorchOn;
+      await html5QrCode?.applyVideoConstraints({
+        advanced: [{ torch: scannerTorchOn }],
+      });
+      torchBtn.classList.toggle("scanner-torch-btn-on", scannerTorchOn);
+      torchBtn.innerHTML = scannerTorchOn
+        ? '<i class="ti ti-bulb-filled" aria-hidden="true"></i> Light on'
+        : '<i class="ti ti-bulb" aria-hidden="true"></i> Light';
+    } catch {
+      torchBtn.hidden = true; // device doesn't support torch
+    }
+  });
+
+  scannerWrap.appendChild(torchBtn);
 }
 
 async function stopBarcodeScan() {
@@ -5937,6 +6000,14 @@ async function stopBarcodeScan() {
 
   const scannerWrap = document.getElementById(activeScanConfig.wrapId);
   const scanBtn = document.getElementById(activeScanConfig.btnId);
+
+  // Turn off torch before stopping
+  if (scannerTorchOn && html5QrCode) {
+    try {
+      await html5QrCode.applyVideoConstraints({ advanced: [{ torch: false }] });
+    } catch {}
+    scannerTorchOn = false;
+  }
 
   if (html5QrCode) {
     try {
@@ -5947,6 +6018,9 @@ async function stopBarcodeScan() {
     }
     html5QrCode = null;
   }
+
+  // Remove torch button
+  scannerWrap?.querySelector(".scanner-torch-btn")?.remove();
 
   scannerWrap.hidden = true;
   scanBtn.hidden = false;
