@@ -6344,6 +6344,7 @@ function mbReleaseToRecord(release) {
   const catNo = release["label-info"]?.[0]?.["catalog-number"] || null;
   const year = release.date ? parseInt(release.date.slice(0, 4)) : null;
   const mbid = release.id || null;
+  const rgMbid = release["release-group"]?.id || null;
 
   return {
     artist,
@@ -6352,8 +6353,9 @@ function mbReleaseToRecord(release) {
     label,
     catalog_number: catNo,
     mbid,
+    rgMbid,   // release-group MBID — better for cover art lookups
     country: release.country || null,
-    cover_url: null, // fetched separately via CAA
+    cover_url: null,
   };
 }
 
@@ -6387,12 +6389,14 @@ async function mbLookupByBarcode(barcode) {
 // 2. Full-text search by artist + album title
 async function mbSearchRelease(artist, album) {
   try {
-    const query = [
-      artist ? `artist:${encodeURIComponent(artist)}` : "",
-      album ? `release:${encodeURIComponent(album)}` : "",
-    ].filter(Boolean).join(" AND ");
+    // Build query — encode special chars but keep the field: prefix unencoded
+    const parts = [];
+    if (artist) parts.push(`artist:"${artist.replace(/"/g, "")}"`);
+    if (album) parts.push(`release:"${album.replace(/"/g, "")}"`);
+    if (parts.length === 0) return [];
 
-    const url = `${MB_BASE}/release?query=${query}&limit=5&fmt=json`;
+    const query = parts.join(" AND ");
+    const url = `${MB_BASE}/release?query=${encodeURIComponent(query)}&inc=release-groups+artist-credits+labels&limit=5&fmt=json`;
     const res = await fetch(url, { headers: MB_HEADERS });
     if (!res.ok) return [];
     const data = await res.json();
@@ -6471,18 +6475,19 @@ async function mbEnrichMissingCovers() {
     try {
       await mbDelay(1100);
 
-      // Search MB for the release
       const results = await mbSearchRelease(record.artist, record.album);
       if (results.length === 0) continue;
 
       const best = results[0];
-      if (!best.mbid) continue;
 
-      // Fetch cover art
-      let coverUrl = await mbFetchCoverUrl(best.mbid);
+      // Try the specific release first, then fall back to release-group.
+      // Release-group art is more likely to exist and matches the canonical
+      // album art rather than a specific pressing.
+      let coverUrl = null;
+      if (best.mbid) coverUrl = await mbFetchCoverUrl(best.mbid);
+      if (!coverUrl && best.rgMbid) coverUrl = await mbFetchCoverUrlByGroup(best.rgMbid);
       if (!coverUrl) continue;
 
-      // Save to DB
       const { error } = await supabaseClient
         .from("records")
         .update({ cover_url: coverUrl })
@@ -6491,8 +6496,7 @@ async function mbEnrichMissingCovers() {
 
       if (!error) {
         record.cover_url = coverUrl;
-        console.log(`[MB] Cover art found for: ${record.artist} — ${record.album}`);
-        // Re-render collection if visible
+        console.log(`[MB] ✓ Cover art found: ${record.artist} — ${record.album}`);
         render();
       }
     } catch (err) {
