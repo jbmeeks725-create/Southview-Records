@@ -3203,6 +3203,70 @@ h1 {
   text-align: center;
 }
 
+/* MusicBrainz search in Add Record form */
+.mb-search-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 8px;
+  flex-wrap: wrap;
+}
+
+.mb-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mb-search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(202, 161, 90, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mb-result-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(202, 161, 90, 0.04);
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s;
+}
+
+.mb-result-row:last-child {
+  border-bottom: none;
+}
+
+.mb-result-row:hover {
+  background: rgba(202, 161, 90, 0.1);
+}
+
+.mb-result-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f3e3c3;
+  margin: 0;
+}
+
+.mb-result-sub {
+  font-size: 0.72rem;
+  color: rgba(243, 227, 195, 0.5);
+  margin: 2px 0 0;
+}
+
+
+
 #scannerWrap {
   margin-top: 0.5rem;
 }

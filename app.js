@@ -6310,16 +6310,299 @@ async function stopBarcodeScan() {
   scanBtn.hidden = false;
 }
 
+// ============================================================
+// MusicBrainz Integration
+// ============================================================
+//
+// MusicBrainz is a free, open music encyclopedia with a public REST API.
+// No authentication required. Rate limit: 1 req/sec.
+// All calls include a User-Agent identifying SPIN VINYL per MB policy.
+//
+// Four uses:
+//   1. mbLookupByBarcode()    — fallback when Discogs scan fails
+//   2. mbSearchRelease()      — enrich manual Add Record search
+//   3. mbEnrichCoverArt()     — silently fetch covers for records missing art
+//   4. mbLookupByTitle()      — used by future Google Lens identification
+
+const MB_BASE = "https://musicbrainz.org/ws/2";
+const MB_HEADERS = {
+  "User-Agent": "SPIN-VINYL/1.0 (spinvinyl.co; contact@spinvinyl.co)",
+  "Accept": "application/json",
+};
+const CAA_BASE = "https://coverartarchive.org";
+
+// Delay helper to respect the 1 req/sec rate limit
+function mbDelay(ms = 1100) {
+  return new Promise((res) => setTimeout(res, ms));
+}
+
+// Normalise a MusicBrainz release into a SPIN VINYL record shape
+function mbReleaseToRecord(release) {
+  const artistCredit = release["artist-credit"]?.[0];
+  const artist = artistCredit?.artist?.name || artistCredit?.name || null;
+  const label = release["label-info"]?.[0]?.label?.name || null;
+  const catNo = release["label-info"]?.[0]?.["catalog-number"] || null;
+  const year = release.date ? parseInt(release.date.slice(0, 4)) : null;
+  const mbid = release.id || null;
+
+  return {
+    artist,
+    album: release.title || null,
+    year: isNaN(year) ? null : year,
+    label,
+    catalog_number: catNo,
+    mbid,
+    country: release.country || null,
+    cover_url: null, // fetched separately via CAA
+  };
+}
+
+// 1. Barcode lookup via MusicBrainz
+async function mbLookupByBarcode(barcode) {
+  try {
+    const url = `${MB_BASE}/release?query=barcode:${encodeURIComponent(barcode)}&limit=5&fmt=json`;
+    const res = await fetch(url, { headers: MB_HEADERS });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const releases = data.releases || [];
+    if (releases.length === 0) return null;
+
+    // Prefer releases with higher score and original pressings
+    const best = releases.sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+    const record = mbReleaseToRecord(best);
+
+    // Try to get cover art for the best match
+    if (best.id) {
+      const coverUrl = await mbFetchCoverUrl(best.id);
+      if (coverUrl) record.cover_url = coverUrl;
+    }
+
+    return record.artist && record.album ? record : null;
+  } catch (err) {
+    console.warn("MusicBrainz barcode lookup failed:", err);
+    return null;
+  }
+}
+
+// 2. Full-text search by artist + album title
+async function mbSearchRelease(artist, album) {
+  try {
+    const query = [
+      artist ? `artist:${encodeURIComponent(artist)}` : "",
+      album ? `release:${encodeURIComponent(album)}` : "",
+    ].filter(Boolean).join(" AND ");
+
+    const url = `${MB_BASE}/release?query=${query}&limit=5&fmt=json`;
+    const res = await fetch(url, { headers: MB_HEADERS });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.releases || []).map(mbReleaseToRecord);
+  } catch (err) {
+    console.warn("MusicBrainz search failed:", err);
+    return [];
+  }
+}
+
+// 3. Fetch cover art URL from Cover Art Archive by MBID
+async function mbFetchCoverUrl(mbid) {
+  try {
+    const res = await fetch(`${CAA_BASE}/release/${mbid}`, {
+      headers: { "Accept": "application/json" },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const front = data.images?.find((img) => img.front) || data.images?.[0];
+    return front?.thumbnails?.large || front?.image || null;
+  } catch {
+    return null;
+  }
+}
+
+// 3b. Lookup by release-group MBID (more stable for cover art)
+async function mbFetchCoverUrlByGroup(mbid) {
+  try {
+    const res = await fetch(`${CAA_BASE}/release-group/${mbid}`, {
+      headers: { "Accept": "application/json" },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const front = data.images?.find((img) => img.front) || data.images?.[0];
+    return front?.thumbnails?.large || front?.image || null;
+  } catch {
+    return null;
+  }
+}
+
+// 4. Lookup by title only (for AI image identification flow)
+async function mbLookupByTitle(title, artistHint = "") {
+  try {
+    const query = artistHint
+      ? `release:${encodeURIComponent(title)} AND artist:${encodeURIComponent(artistHint)}`
+      : `release:${encodeURIComponent(title)}`;
+    const url = `${MB_BASE}/release?query=${query}&limit=3&fmt=json`;
+    const res = await fetch(url, { headers: MB_HEADERS });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.releases || []).map(mbReleaseToRecord);
+  } catch (err) {
+    console.warn("MusicBrainz title lookup failed:", err);
+    return [];
+  }
+}
+
+// ============================================================
+// Cover Art Enrichment — background job
+// ============================================================
+// Runs after loadData() for any records missing cover_url.
+// Respects MB rate limit with 1.1s delay between requests.
+// Saves fetched URLs back to the DB silently.
+
+let mbEnrichmentRunning = false;
+
+async function mbEnrichMissingCovers() {
+  if (mbEnrichmentRunning) return;
+  const missing = allRecords.filter((r) => !r.cover_url && r.artist && r.album);
+  if (missing.length === 0) return;
+
+  mbEnrichmentRunning = true;
+  console.log(`[MB] Starting cover art enrichment for ${missing.length} records`);
+
+  for (const record of missing) {
+    try {
+      await mbDelay(1100);
+
+      // Search MB for the release
+      const results = await mbSearchRelease(record.artist, record.album);
+      if (results.length === 0) continue;
+
+      const best = results[0];
+      if (!best.mbid) continue;
+
+      // Fetch cover art
+      let coverUrl = await mbFetchCoverUrl(best.mbid);
+      if (!coverUrl) continue;
+
+      // Save to DB
+      const { error } = await supabaseClient
+        .from("records")
+        .update({ cover_url: coverUrl })
+        .eq("id", record.id)
+        .eq("user_id", currentUser.id);
+
+      if (!error) {
+        record.cover_url = coverUrl;
+        console.log(`[MB] Cover art found for: ${record.artist} — ${record.album}`);
+        // Re-render collection if visible
+        render();
+      }
+    } catch (err) {
+      console.warn(`[MB] Enrichment failed for ${record.album}:`, err);
+    }
+  }
+
+  mbEnrichmentRunning = false;
+  console.log("[MB] Cover art enrichment complete");
+}
+
+// ---- MusicBrainz search handler for Add Record form ----
+
+async function handleMbSearch() {
+  const artist = document.getElementById("fieldArtist").value.trim();
+  const album = document.getElementById("fieldAlbum").value.trim();
+  const statusEl = document.getElementById("mbSearchStatus");
+  const resultsEl = document.getElementById("mbSearchResults");
+  const btn = document.getElementById("mbSearchBtn");
+
+  if (!artist && !album) {
+    statusEl.textContent = "Enter artist or album name first.";
+    statusEl.className = "form-status form-status-error";
+    return;
+  }
+
+  btn.disabled = true;
+  statusEl.textContent = "Searching MusicBrainz…";
+  statusEl.className = "form-status";
+  resultsEl.hidden = true;
+  resultsEl.innerHTML = "";
+
+  try {
+    const results = await mbSearchRelease(artist, album);
+
+    if (results.length === 0) {
+      statusEl.textContent = "No matches found on MusicBrainz.";
+      btn.disabled = false;
+      return;
+    }
+
+    statusEl.textContent = `${results.length} result${results.length > 1 ? "s" : ""} found — click one to fill in the form.`;
+    statusEl.className = "form-status form-status-success";
+    resultsEl.hidden = false;
+
+    results.forEach((r) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "mb-result-row";
+
+      const meta = document.createElement("div");
+      meta.innerHTML = `
+        <p class="mb-result-title">${r.album || "Unknown album"}</p>
+        <p class="mb-result-sub">${[r.artist, r.year, r.label].filter(Boolean).join(" · ")}</p>
+      `;
+      row.appendChild(meta);
+
+      row.addEventListener("click", async () => {
+        // Fill form fields
+        if (r.artist) document.getElementById("fieldArtist").value = r.artist;
+        if (r.album) document.getElementById("fieldAlbum").value = r.album;
+        if (r.year) document.getElementById("fieldYear").value = r.year;
+        if (r.label) document.getElementById("fieldLabel").value = r.label;
+
+        // Fetch cover art
+        if (r.mbid) {
+          statusEl.textContent = "Fetching cover art…";
+          statusEl.className = "form-status";
+          const coverUrl = await mbFetchCoverUrl(r.mbid);
+          if (coverUrl) {
+            pendingScannedCoverUrl = coverUrl;
+            setCoverPreview(coverUrl);
+            statusEl.textContent = "Details and cover art filled in from MusicBrainz.";
+          } else {
+            statusEl.textContent = "Details filled in — no cover art found.";
+          }
+          statusEl.className = "form-status form-status-success";
+        } else {
+          statusEl.textContent = "Details filled in from MusicBrainz.";
+          statusEl.className = "form-status form-status-success";
+        }
+
+        resultsEl.hidden = true;
+      });
+
+      resultsEl.appendChild(row);
+    });
+
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "MusicBrainz search failed. Try again.";
+    statusEl.className = "form-status form-status-error";
+  }
+
+  btn.disabled = false;
+}
+
+// ---- Barcode fallback: try MusicBrainz when Discogs returns nothing ----
+
 async function onBarcodeDetected(barcode) {
   const scanConfig = activeScanConfig;
   const scanStatus = document.getElementById(scanConfig.statusId);
 
   await stopBarcodeScan();
 
-  scanStatus.textContent = `Scanned ${barcode}. Looking up on Discogs...`;
+  scanStatus.textContent = `Scanned ${barcode}. Looking up...`;
   scanStatus.className = "form-status";
 
   try {
+    // Try Discogs first
     const response = await fetch(DISCOGS_LOOKUP_FUNCTION_URL, {
       method: "POST",
       headers: {
@@ -6332,20 +6615,34 @@ async function onBarcodeDetected(barcode) {
 
     const result = await response.json();
 
-    if (!response.ok) {
-      throw new Error(result.error || `Lookup failed (${response.status})`);
-    }
-
-    if (!result.found) {
-      scanStatus.textContent = `Scanned ${barcode}, but no Discogs match was found. You can enter details manually.`;
-      scanStatus.className = "form-status";
+    if (response.ok && result.found) {
+      scanConfig.onResult(result);
+      scanStatus.textContent = "Found on Discogs. Review details below.";
+      scanStatus.className = "form-status form-status-success";
       return;
     }
 
-    scanConfig.onResult(result);
+    // Discogs found nothing — try MusicBrainz
+    scanStatus.textContent = "Not on Discogs. Trying MusicBrainz...";
 
-    scanStatus.textContent = "Found a match on Discogs. Review and adjust details below.";
-    scanStatus.className = "form-status form-status-success";
+    const mbResult = await mbLookupByBarcode(barcode);
+    if (mbResult) {
+      scanConfig.onResult({
+        found: true,
+        artist: mbResult.artist,
+        album: mbResult.album,
+        year: mbResult.year,
+        label: mbResult.label,
+        cover_url: mbResult.cover_url,
+      });
+      scanStatus.textContent = "Found on MusicBrainz. Review details below.";
+      scanStatus.className = "form-status form-status-success";
+      return;
+    }
+
+    scanStatus.textContent = `No match found for barcode ${barcode}. Enter details manually.`;
+    scanStatus.className = "form-status";
+
   } catch (err) {
     console.error(err);
     scanStatus.textContent = "Couldn't look up barcode. Check console for details.";
@@ -8747,6 +9044,11 @@ async function loadData() {
 
     renderFilters();
     render();
+
+    // Background: silently fetch cover art for records missing it.
+    // 2s delay ensures the UI is fully rendered and responsive first.
+    setTimeout(() => mbEnrichMissingCovers(), 2000);
+
   } catch (err) {
     console.error(err);
     setStatus("Error loading data. See console for details.");
@@ -9106,6 +9408,11 @@ function setupEvents() {
   document
     .getElementById("cancelScanBtn")
     .addEventListener("click", () => stopBarcodeScan());
+
+  // MusicBrainz search button in Add Record form
+  document
+    .getElementById("mbSearchBtn")
+    ?.addEventListener("click", () => handleMbSearch());
 
   document
     .getElementById("addRecordOverlay")
