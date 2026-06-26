@@ -12782,19 +12782,24 @@ function setupFeedback() {
     statusEl.className = "form-status";
 
     try {
+      // Get the live session JWT — anon key won't pass auth.getUser() in the Edge Function
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const jwt = session?.access_token;
+      if (!jwt) throw new Error("Not authenticated");
+
       const res = await fetch(FEEDBACK_FUNCTION_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${jwt}`,
         },
         body: JSON.stringify({
           type,
           message,
-          page: document.title,
-          user_email: currentUser?.email || null,
-          user_id: currentUser?.id || null,
+          username: currentProfile?.username || null,
+          url: window.location.href,
+          user_agent: navigator.userAgent,
         }),
       });
 
