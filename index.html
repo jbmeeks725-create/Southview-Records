@@ -305,7 +305,7 @@
       background: #5a5570;
       box-shadow: 0 4px 20px rgba(0,0,0,0.4);
     }
-    /* FAB only visible in wishlist section */
+    /* FAB hidden by default, shown only when wishlist is active */
     #mobileFab { display: none; }
     body.wishlist-active #mobileFab { display: flex; }
 
@@ -948,7 +948,7 @@
   </header>
 
   <!-- ── Mobile bottom navigation (hidden on desktop via CSS) ── -->
-  <nav id="mobileBottomNav" aria-label="Main navigation" style="display:none">
+  <nav id="mobileBottomNav" aria-label="Main navigation">
     <button type="button" class="mob-nav-item" id="mobNavHome" aria-label="Home">
       <i class="ti ti-home mob-nav-icon"></i>
       <span class="mob-nav-label">Home</span>
@@ -2711,6 +2711,7 @@
 
   <!-- ── Mobile FAB (Wishlist) ── -->
   <div id="mobileFabBackdrop"></div>
+  <div id="mobileFabOptions">
     <div class="mob-fab-option" id="mobFabManual" role="button" tabindex="0" aria-label="Add manually">
       <span class="mob-fab-label">Add Manually</span>
       <span class="mob-fab-icon gold"><i class="ti ti-pencil"></i></span>
@@ -2757,10 +2758,8 @@
   <!-- ── Mobile UX JavaScript ── -->
   <script>
   (function () {
-    // Only wire up on mobile — mirrors the CSS breakpoint
-    function isMobile() { return window.innerWidth <= 768; }
 
-    // ── Helpers to map desktop nav button IDs to bottom nav IDs ──
+    // ── Nav map: mobile button ID → desktop button ID ──
     const NAV_MAP = {
       mobNavHome:       'homePageBtn',
       mobNavCollection: 'collectionPageBtn',
@@ -2769,10 +2768,22 @@
       mobNavRoom:       'roomPageBtn',
     };
 
+    // ── Show bottom nav immediately on mobile ──
+    // CSS media query handles desktop hiding; we just need to ensure
+    // it isn't blocked by any inline style on small screens
+    function initBottomNav() {
+      const nav = document.getElementById('mobileBottomNav');
+      if (nav && window.innerWidth <= 768) {
+        nav.style.display = 'flex';
+      }
+    }
+    initBottomNav();
+    window.addEventListener('resize', initBottomNav);
+
+    // ── Active tab state ──
     function setActiveTab(activeId) {
       document.querySelectorAll('.mob-nav-item').forEach(btn => {
         btn.classList.remove('active');
-        // Remove existing pip
         const pip = btn.querySelector('.mob-nav-pip');
         if (pip) pip.remove();
       });
@@ -2783,11 +2794,15 @@
         pip.className = 'mob-nav-pip';
         activeBtn.appendChild(pip);
       }
-      // Toggle wishlist-active on body so FAB shows only on wishlist
+      // Show FAB only on wishlist tab
       document.body.classList.toggle('wishlist-active', activeId === 'mobNavWishlist');
+      const fab = document.getElementById('mobileFab');
+      if (fab) {
+        fab.style.display = (activeId === 'mobNavWishlist' && window.innerWidth <= 768) ? 'flex' : 'none';
+      }
     }
 
-    // Wire bottom nav buttons → desktop nav buttons
+    // ── Wire bottom nav → desktop buttons ──
     Object.entries(NAV_MAP).forEach(([mobId, desktopId]) => {
       const mobBtn = document.getElementById(mobId);
       if (!mobBtn) return;
@@ -2795,11 +2810,11 @@
         const desktopBtn = document.getElementById(desktopId);
         if (desktopBtn) desktopBtn.click();
         setActiveTab(mobId);
+        closeFab();
       });
     });
 
-    // Mirror active state: watch which desktop view-btn gets aria-pressed=true
-    // so that external JS (e.g. deep links) keeps mobile nav in sync
+    // ── Mirror from desktop nav (handles app.js-driven navigation) ──
     const desktopNav = document.getElementById('pageNav');
     if (desktopNav) {
       const observer = new MutationObserver(() => {
@@ -2811,22 +2826,24 @@
       observer.observe(desktopNav, { attributes: true, subtree: true, attributeFilter: ['aria-pressed'] });
     }
 
-    // ── FAB (+ button) ──
+    // ── FAB ──
     const fab         = document.getElementById('mobileFab');
     const fabBackdrop = document.getElementById('mobileFabBackdrop');
     const fabOptions  = document.getElementById('mobileFabOptions');
-    const optScanner  = document.getElementById('mobFabScanner');
-    const optManual   = document.getElementById('mobFabManual');
 
     function openFab() {
+      if (!fab || !fabBackdrop || !fabOptions) return;
       fab.classList.add('open');
       fab.setAttribute('aria-expanded', 'true');
       fabBackdrop.classList.add('visible');
-      requestAnimationFrame(() => {
+      // Double rAF ensures CSS transition fires after display change
+      requestAnimationFrame(() => requestAnimationFrame(() => {
         fabOptions.querySelectorAll('.mob-fab-option').forEach(o => o.classList.add('visible'));
-      });
+      }));
     }
+
     function closeFab() {
+      if (!fab || !fabBackdrop || !fabOptions) return;
       fab.classList.remove('open');
       fab.setAttribute('aria-expanded', 'false');
       fabBackdrop.classList.remove('visible');
@@ -2835,95 +2852,82 @@
 
     if (fab) {
       fab.addEventListener('click', () => fab.classList.contains('open') ? closeFab() : openFab());
+    }
+    if (fabBackdrop) {
       fabBackdrop.addEventListener('click', closeFab);
     }
 
-    // Barcode scanner option → clicks the real #scanInStoreBtn
-    if (optScanner) {
-      optScanner.addEventListener('click', () => {
-        closeFab();
-        setTimeout(() => {
-          const btn = document.getElementById('scanInStoreBtn');
-          if (btn) btn.click();
-        }, 120);
-      });
-      optScanner.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') optScanner.click(); });
-    }
+    // Barcode Scanner → fires existing #scanInStoreBtn
+    document.getElementById('mobFabScanner')?.addEventListener('click', () => {
+      closeFab();
+      setTimeout(() => document.getElementById('scanInStoreBtn')?.click(), 150);
+    });
 
-    // Add Manually option → clicks the real #addWishlistBtn
-    if (optManual) {
-      optManual.addEventListener('click', () => {
-        closeFab();
-        setTimeout(() => {
-          const btn = document.getElementById('addWishlistBtn');
-          if (btn) btn.click();
-        }, 120);
-      });
-      optManual.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') optManual.click(); });
-    }
+    // Add Manually → fires existing #addWishlistBtn
+    document.getElementById('mobFabManual')?.addEventListener('click', () => {
+      closeFab();
+      setTimeout(() => document.getElementById('addWishlistBtn')?.click(), 150);
+    });
 
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeFab(); closeFilterSheet(); } });
+    // Keyboard support on FAB options
+    document.querySelectorAll('.mob-fab-option').forEach(opt => {
+      opt.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') opt.click(); });
+    });
 
     // ── Filter bottom sheet ──
-    const filterSheet        = document.getElementById('mobileFilterSheet');
+    const filterSheet         = document.getElementById('mobileFilterSheet');
     const filterSheetBackdrop = document.getElementById('mobileFilterSheetBackdrop');
-    const filterBtn          = document.getElementById('mobileWishlistFilterBtn');
-    const mobileGenre        = document.getElementById('mobileGenreFilter');
-    const mobileSubgenre     = document.getElementById('mobileSubgenreFilter');
-    const mobileSort         = document.getElementById('mobileSortSelect');
+    const filterBtn           = document.getElementById('mobileWishlistFilterBtn');
+    const mobileGenre         = document.getElementById('mobileGenreFilter');
+    const mobileSubgenre      = document.getElementById('mobileSubgenreFilter');
+    const mobileSort          = document.getElementById('mobileSortSelect');
 
-    // Mirror genre/subgenre options from the real selects once they're populated
     function syncSheetOptions() {
       const srcGenre    = document.getElementById('wishlistGenreFilter');
       const srcSubgenre = document.getElementById('wishlistSubgenreFilter');
-      if (srcGenre && mobileGenre && mobileGenre.options.length <= 1) {
-        mobileGenre.innerHTML = srcGenre.innerHTML;
-      }
-      if (srcSubgenre && mobileSubgenre && mobileSubgenre.options.length <= 1) {
-        mobileSubgenre.innerHTML = srcSubgenre.innerHTML;
-      }
+      if (srcGenre    && mobileGenre    && mobileGenre.options.length    <= 1) mobileGenre.innerHTML    = srcGenre.innerHTML;
+      if (srcSubgenre && mobileSubgenre && mobileSubgenre.options.length <= 1) mobileSubgenre.innerHTML = srcSubgenre.innerHTML;
     }
 
     function openFilterSheet() {
       syncSheetOptions();
-      // Pre-select current values from real selects
       const sg = document.getElementById('wishlistGenreFilter');
       const ss = document.getElementById('wishlistSubgenreFilter');
       const so = document.getElementById('wishlistSortSelect');
-      if (sg) mobileGenre.value    = sg.value;
-      if (ss) mobileSubgenre.value = ss.value;
-      if (so) mobileSort.value     = so.value;
-      filterSheet.classList.add('visible');
+      if (sg && mobileGenre)    mobileGenre.value    = sg.value;
+      if (ss && mobileSubgenre) mobileSubgenre.value = ss.value;
+      if (so && mobileSort)     mobileSort.value     = so.value;
+      filterSheet?.classList.add('visible');
     }
+
     function closeFilterSheet() {
-      filterSheet.classList.remove('visible');
+      filterSheet?.classList.remove('visible');
     }
+
     function updateFilterDot() {
       const sg = document.getElementById('wishlistGenreFilter');
       const ss = document.getElementById('wishlistSubgenreFilter');
-      const hasActive = (sg && sg.value) || (ss && ss.value);
-      filterBtn && filterBtn.classList.toggle('has-filters', !!hasActive);
+      filterBtn?.classList.toggle('has-filters', !!(sg?.value || ss?.value));
     }
 
-    if (filterBtn)          filterBtn.addEventListener('click', openFilterSheet);
-    if (filterSheetBackdrop) filterSheetBackdrop.addEventListener('click', closeFilterSheet);
+    filterBtn?.addEventListener('click', openFilterSheet);
+    filterSheetBackdrop?.addEventListener('click', closeFilterSheet);
 
     document.getElementById('mobileFilterApply')?.addEventListener('click', () => {
-      // Push values back to real selects and trigger change events
       const sg = document.getElementById('wishlistGenreFilter');
       const ss = document.getElementById('wishlistSubgenreFilter');
       const so = document.getElementById('wishlistSortSelect');
-      if (sg) { sg.value = mobileGenre.value;    sg.dispatchEvent(new Event('change')); }
-      if (ss) { ss.value = mobileSubgenre.value; ss.dispatchEvent(new Event('change')); }
-      if (so) { so.value = mobileSort.value;     so.dispatchEvent(new Event('change')); }
+      if (sg) { sg.value = mobileGenre?.value    ?? ''; sg.dispatchEvent(new Event('change')); }
+      if (ss) { ss.value = mobileSubgenre?.value ?? ''; ss.dispatchEvent(new Event('change')); }
+      if (so) { so.value = mobileSort?.value     ?? 'added-desc'; so.dispatchEvent(new Event('change')); }
       updateFilterDot();
       closeFilterSheet();
     });
 
     document.getElementById('mobileFilterClear')?.addEventListener('click', () => {
-      mobileGenre.value    = '';
-      mobileSubgenre.value = '';
-      mobileSort.value     = 'added-desc';
+      if (mobileGenre)    mobileGenre.value    = '';
+      if (mobileSubgenre) mobileSubgenre.value = '';
+      if (mobileSort)     mobileSort.value     = 'added-desc';
       const sg = document.getElementById('wishlistGenreFilter');
       const ss = document.getElementById('wishlistSubgenreFilter');
       const so = document.getElementById('wishlistSortSelect');
@@ -2934,21 +2938,27 @@
       closeFilterSheet();
     });
 
-    // Watch real selects for external changes (e.g. clicking genre from DNA card)
     ['wishlistGenreFilter','wishlistSubgenreFilter'].forEach(id => {
       document.getElementById(id)?.addEventListener('change', updateFilterDot);
     });
 
-    // Initial active tab — detect which view-btn is already active on load
-    window.addEventListener('DOMContentLoaded', () => {
-      if (!isMobile()) return;
-      const active = document.querySelector('#pageNav .view-btn[aria-pressed="true"]');
-      if (active) {
-        const mobId = Object.keys(NAV_MAP).find(k => NAV_MAP[k] === active.id);
-        if (mobId) setActiveTab(mobId);
-      } else {
-        setActiveTab('mobNavHome'); // default
-      }
+    // ── Escape key closes everything ──
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { closeFab(); closeFilterSheet(); }
+    });
+
+    // ── Set initial active tab on load ──
+    // Use a short delay to let app.js finish its own init and set aria-pressed
+    window.addEventListener('load', () => {
+      if (window.innerWidth > 768) return;
+      setTimeout(() => {
+        const active = document.querySelector('#pageNav .view-btn[aria-pressed="true"]');
+        if (active) {
+          const mobId = Object.keys(NAV_MAP).find(k => NAV_MAP[k] === active.id);
+          if (mobId) { setActiveTab(mobId); return; }
+        }
+        setActiveTab('mobNavHome'); // fallback
+      }, 300);
     });
 
   })();
