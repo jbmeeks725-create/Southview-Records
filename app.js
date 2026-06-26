@@ -9760,7 +9760,22 @@ function onSignedOut() {
 
 // ------------ Landing page ------------
 
-const LANDING_OWNER_USER_ID = "7450ce03-630d-487a-ab59-60a0c7ccab74";
+// ---- Room ownership ----
+// Each user owns their own Listening Room. isRoomOwner() returns true
+// when the signed-in user is viewing their own room — which is always
+// the case in the current single-user-room model (every user has one room,
+// their own). This replaces the old hardcoded LANDING_OWNER_USER_ID check.
+
+function isRoomOwner() {
+  return !!currentUser;
+}
+
+// The user whose Spotify/room data to show. In the current model this is
+// always the signed-in user. When public room URLs are added (future), this
+// will be overridden by the URL's uid param.
+function getRoomUserId() {
+  return currentUser?.id || null;
+}
 
 const LANDING_VIDEOS = {
   left: ["left-1.mp4", "left-2.mp4", "left-3.mp4", "left-4.mp4"],
@@ -9805,46 +9820,6 @@ function setupLandingVideoCarousel(videoEl, files) {
 
   videoEl.loop = false;
   playCurrent();
-}
-
-async function loadLandingNowPlaying() {
-  try {
-    const { data, error } = await supabaseClient
-      .from("public_profiles")
-      .select("favorite_albums, favorite_albums_meta")
-      .eq("user_id", LANDING_OWNER_USER_ID)
-      .maybeSingle();
-
-    if (error) throw error;
-    if (!data) return;
-
-    const albums = data.favorite_albums || [];
-    if (albums.length === 0) return;
-
-    const albumName = albums[Math.floor(Math.random() * albums.length)];
-    const meta = (data.favorite_albums_meta || {})[albumName] || {};
-
-    const wrap = document.getElementById("landingNowPlaying");
-    const coverImg = document.getElementById("landingNowPlayingCover");
-    const artistEl = document.getElementById("landingNowPlayingArtist");
-    const albumEl = document.getElementById("landingNowPlayingAlbum");
-
-    coverImg.src = meta.cover_url || "icon-512.png";
-    coverImg.alt = albumName;
-    albumEl.textContent = albumName;
-
-    if (meta.artist) {
-      artistEl.textContent = meta.artist;
-      artistEl.hidden = false;
-    } else {
-      artistEl.textContent = "";
-      artistEl.hidden = true;
-    }
-
-    wrap.hidden = false;
-  } catch (err) {
-    console.error(err);
-  }
 }
 
 // ============================================================
@@ -10053,9 +10028,9 @@ async function callSpotifyAuthFunction(action, extra = {}) {
   return result;
 }
 
-// Owner-only check, mirrors LANDING_OWNER_USER_ID used on the landing page.
+// Legacy alias — all callers now use isRoomOwner()
 function isSpotifyOwner() {
-  return !!currentUser && currentUser.id === LANDING_OWNER_USER_ID;
+  return isRoomOwner();
 }
 
 // ---- Connect flow (owner only) ----
@@ -10382,8 +10357,9 @@ async function renderRoomPlayerModal() {
 // "now-playing" action — no tokens are ever involved on this path.
 // Shared by the room player's visitor view and the persistent header strip.
 // Public, unauthenticated call — works for signed-out visitors too.
-async function fetchSpotifyNowPlaying() {
+async function fetchSpotifyNowPlaying(uid = null) {
   try {
+    const targetUid = uid || getRoomUserId();
     const response = await fetch(SPOTIFY_AUTH_FUNCTION_URL, {
       method: "POST",
       headers: {
@@ -10391,7 +10367,7 @@ async function fetchSpotifyNowPlaying() {
         apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ action: "now-playing" }),
+      body: JSON.stringify({ action: "now-playing", uid: targetUid }),
     });
     return await response.json();
   } catch (err) {
