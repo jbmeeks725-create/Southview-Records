@@ -741,6 +741,244 @@ header {
   padding: 1.25rem;
 }
 
+/* ---- Profile Spotlights ---- */
+
+.profile-spotlight-card {
+  grid-column: 1 / -1;
+}
+
+/* Trophy Spotlight */
+.trophy-spotlight-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.trophy-spotlight-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.trophy-spotlight-item:hover {
+  transform: scale(1.05);
+}
+
+.trophy-spotlight-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(243, 227, 195, 0.7);
+  margin: 0;
+  text-align: center;
+}
+
+/* Trophy spotlight picker */
+.trophy-spotlight-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px;
+  margin: 8px 0;
+}
+
+.trophy-spotlight-pick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.trophy-spotlight-pick-item p {
+  font-size: 0.65rem;
+  color: rgba(243, 227, 195, 0.55);
+  text-align: center;
+  margin: 0;
+}
+
+.trophy-spotlight-pick-item:hover {
+  background: rgba(202, 161, 90, 0.07);
+}
+
+.trophy-spotlight-pick-item.selected {
+  border-color: #caa15a;
+  background: rgba(202, 161, 90, 0.1);
+}
+
+.trophy-spotlight-pick-item.selected p {
+  color: #caa15a;
+}
+
+/* Album Spotlight */
+.album-spotlight-strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 0 8px;
+  scrollbar-width: none;
+}
+
+.album-spotlight-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.album-spotlight-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 110px;
+  cursor: pointer;
+}
+
+.album-spotlight-item:hover .album-spotlight-cover {
+  outline-color: rgba(202, 161, 90, 0.7);
+}
+
+.album-spotlight-cover {
+  width: 110px;
+  height: 110px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(202, 161, 90, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(202, 161, 90, 0.3);
+  font-size: 1.8rem;
+  outline: 2px solid rgba(202, 161, 90, 0.25);
+  transition: outline-color 0.15s ease;
+}
+
+.album-spotlight-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.album-spotlight-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.album-spotlight-album {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #f3e3c3;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-spotlight-artist {
+  font-size: 0.68rem;
+  color: rgba(243, 227, 195, 0.5);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Album spotlight picker */
+.album-spotlight-search {
+  width: 100%;
+  padding: 9px 12px;
+  background: #0b1220;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  color: #f3e3c3;
+  font-size: 0.88rem;
+  margin-bottom: 8px;
+}
+
+.album-spotlight-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+.album-spotlight-pick-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.album-spotlight-pick-row:hover {
+  background: rgba(202, 161, 90, 0.07);
+}
+
+.album-spotlight-pick-row.selected {
+  background: rgba(202, 161, 90, 0.1);
+  border-color: rgba(202, 161, 90, 0.3);
+}
+
+.album-spotlight-pick-cover {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: rgba(202, 161, 90, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(202, 161, 90, 0.35);
+  flex-shrink: 0;
+}
+
+.album-spotlight-pick-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.album-spotlight-pick-album {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #f3e3c3;
+  margin: 0;
+}
+
+.album-spotlight-pick-artist {
+  font-size: 0.72rem;
+  color: rgba(243, 227, 195, 0.5);
+  margin: 2px 0 0;
+}
+
+.album-spotlight-pick-check {
+  margin-left: auto;
+  color: #caa15a;
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.album-spotlight-pick-row.selected .album-spotlight-pick-check {
+  opacity: 1;
+}
+
+
 .settings-current-email {
   margin: 0.5rem 0 0;
   font-size: 1rem;

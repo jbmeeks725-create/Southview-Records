@@ -1828,6 +1828,287 @@ function renderProfileTopList(elId, items) {
   });
 }
 
+// ============================================================
+// Profile Spotlights
+// ============================================================
+
+// ---- Trophy Spotlight ----
+// Stores up to 3 pinned trophy IDs in profile.favorite_albums_meta
+// under the key "pinned_trophies" to avoid a new DB column.
+
+function getPinnedTrophies() {
+  try {
+    const meta = currentProfile?.favorite_albums_meta || {};
+    return Array.isArray(meta.pinned_trophies) ? meta.pinned_trophies : [];
+  } catch { return []; }
+}
+
+async function savePinnedTrophies(ids) {
+  const meta = { ...(currentProfile?.favorite_albums_meta || {}), pinned_trophies: ids };
+  await saveProfileFields({ favorite_albums_meta: meta });
+}
+
+function renderTrophySpotlight() {
+  const view = document.getElementById("trophySpotlightView");
+  if (!view) return;
+  view.innerHTML = "";
+
+  const pinned = getPinnedTrophies();
+  const allTrophies = computeTrophies();
+
+  if (pinned.length === 0) {
+    view.innerHTML = '<p class="field-hint" style="font-style:italic">No trophies pinned yet — click the pencil to choose up to 3.</p>';
+    return;
+  }
+
+  const row = document.createElement("div");
+  row.className = "trophy-spotlight-row";
+
+  pinned.forEach((id) => {
+    const def = allTrophies.find((t) => t.id === id);
+    if (!def) return;
+    const wrap = document.createElement("div");
+    wrap.className = "trophy-spotlight-item";
+    wrap.innerHTML = buildTrophyLabelSvg(def, def.earned, 120);
+    const label = document.createElement("p");
+    label.className = "trophy-spotlight-label";
+    label.textContent = def.name;
+    wrap.appendChild(label);
+    wrap.addEventListener("click", () => openTrophyLightbox(def));
+    row.appendChild(wrap);
+  });
+
+  view.appendChild(row);
+}
+
+function openTrophySpotlightPicker() {
+  const picker = document.getElementById("trophySpotlightPicker");
+  const view = document.getElementById("trophySpotlightView");
+  const grid = document.getElementById("trophySpotlightPickerGrid");
+  picker.hidden = false;
+  view.hidden = true;
+  grid.innerHTML = "";
+
+  const pinned = new Set(getPinnedTrophies());
+  const allTrophies = computeTrophies().filter((t) => t.earned);
+
+  if (allTrophies.length === 0) {
+    grid.innerHTML = '<p class="field-hint">Earn some trophies first — then you can pin them here.</p>';
+    return;
+  }
+
+  allTrophies.forEach((def) => {
+    const item = document.createElement("div");
+    item.className = "trophy-spotlight-pick-item" + (pinned.has(def.id) ? " selected" : "");
+    item.dataset.id = def.id;
+    item.innerHTML = buildTrophyLabelSvg(def, true, 90);
+    const label = document.createElement("p");
+    label.textContent = def.name;
+    item.appendChild(label);
+    item.addEventListener("click", () => {
+      if (item.classList.contains("selected")) {
+        item.classList.remove("selected");
+      } else {
+        const selected = grid.querySelectorAll(".selected");
+        if (selected.length >= 3) {
+          document.getElementById("trophySpotlightStatus").textContent = "Max 3 trophies — deselect one first.";
+          return;
+        }
+        item.classList.add("selected");
+      }
+      document.getElementById("trophySpotlightStatus").textContent = "";
+    });
+    grid.appendChild(item);
+  });
+}
+
+function closeTrophySpotlightPicker() {
+  document.getElementById("trophySpotlightPicker").hidden = true;
+  document.getElementById("trophySpotlightView").hidden = false;
+}
+
+// ---- Album Spotlight ----
+// Stores up to 6 album objects {id, artist, album, cover_url} in
+// profile.favorite_albums_meta under key "spotlight_albums".
+
+function getSpotlightAlbums() {
+  try {
+    const meta = currentProfile?.favorite_albums_meta || {};
+    return Array.isArray(meta.spotlight_albums) ? meta.spotlight_albums : [];
+  } catch { return []; }
+}
+
+async function saveSpotlightAlbums(albums) {
+  const meta = { ...(currentProfile?.favorite_albums_meta || {}), spotlight_albums: albums };
+  await saveProfileFields({ favorite_albums_meta: meta });
+}
+
+function renderAlbumSpotlight() {
+  const view = document.getElementById("albumSpotlightView");
+  if (!view) return;
+  view.innerHTML = "";
+
+  const spotlight = getSpotlightAlbums();
+
+  if (spotlight.length === 0) {
+    view.innerHTML = '<p class="field-hint" style="font-style:italic">No albums featured yet — click the pencil to choose up to 6.</p>';
+    return;
+  }
+
+  const strip = document.createElement("div");
+  strip.className = "album-spotlight-strip";
+
+  spotlight.forEach((a) => {
+    const item = document.createElement("div");
+    item.className = "album-spotlight-item";
+
+    const cover = document.createElement("div");
+    cover.className = "album-spotlight-cover";
+    if (a.cover_url) {
+      const img = document.createElement("img");
+      img.src = a.cover_url;
+      img.alt = a.album || "";
+      img.loading = "lazy";
+      cover.appendChild(img);
+    } else {
+      cover.innerHTML = '<i class="ti ti-vinyl" aria-hidden="true"></i>';
+    }
+
+    const meta = document.createElement("div");
+    meta.className = "album-spotlight-meta";
+    meta.innerHTML = `<p class="album-spotlight-album">${a.album || ""}</p><p class="album-spotlight-artist">${a.artist || ""}</p>`;
+
+    item.appendChild(cover);
+    item.appendChild(meta);
+
+    if (a.id) {
+      item.style.cursor = "pointer";
+      item.addEventListener("click", () => openRecordDetailModal(a.id));
+    }
+
+    strip.appendChild(item);
+  });
+
+  view.appendChild(strip);
+}
+
+let albumSpotlightSelected = [];
+
+function openAlbumSpotlightPicker() {
+  const picker = document.getElementById("albumSpotlightPicker");
+  const view = document.getElementById("albumSpotlightView");
+  picker.hidden = false;
+  view.hidden = true;
+  albumSpotlightSelected = getSpotlightAlbums().map((a) => a.id);
+  document.getElementById("albumSpotlightSearch").value = "";
+  renderAlbumSpotlightPickerList("");
+}
+
+function closeAlbumSpotlightPicker() {
+  document.getElementById("albumSpotlightPicker").hidden = true;
+  document.getElementById("albumSpotlightView").hidden = false;
+  albumSpotlightSelected = [];
+}
+
+function renderAlbumSpotlightPickerList(query) {
+  const list = document.getElementById("albumSpotlightPickerList");
+  list.innerHTML = "";
+  const q = query.toLowerCase();
+
+  const filtered = allRecords
+    .filter((r) => !q || (r.artist + " " + r.album).toLowerCase().includes(q))
+    .slice(0, 40);
+
+  filtered.forEach((r) => {
+    const row = document.createElement("div");
+    const isSelected = albumSpotlightSelected.includes(r.id);
+    row.className = "album-spotlight-pick-row" + (isSelected ? " selected" : "");
+
+    const cover = document.createElement("div");
+    cover.className = "album-spotlight-pick-cover";
+    if (r.cover_url) {
+      const img = document.createElement("img");
+      img.src = r.cover_url;
+      img.alt = "";
+      cover.appendChild(img);
+    } else {
+      cover.innerHTML = '<i class="ti ti-vinyl"></i>';
+    }
+
+    const info = document.createElement("div");
+    info.innerHTML = `<p class="album-spotlight-pick-album">${r.album || ""}</p><p class="album-spotlight-pick-artist">${r.artist || ""}</p>`;
+
+    const check = document.createElement("div");
+    check.className = "album-spotlight-pick-check";
+    check.innerHTML = '<i class="ti ti-check"></i>';
+
+    row.appendChild(cover);
+    row.appendChild(info);
+    row.appendChild(check);
+
+    row.addEventListener("click", () => {
+      const idx = albumSpotlightSelected.indexOf(r.id);
+      if (idx !== -1) {
+        albumSpotlightSelected.splice(idx, 1);
+        row.classList.remove("selected");
+      } else {
+        if (albumSpotlightSelected.length >= 6) {
+          document.getElementById("albumSpotlightStatus").textContent = "Max 6 albums — deselect one first.";
+          return;
+        }
+        albumSpotlightSelected.push(r.id);
+        row.classList.add("selected");
+      }
+      document.getElementById("albumSpotlightStatus").textContent = "";
+    });
+
+    list.appendChild(row);
+  });
+}
+
+function setupProfileSpotlights() {
+  // Trophy spotlight
+  document.getElementById("editTrophySpotlightBtn")?.addEventListener("click", () => openTrophySpotlightPicker());
+  document.getElementById("cancelTrophySpotlightBtn")?.addEventListener("click", () => closeTrophySpotlightPicker());
+  document.getElementById("saveTrophySpotlightBtn")?.addEventListener("click", async () => {
+    const selected = [...document.getElementById("trophySpotlightPickerGrid").querySelectorAll(".selected")]
+      .map((el) => el.dataset.id);
+    const statusEl = document.getElementById("trophySpotlightStatus");
+    statusEl.textContent = "Saving…";
+    try {
+      await savePinnedTrophies(selected);
+      closeTrophySpotlightPicker();
+      renderTrophySpotlight();
+    } catch {
+      statusEl.textContent = "Couldn't save. Please try again.";
+      statusEl.className = "form-status form-status-error";
+    }
+  });
+
+  // Album spotlight
+  document.getElementById("editAlbumSpotlightBtn")?.addEventListener("click", () => openAlbumSpotlightPicker());
+  document.getElementById("cancelAlbumSpotlightBtn")?.addEventListener("click", () => closeAlbumSpotlightPicker());
+  document.getElementById("albumSpotlightSearch")?.addEventListener("input", (e) => renderAlbumSpotlightPickerList(e.target.value));
+  document.getElementById("saveAlbumSpotlightBtn")?.addEventListener("click", async () => {
+    const statusEl = document.getElementById("albumSpotlightStatus");
+    statusEl.textContent = "Saving…";
+    try {
+      const albums = albumSpotlightSelected
+        .map((id) => {
+          const r = allRecords.find((rec) => rec.id === id);
+          return r ? { id: r.id, artist: r.artist, album: r.album, cover_url: r.cover_url || null } : null;
+        })
+        .filter(Boolean);
+      await saveSpotlightAlbums(albums);
+      closeAlbumSpotlightPicker();
+      renderAlbumSpotlight();
+    } catch {
+      statusEl.textContent = "Couldn't save. Please try again.";
+      statusEl.className = "form-status form-status-error";
+    }
+  });
+}
+
 function renderProfile() {
   document.getElementById("profileAvatarImg").src = getAvatarUrl();
   document.getElementById("profileDisplayName").textContent = getDisplayName();
@@ -1917,6 +2198,8 @@ function renderProfile() {
   renderWishlistPersonalityView();
   renderTasteView();
   renderSystemView();
+  renderTrophySpotlight();
+  renderAlbumSpotlight();
 }
 
 // ------------ Profile editing ------------
@@ -2197,6 +2480,7 @@ async function handleAvatarFileChange(event) {
 }
 
 function setupProfile() {
+  setupProfileSpotlights();
   document.getElementById("editBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", true));
   document.getElementById("cancelBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", false));
   document.getElementById("basicsForm").addEventListener("submit", handleBasicsSubmit);

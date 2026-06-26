@@ -691,6 +691,48 @@
           </div>
         </div>
 
+        <!-- Trophy Spotlight -->
+        <div class="profile-card profile-spotlight-card">
+          <div class="profile-card-header">
+            <h2>Trophy Spotlight</h2>
+            <button type="button" id="editTrophySpotlightBtn" class="icon-btn" aria-label="Edit trophy spotlight" title="Edit">
+              <i class="ti ti-pencil" aria-hidden="true"></i>
+            </button>
+          </div>
+          <p class="field-hint">Pin up to 3 trophies to showcase on your profile.</p>
+          <div id="trophySpotlightView" class="trophy-spotlight-view"></div>
+          <div id="trophySpotlightPicker" class="trophy-spotlight-picker" hidden>
+            <p class="field-hint">Select up to 3 earned trophies to feature.</p>
+            <div id="trophySpotlightPickerGrid" class="trophy-spotlight-picker-grid"></div>
+            <div class="form-actions">
+              <button type="button" id="saveTrophySpotlightBtn" class="btn-primary">Save</button>
+              <button type="button" id="cancelTrophySpotlightBtn" class="btn-secondary">Cancel</button>
+            </div>
+            <p id="trophySpotlightStatus" class="form-status"></p>
+          </div>
+        </div>
+
+        <!-- Favorite Albums Spotlight -->
+        <div class="profile-card profile-spotlight-card">
+          <div class="profile-card-header">
+            <h2>Favorite Albums</h2>
+            <button type="button" id="editAlbumSpotlightBtn" class="icon-btn" aria-label="Edit favorite albums" title="Edit">
+              <i class="ti ti-pencil" aria-hidden="true"></i>
+            </button>
+          </div>
+          <p class="field-hint">Showcase up to 6 records from your collection.</p>
+          <div id="albumSpotlightView" class="album-spotlight-view"></div>
+          <div id="albumSpotlightPicker" class="album-spotlight-picker" hidden>
+            <input type="text" id="albumSpotlightSearch" class="album-spotlight-search" placeholder="Search your collection…" autocomplete="off" />
+            <div id="albumSpotlightPickerList" class="album-spotlight-picker-list"></div>
+            <div class="form-actions">
+              <button type="button" id="saveAlbumSpotlightBtn" class="btn-primary">Save</button>
+              <button type="button" id="cancelAlbumSpotlightBtn" class="btn-secondary">Cancel</button>
+            </div>
+            <p id="albumSpotlightStatus" class="form-status"></p>
+          </div>
+        </div>
+
         <!-- Row 2: Top lists -->
         <div class="profile-top-lists">
           <div class="profile-top-list">
