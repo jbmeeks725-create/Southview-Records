@@ -10442,49 +10442,106 @@ function scoreRecordForAnswers(record, answers) {
   let score = 0;
   const genre = (record.genre_name || "").toLowerCase();
   const subgenre = (record.subgenre_name || "").toLowerCase();
+  const combined = genre + " " + subgenre;
   const year = record.year || 0;
 
-  if (record.rating === "love") score += 4;
-  else if (record.rating === "like") score += 2;
-  else if (record.rating === "dislike") score -= 10;
+  // Rating — strong signal but not overwhelming
+  if (record.rating === "love") score += 6;
+  else if (record.rating === "like") score += 3;
+  else if (record.rating === "dislike") score -= 20; // hard exclude
+  else score -= 1; // unrated gets slight penalty vs rated
 
   const energy = answers.energy;
   const setting = answers.setting;
   const era = answers.era;
 
-  if (energy === "chill") {
-    if (genre.includes("jazz") || genre.includes("soul") || genre.includes("folk") || genre.includes("ambient") || genre.includes("bossa")) score += 5;
-    if (subgenre.includes("cool") || subgenre.includes("chamber") || subgenre.includes("acoustic")) score += 3;
-  } else if (energy === "energised") {
-    if (genre.includes("rock") || genre.includes("funk") || genre.includes("punk") || genre.includes("metal") || genre.includes("reggae")) score += 5;
-    if (subgenre.includes("hard") || subgenre.includes("power") || subgenre.includes("dance")) score += 3;
-  } else if (energy === "melancholic") {
-    if (genre.includes("blues") || genre.includes("soul") || genre.includes("folk") || genre.includes("country") || genre.includes("singer")) score += 5;
-    if (subgenre.includes("delta") || subgenre.includes("dark") || subgenre.includes("slow")) score += 3;
-  } else if (energy === "adventurous") {
-    if (genre.includes("jazz") || genre.includes("experimental") || genre.includes("world") || genre.includes("latin") || genre.includes("afro")) score += 5;
-    if (subgenre.includes("free") || subgenre.includes("avant") || subgenre.includes("fusion") || subgenre.includes("progressive")) score += 3;
+  // ---- Energy matching ----
+  // Each energy maps to primary (+6) and secondary (+3) genre families.
+  // Mismatched energy gets a small penalty (-2) to separate results more.
+
+  const energyMap = {
+    chill: {
+      primary: ["jazz", "bossa", "ambient", "classical", "new age", "easy listening", "cool"],
+      secondary: ["soul", "folk", "acoustic", "singer", "blues", "r&b", "soft"],
+      avoid: ["metal", "punk", "hardcore", "noise", "thrash", "death"],
+    },
+    energised: {
+      primary: ["rock", "punk", "funk", "metal", "reggae", "dance", "electronic", "hip hop"],
+      secondary: ["blues", "rhythm", "gospel", "soul", "hard bop", "swing", "latin"],
+      avoid: ["ambient", "new age", "easy listening", "classical"],
+    },
+    melancholic: {
+      primary: ["blues", "folk", "country", "singer", "americana", "chamber", "slowcore"],
+      secondary: ["soul", "jazz", "gospel", "ballad", "torch", "delta"],
+      avoid: ["punk", "metal", "dance", "funk", "electronic"],
+    },
+    adventurous: {
+      primary: ["experimental", "avant", "free jazz", "world", "latin", "afro", "fusion", "progressive"],
+      secondary: ["jazz", "electronic", "psychedelic", "krautrock", "ethnic", "modal"],
+      avoid: ["easy listening", "pop", "country"],
+    },
+  };
+
+  const eMap = energyMap[energy];
+  if (eMap) {
+    const isPrimary = eMap.primary.some((k) => combined.includes(k));
+    const isSecondary = eMap.secondary.some((k) => combined.includes(k));
+    const isAvoided = eMap.avoid.some((k) => combined.includes(k));
+
+    if (isPrimary) score += 6;
+    else if (isSecondary) score += 3;
+    else if (isAvoided) score -= 2;
+    // No genre data = 0, treated as neutral
   }
 
-  if (setting === "latenight") {
-    if (genre.includes("jazz") || genre.includes("blues") || genre.includes("soul")) score += 3;
-    if (year >= 1940 && year <= 1975) score += 2;
-  } else if (setting === "sunny") {
-    if (genre.includes("pop") || genre.includes("reggae") || genre.includes("latin") || genre.includes("funk") || genre.includes("bossa")) score += 3;
-    if (year >= 1960 && year <= 1985) score += 1;
-  } else if (setting === "working") {
-    if (genre.includes("jazz") || genre.includes("ambient") || genre.includes("classical") || genre.includes("electronic")) score += 3;
-    if (subgenre.includes("instrumental") || subgenre.includes("modal") || subgenre.includes("cool")) score += 2;
-  } else if (setting === "home") {
-    score += 1;
-    if (genre.includes("rock") || genre.includes("folk") || genre.includes("soul") || genre.includes("pop")) score += 2;
+  // ---- Setting matching ----
+  const settingMap = {
+    latenight: {
+      primary: ["jazz", "blues", "soul", "ambient", "bossa", "cool"],
+      secondary: ["folk", "acoustic", "singer", "r&b"],
+      yearBonus: { min: 1940, max: 1979, pts: 2 },
+    },
+    sunny: {
+      primary: ["reggae", "latin", "funk", "bossa", "pop", "ska", "afro"],
+      secondary: ["rock", "soul", "folk", "rhythm"],
+      yearBonus: { min: 1960, max: 1989, pts: 1 },
+    },
+    working: {
+      primary: ["jazz", "classical", "ambient", "electronic", "instrumental"],
+      secondary: ["folk", "acoustic", "cool", "modal"],
+      yearBonus: null,
+    },
+    home: {
+      primary: ["rock", "folk", "soul", "pop", "blues", "country", "singer"],
+      secondary: ["jazz", "reggae", "funk", "r&b"],
+      yearBonus: null,
+    },
+  };
+
+  const sMap = settingMap[setting];
+  if (sMap) {
+    const isPrimary = sMap.primary.some((k) => combined.includes(k));
+    const isSecondary = sMap.secondary.some((k) => combined.includes(k));
+    if (isPrimary) score += 4;
+    else if (isSecondary) score += 2;
+    if (sMap.yearBonus && year >= sMap.yearBonus.min && year <= sMap.yearBonus.max) {
+      score += sMap.yearBonus.pts;
+    }
   }
 
-  if (era === "old" && year > 0 && year < 1970) score += 5;
-  else if (era === "classic" && year >= 1970 && year <= 1999) score += 5;
-  else if (era === "modern" && year >= 2000) score += 5;
+  // ---- Era matching ----
+  if (era === "old") {
+    if (year > 0 && year < 1970) score += 6;
+    else if (year >= 1970) score -= 2;
+  } else if (era === "classic") {
+    if (year >= 1970 && year <= 1999) score += 6;
+    else if (year < 1970 || year >= 2000) score -= 1;
+  } else if (era === "modern") {
+    if (year >= 2000) score += 6;
+    else if (year > 0 && year < 2000) score -= 1;
+  }
+  // "any" = no bonus, no penalty
 
-  score += Math.random() * 0.5;
   return score;
 }
 
@@ -10492,12 +10549,17 @@ let discoverAnswers = {};
 
 function openDiscoverQuiz() {
   discoverAnswers = {};
-  document.getElementById("discoverQuizOverlay").hidden = false;
+  const overlay = document.getElementById("discoverQuizOverlay");
+  if (overlay) {
+    overlay.hidden = false;
+    document.getElementById("discoverQuizTitle").textContent = "Discover My Collection";
+  }
   renderDiscoverQuestion(0);
 }
 
 function closeDiscoverQuiz() {
-  document.getElementById("discoverQuizOverlay").hidden = true;
+  const overlay = document.getElementById("discoverQuizOverlay");
+  if (overlay) overlay.hidden = true;
 }
 
 function renderDiscoverQuestion(index) {
@@ -10505,16 +10567,22 @@ function renderDiscoverQuestion(index) {
   body.innerHTML = "";
 
   if (index >= DISCOVER_QUESTIONS.length) {
+    // Score everything, exclude hard dislikes
     const scored = allRecords
+      .filter((r) => r.rating !== "dislike")
       .map((r) => ({ record: r, score: scoreRecordForAnswers(r, discoverAnswers) }))
       .sort((a, b) => b.score - a.score);
 
-    const pick = scored.length > 0 ? scored[0].record : null;
-
-    if (!pick) {
+    if (scored.length === 0) {
       body.innerHTML = '<p class="form-status">No records found. Add some to your collection first!</p>';
       return;
     }
+
+    // Pick randomly from the top 3 scoring records so the same album
+    // doesn't always win — but only among records within 3 points of the top score
+    const topScore = scored[0].score;
+    const topPool = scored.filter((s) => s.score >= topScore - 3).slice(0, 5);
+    const pick = topPool[Math.floor(Math.random() * topPool.length)].record;
 
     renderDiscoverResult(body, pick, "Based on your mood, here's what we picked:");
     return;
