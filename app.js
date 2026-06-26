@@ -6188,62 +6188,77 @@ async function startBarcodeScan(scanConfig) {
 
   html5QrCode = new Html5Qrcode(scanConfig.videoId);
 
-  // Use a percentage-based qrbox so it scales with the viewport on any device
   const qrboxFn = (viewfinderWidth, viewfinderHeight) => {
     const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
     const boxSize = Math.floor(minEdge * 0.72);
     return { width: boxSize, height: Math.floor(boxSize * 0.55) };
   };
 
-  const config = {
-    fps: 24,                   // 24fps — much smoother decode on mobile
+  const baseConfig = {
+    fps: 24,
     qrbox: qrboxFn,
-    aspectRatio: 1.777,        // 16:9 — matches rear camera native aspect
-    disableFlip: false,        // allow mirrored barcodes
+    aspectRatio: 1.777,
+    disableFlip: false,
     formatsToSupport: [
       Html5QrcodeSupportedFormats.EAN_13,
       Html5QrcodeSupportedFormats.EAN_8,
       Html5QrcodeSupportedFormats.UPC_A,
       Html5QrcodeSupportedFormats.UPC_E,
     ],
-    videoConstraints: {
-      facingMode: { exact: "environment" },   // rear camera only
-      width: { ideal: 1280 },                 // request HD — helps decode distance
-      height: { ideal: 720 },
-      focusMode: "continuous",                // keep autofocus running
-    },
   };
 
-  try {
-    await html5QrCode.start(
-      { facingMode: { exact: "environment" } },
-      config,
-      (decodedText) => {
-        onBarcodeDetected(decodedText);
+  // Try camera access in order of preference.
+  // iOS Safari rejects { exact: "environment" } before permission is granted,
+  // so we progressively relax constraints until something works.
+  const attempts = [
+    // Attempt 1: ideal rear camera with HD + continuous focus
+    {
+      cameraId: { facingMode: "environment" },
+      config: {
+        ...baseConfig,
+        videoConstraints: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
       },
-      () => {
-        // per-frame failure — normal, ignore
-      }
-    );
+    },
+    // Attempt 2: basic rear camera, no extra constraints
+    {
+      cameraId: { facingMode: "environment" },
+      config: baseConfig,
+    },
+    // Attempt 3: any camera (works on desktop, some restricted iOS contexts)
+    {
+      cameraId: { facingMode: "user" },
+      config: baseConfig,
+    },
+  ];
 
-    // Add torch button after scanner starts (only on devices that support it)
-    addTorchButton(scanConfig);
-
-  } catch (err) {
-    // exact "environment" can fail on desktop — fall back to basic facingMode
+  let started = false;
+  for (const attempt of attempts) {
     try {
       await html5QrCode.start(
-        { facingMode: "environment" },
-        { ...config, videoConstraints: undefined },
-        (decodedText) => { onBarcodeDetected(decodedText); },
-        () => {}
+        attempt.cameraId,
+        attempt.config,
+        (decodedText) => onBarcodeDetected(decodedText),
+        () => {} // per-frame failure — normal
       );
-    } catch (err2) {
-      console.error(err2);
-      scanStatus.textContent = "Couldn't access camera. Please check permissions.";
-      scanStatus.className = "form-status form-status-error";
-      stopBarcodeScan();
+      started = true;
+      addTorchButton(scanConfig);
+      break;
+    } catch (err) {
+      console.warn("[Scanner] Attempt failed:", err?.message || err);
+      // Clean up between attempts
+      try { html5QrCode.clear(); } catch {}
+      html5QrCode = new Html5Qrcode(scanConfig.videoId);
     }
+  }
+
+  if (!started) {
+    scanStatus.textContent = "Couldn't access camera. Please check that Safari has camera permission in Settings → Safari → Camera.";
+    scanStatus.className = "form-status form-status-error";
+    stopBarcodeScan();
   }
 }
 
