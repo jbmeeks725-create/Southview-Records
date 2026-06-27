@@ -708,6 +708,99 @@
     font-family: Inter, sans-serif;
   }
 
+  /* ── Auth terms note (shown in signup mode) ── */
+  .auth-terms-note {
+    font-size: 11px;
+    color: #6b6470;
+    text-align: center;
+    margin-top: 10px;
+    line-height: 1.5;
+    font-family: Inter, sans-serif;
+  }
+  .auth-terms-note a { color: #c9a84c; text-decoration: underline; }
+
+  /* ── Settings: legal links ── */
+  .settings-legal-links {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .settings-legal-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    font-size: 14px;
+    color: #b8b0a0;
+    text-decoration: none;
+    border-bottom: 1px solid #1e1c24;
+    transition: color 0.15s;
+  }
+  .settings-legal-link:last-child { border-bottom: none; }
+  .settings-legal-link:hover { color: #c9a84c; }
+  .settings-legal-link .ti { color: #6b6470; font-size: 16px; flex-shrink: 0; }
+  .settings-legal-external { margin-left: auto; font-size: 13px; opacity: 0.5; }
+
+  /* ── Settings: danger card (Delete Account) ── */
+  .settings-danger-card { border-color: rgba(224,112,112,0.25) !important; }
+  .settings-danger-card h2 { color: #e07070 !important; }
+  .btn-danger {
+    background: transparent;
+    border: 1px solid #e07070;
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e07070;
+    cursor: pointer;
+    font-family: Inter, sans-serif;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-danger:hover { background: #e07070; color: #0d0d11; }
+  .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Site footer ── */
+  .site-footer {
+    border-top: 1px solid #1e1c24;
+    padding: 20px 24px calc(20px + env(safe-area-inset-bottom, 0px));
+    margin-top: 40px;
+  }
+  .site-footer-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+    font-size: 12px;
+  }
+  .site-footer-brand {
+    font-family: Jost, sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: #e8e0d0;
+    letter-spacing: 0.05em;
+  }
+  .site-footer-brand span { color: #c9a84c; font-size: 10px; font-weight: 500; margin-left: 4px; letter-spacing: 0.08em; }
+  .site-footer-links {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .site-footer-links a {
+    color: #6b6470;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .site-footer-links a:hover { color: #c9a84c; }
+  .site-footer-copy {
+    color: #3a3840;
+    margin-left: auto;
+  }
+  @media (max-width: 768px) {
+    .site-footer { display: none; } /* footer already hidden on mobile; nav serves that purpose */
+  }
+
   /* ── Admin panel ── */
   .admin-page {
     max-width: 760px;
@@ -943,6 +1036,11 @@
             <button type="submit" id="authSubmitBtn" class="landing-btn landing-btn-primary">Sign in</button>
             <button type="button" id="authToggleBtn" class="landing-btn landing-btn-secondary">Create account</button>
           </div>
+          <p id="authTermsNote" class="auth-terms-note" hidden>
+            By creating an account you agree to our
+            <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a>
+            and <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.
+          </p>
         </form>
 
         <div class="auth-social-divider">
@@ -1952,6 +2050,52 @@
 
           <p id="settingsPrivacyStatus" class="form-status"></p>
         </div>
+
+        <!-- Legal links -->
+        <div class="profile-card">
+          <div class="profile-card-header">
+            <h2>Legal</h2>
+          </div>
+          <div class="settings-legal-links">
+            <a href="/privacy.html" target="_blank" rel="noopener" class="settings-legal-link">
+              <i class="ti ti-shield" aria-hidden="true"></i>
+              Privacy Policy
+              <i class="ti ti-external-link settings-legal-external" aria-hidden="true"></i>
+            </a>
+            <a href="/terms.html" target="_blank" rel="noopener" class="settings-legal-link">
+              <i class="ti ti-file-text" aria-hidden="true"></i>
+              Terms of Service
+              <i class="ti ti-external-link settings-legal-external" aria-hidden="true"></i>
+            </a>
+            <a href="mailto:privacy@spinvinyl.co" class="settings-legal-link">
+              <i class="ti ti-mail" aria-hidden="true"></i>
+              privacy@spinvinyl.co
+            </a>
+          </div>
+        </div>
+
+        <!-- Delete account — GDPR required -->
+        <div class="profile-card settings-danger-card">
+          <div class="profile-card-header">
+            <h2>Delete Account</h2>
+          </div>
+          <p class="field-hint">Permanently deletes your account, collection, wishlist, trophies, and all associated data. This cannot be undone.</p>
+          <div id="deleteAccountConfirm" hidden>
+            <p class="field-hint" style="color:#e07070">Are you sure? Type <strong>DELETE</strong> to confirm.</p>
+            <div class="form-row">
+              <input type="text" id="deleteAccountInput" placeholder="Type DELETE to confirm" autocomplete="off" />
+            </div>
+            <p id="deleteAccountStatus" class="form-status"></p>
+            <div class="form-actions">
+              <button type="button" id="cancelDeleteAccountBtn" class="btn-secondary">Cancel</button>
+              <button type="button" id="confirmDeleteAccountBtn" class="btn-danger" disabled>Delete my account</button>
+            </div>
+          </div>
+          <div id="deleteAccountPrompt">
+            <button type="button" id="deleteAccountBtn" class="btn-danger">Delete my account</button>
+          </div>
+        </div>
+
       </div>
     </div>
   </section>
@@ -3654,13 +3798,108 @@
       });
     })();
 
-    // SW update toast
+    // ── SW update toast ──
     document.getElementById('swUpdateBtn')?.addEventListener('click', () => {
       window.location.reload();
     });
 
+    // ── Auth terms note: show when in signup mode ──
+    // app.js toggles the submit button text between "Sign in" / "Create account"
+    // We watch for that to show/hide the terms note
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const authTermsNote = document.getElementById('authTermsNote');
+    if (authSubmitBtn && authTermsNote) {
+      const authObserver = new MutationObserver(() => {
+        const isSignup = authSubmitBtn.textContent.trim().toLowerCase().includes('create');
+        authTermsNote.hidden = !isSignup;
+      });
+      authObserver.observe(authSubmitBtn, { childList: true, characterData: true, subtree: true });
+    }
+
+    // ── Delete account flow ──
+    const deleteBtn         = document.getElementById('deleteAccountBtn');
+    const deleteConfirm     = document.getElementById('deleteAccountConfirm');
+    const deletePrompt      = document.getElementById('deleteAccountPrompt');
+    const cancelDeleteBtn   = document.getElementById('cancelDeleteAccountBtn');
+    const confirmDeleteBtn  = document.getElementById('confirmDeleteAccountBtn');
+    const deleteInput       = document.getElementById('deleteAccountInput');
+    const deleteStatus      = document.getElementById('deleteAccountStatus');
+
+    deleteBtn?.addEventListener('click', () => {
+      deletePrompt.hidden  = true;
+      deleteConfirm.hidden = false;
+      deleteInput?.focus();
+    });
+
+    cancelDeleteBtn?.addEventListener('click', () => {
+      deletePrompt.hidden  = false;
+      deleteConfirm.hidden = true;
+      if (deleteInput) deleteInput.value = '';
+      if (confirmDeleteBtn) confirmDeleteBtn.disabled = true;
+    });
+
+    deleteInput?.addEventListener('input', () => {
+      if (confirmDeleteBtn) {
+        confirmDeleteBtn.disabled = deleteInput.value.trim() !== 'DELETE';
+      }
+    });
+
+    confirmDeleteBtn?.addEventListener('click', async () => {
+      if (deleteInput?.value.trim() !== 'DELETE') return;
+      confirmDeleteBtn.disabled = true;
+      confirmDeleteBtn.textContent = 'Deleting…';
+      if (deleteStatus) deleteStatus.textContent = '';
+
+      try {
+        // Call Supabase to delete the user's data then their auth account
+        // This requires a Supabase Edge Function or RPC — we trigger it here
+        // and let app.js handle the actual deletion via window.spinvinyDeleteAccount
+        if (typeof window.spinvinylDeleteAccount === 'function') {
+          await window.spinvinylDeleteAccount();
+        } else {
+          // Fallback: sign out and show instructions
+          if (deleteStatus) {
+            deleteStatus.textContent = 'Please contact privacy@spinvinyl.co to complete account deletion.';
+            deleteStatus.style.color = '#e07070';
+          }
+          confirmDeleteBtn.textContent = 'Delete my account';
+          confirmDeleteBtn.disabled = false;
+        }
+      } catch (err) {
+        if (deleteStatus) {
+          deleteStatus.textContent = 'Something went wrong. Email privacy@spinvinyl.co to delete your account.';
+          deleteStatus.style.color = '#e07070';
+        }
+        confirmDeleteBtn.textContent = 'Delete my account';
+        confirmDeleteBtn.disabled = false;
+      }
+    });
+
+    // ── Show footer when logged in (app.js sets #accountSection visible) ──
+    const footer = document.getElementById('siteFooter');
+    const accountSection = document.getElementById('accountSection');
+    if (footer && accountSection) {
+      const footerObserver = new MutationObserver(() => {
+        footer.hidden = accountSection.hidden;
+      });
+      footerObserver.observe(accountSection, { attributes: true, attributeFilter: ['hidden'] });
+    }
+
   })();
   </script>
+
+  <!-- ── Site footer ── -->
+  <footer id="siteFooter" class="site-footer" hidden>
+    <div class="site-footer-inner">
+      <span class="site-footer-brand">SPIN<span>VINYL</span></span>
+      <nav class="site-footer-links" aria-label="Footer">
+        <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+        <a href="/terms.html" target="_blank" rel="noopener">Terms of Service</a>
+        <a href="mailto:hello@spinvinyl.co">Contact</a>
+      </nav>
+      <span class="site-footer-copy">© 2025 SPIN VINYL</span>
+    </div>
+  </footer>
 
 </body>
 </html>
