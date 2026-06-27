@@ -12947,3 +12947,61 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupAdmin();
   startHeaderNowPlayingPolling();
 });
+// ── Account Deletion ────────────────────────────────────────────────────────
+//
+// Called by the Delete Account UI in index.html.
+// Exposed on window so the inline mobile script can reach it.
+//
+// Flow:
+//   1. Get the current session access token
+//   2. Call the delete-account Edge Function (which deletes all data + auth account)
+//   3. Sign out locally and redirect to home
+//
+// The Edge Function uses the service role key server-side — it never touches
+// the client. We only send the user's own JWT to prove identity.
+
+const DELETE_ACCOUNT_FUNCTION_URL =
+  "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/delete-account";
+
+window.spinvinylDeleteAccount = async function () {
+  // Get the current session so we can send the access token
+  const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+  if (sessionError || !session) {
+    throw new Error("You must be signed in to delete your account.");
+  }
+
+  const response = await fetch(DELETE_ACCOUNT_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session.access_token}`,
+      "apikey": SUPABASE_ANON_KEY,
+    },
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || `Deletion failed (${response.status})`);
+  }
+
+  // Data and auth account are gone — sign out locally and reset UI
+  // supabaseClient.auth.signOut() will 401 since the account no longer exists,
+  // so we call onSignedOut() directly to clean up the UI
+  try {
+    await supabaseClient.auth.signOut();
+  } catch {
+    // Expected — account is already deleted server-side
+  }
+
+  onSignedOut();
+
+  // Show a brief confirmation before the auth overlay appears
+  const deleteStatus = document.getElementById("deleteAccountStatus");
+  if (deleteStatus) {
+    deleteStatus.textContent = "Your account has been deleted.";
+    deleteStatus.style.color = "#70c070";
+  }
+};
+// ── End Account Deletion ─────────────────────────────────────────────────────
