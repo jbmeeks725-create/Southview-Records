@@ -19,12 +19,16 @@
       line-height: 1.6;
       display: flex;
       flex-direction: column;
-      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
+      min-height: 100vh;
+      padding-top: env(safe-area-inset-top, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
     }
+
+    /* ── Header ── */
     .page-header {
       background: #0d0d11;
       border-bottom: 1px solid #1e1c24;
-      padding: 16px 24px;
+      padding: 14px 24px;
     }
     .page-header a {
       display: inline-flex;
@@ -40,89 +44,60 @@
     .brand {
       font-family: Jost, sans-serif;
       font-weight: 700;
-      font-size: 16px;
+      font-size: 17px;
       color: #e8e0d0;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
     }
-    .brand span {
+    .brand em {
+      font-style: normal;
       color: #c9a84c;
-      font-size: 11px;
-      font-weight: 500;
-      margin-left: 4px;
-      letter-spacing: 0.08em;
     }
 
-    /* ── Main centred content ── */
+    /* ── Main ── */
     main {
       flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 48px 24px;
+      padding: 48px 24px 64px;
       text-align: center;
     }
 
-    /* Vinyl record illustration */
-    .vinyl {
-      width: 180px;
-      height: 180px;
-      border-radius: 50%;
-      background:
-        radial-gradient(circle at 50% 50%, #1a1820 0%, #1a1820 12%,
-          transparent 12%, transparent 13%,
-          #0d0c12 13%, #0d0c12 100%);
-      box-shadow:
-        0 0 0 2px #2a2830,
-        0 0 0 18px #0d0c12,
-        0 0 0 20px #2a2830,
-        0 0 0 36px #0d0c12,
-        0 0 0 38px #2a2830,
-        0 0 0 54px #0d0c12,
-        0 0 0 56px #2a2830,
-        0 20px 60px rgba(0,0,0,0.6);
-      margin-bottom: 40px;
-      position: relative;
-      animation: slowspin 8s linear infinite;
-    }
-    .vinyl::after {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: #c9a84c;
-      box-shadow: 0 0 0 3px #0d0c12;
+    /* ── SVG record ── */
+    .record-wrap {
+      margin-bottom: 44px;
+      animation: slowspin 12s linear infinite;
+      filter: drop-shadow(0 24px 48px rgba(0,0,0,0.7));
     }
     @keyframes slowspin {
       from { transform: rotate(0deg); }
       to   { transform: rotate(360deg); }
     }
 
+    /* ── Copy ── */
     .error-code {
       font-family: Jost, sans-serif;
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
-      letter-spacing: 0.15em;
+      letter-spacing: 0.2em;
       text-transform: uppercase;
       color: #c9a84c;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
     h1 {
       font-family: Jost, sans-serif;
-      font-size: clamp(24px, 5vw, 36px);
+      font-size: clamp(22px, 4vw, 34px);
       font-weight: 700;
       color: #e8e0d0;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
       line-height: 1.2;
     }
     p {
       font-size: 15px;
       color: #6b6470;
-      max-width: 380px;
-      margin-bottom: 36px;
+      max-width: 360px;
+      margin-bottom: 40px;
     }
 
     .btn-home {
@@ -134,24 +109,20 @@
       font-family: Jost, sans-serif;
       font-size: 15px;
       font-weight: 600;
-      padding: 12px 28px;
+      padding: 13px 30px;
       border-radius: 8px;
       text-decoration: none;
-      transition: background 0.15s, transform 0.15s;
+      transition: background 0.15s, transform 0.12s;
     }
     .btn-home:hover {
       background: #d4b660;
-      transform: translateY(-1px);
-    }
-    .btn-home svg {
-      width: 16px;
-      height: 16px;
+      transform: translateY(-2px);
     }
 
     /* ── Footer ── */
     footer {
       border-top: 1px solid #1e1c24;
-      padding: 20px 24px;
+      padding: 18px 24px;
       text-align: center;
       font-size: 12px;
       color: #3a3840;
@@ -160,6 +131,7 @@
       color: #6b6470;
       text-decoration: none;
       margin: 0 8px;
+      transition: color 0.15s;
     }
     footer a:hover { color: #c9a84c; }
   </style>
@@ -168,23 +140,96 @@
 
   <header class="page-header">
     <a href="/">
-      <img src="icon-192.png" alt="Spin Vinyl" />
-      <span class="brand">Spin <span>VINYL</span></span>
+      <img src="icon-192.png" alt="Spin Vinyl logo" />
+      <span class="brand">Spin <em>Vinyl</em></span>
     </a>
   </header>
 
   <main>
-    <div class="vinyl" aria-hidden="true"></div>
+
+    <!-- Gold vinyl record SVG -->
+    <div class="record-wrap" aria-hidden="true">
+      <svg width="220" height="220" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Gold radial gradient for the record body -->
+          <radialGradient id="goldBody" cx="50%" cy="42%" r="52%">
+            <stop offset="0%"   stop-color="#e8c96a"/>
+            <stop offset="35%"  stop-color="#c9a84c"/>
+            <stop offset="65%"  stop-color="#a8853a"/>
+            <stop offset="100%" stop-color="#8a6a28"/>
+          </radialGradient>
+          <!-- Darker gold for groove areas -->
+          <radialGradient id="grooveTint" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stop-color="#c9a84c" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#5a3e10" stop-opacity="0.5"/>
+          </radialGradient>
+          <!-- Label gradient -->
+          <radialGradient id="labelGrad" cx="50%" cy="40%" r="55%">
+            <stop offset="0%"   stop-color="#1e1c24"/>
+            <stop offset="100%" stop-color="#0d0c12"/>
+          </radialGradient>
+        </defs>
+
+        <!-- Outer record disc -->
+        <circle cx="110" cy="110" r="108" fill="url(#goldBody)"/>
+
+        <!-- Groove rings — alternating dark/light for realism -->
+        <circle cx="110" cy="110" r="105" fill="none" stroke="#8a6a28" stroke-width="0.5"/>
+        <circle cx="110" cy="110" r="102" fill="none" stroke="#e0ba55" stroke-width="0.4" opacity="0.6"/>
+        <circle cx="110" cy="110" r="99"  fill="none" stroke="#8a6a28" stroke-width="0.5"/>
+        <circle cx="110" cy="110" r="96"  fill="none" stroke="#e0ba55" stroke-width="0.4" opacity="0.6"/>
+        <circle cx="110" cy="110" r="93"  fill="none" stroke="#8a6a28" stroke-width="0.5"/>
+        <circle cx="110" cy="110" r="90"  fill="none" stroke="#e0ba55" stroke-width="0.4" opacity="0.6"/>
+        <circle cx="110" cy="110" r="87"  fill="none" stroke="#8a6a28" stroke-width="0.5"/>
+        <circle cx="110" cy="110" r="84"  fill="none" stroke="#e0ba55" stroke-width="0.4" opacity="0.5"/>
+        <circle cx="110" cy="110" r="81"  fill="none" stroke="#8a6a28" stroke-width="0.5"/>
+        <circle cx="110" cy="110" r="78"  fill="none" stroke="#e0ba55" stroke-width="0.4" opacity="0.5"/>
+        <circle cx="110" cy="110" r="75"  fill="none" stroke="#8a6a28" stroke-width="0.5"/>
+        <circle cx="110" cy="110" r="72"  fill="none" stroke="#e0ba55" stroke-width="0.4" opacity="0.4"/>
+        <circle cx="110" cy="110" r="69"  fill="none" stroke="#8a6a28" stroke-width="0.5"/>
+        <circle cx="110" cy="110" r="66"  fill="none" stroke="#e0ba55" stroke-width="0.4" opacity="0.4"/>
+
+        <!-- Depth overlay -->
+        <circle cx="110" cy="110" r="108" fill="url(#grooveTint)"/>
+
+        <!-- Edge highlight -->
+        <circle cx="110" cy="110" r="107" fill="none" stroke="#f0d070" stroke-width="0.8" opacity="0.4"/>
+
+        <!-- Centre label -->
+        <circle cx="110" cy="110" r="46" fill="url(#labelGrad)"/>
+        <circle cx="110" cy="110" r="46" fill="none" stroke="#2a2830" stroke-width="1"/>
+
+        <!-- Label inner ring decoration -->
+        <circle cx="110" cy="110" r="40" fill="none" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+
+        <!-- "Spin" text on label -->
+        <text x="110" y="103" text-anchor="middle"
+              font-family="Jost, sans-serif" font-weight="700" font-size="13"
+              fill="#e8e0d0" letter-spacing="1">Spin</text>
+
+        <!-- "VINYL" text on label -->
+        <text x="110" y="119" text-anchor="middle"
+              font-family="Jost, sans-serif" font-weight="500" font-size="8"
+              fill="#c9a84c" letter-spacing="3">VINYL</text>
+
+        <!-- Spindle hole -->
+        <circle cx="110" cy="110" r="4" fill="#0b0c0f"/>
+        <circle cx="110" cy="110" r="2" fill="#c9a84c"/>
+      </svg>
+    </div>
+
     <p class="error-code">404 — Not Found</p>
     <h1>This record isn't in the crates.</h1>
     <p>The page you're looking for doesn't exist, may have moved, or the needle skipped.</p>
+
     <a href="/" class="btn-home">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
         <polyline points="9,22 9,12 15,12 15,22"/>
       </svg>
       Back to my collection
     </a>
+
   </main>
 
   <footer>
