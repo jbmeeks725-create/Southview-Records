@@ -457,7 +457,28 @@
       margin-top: 0 !important;
     }
 
-  
+  }
+
+  /* ── Album Intel: full-width Add to Collection when Scan Another removed ── */
+  .album-intel-collection-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ── Modals must sit above bottom nav (z-900) and FAB (z-905) on mobile ── */
+  @media (max-width: 768px) {
+    .modal-overlay {
+      z-index: 950 !important;
+    }
+    /* Hide FAB and nav when any modal is open so they don't bleed through */
+    body.modal-open #mobileBottomNav,
+    body.modal-open #mobileFab,
+    body.modal-open #mobileFabBackdrop,
+    body.modal-open #mobileFabOptions {
+      display: none !important;
+    }
+  }
+
   @media (min-width: 769px) {
     #mobileBottomNav,
     #mobileFab,
@@ -2037,9 +2058,6 @@
         <div class="album-intel-result">
           <div class="album-intel-cover-wrap">
             <img id="albumIntelCover" class="album-intel-cover" alt="" />
-            <div id="albumIntelCoverPlaceholder" class="album-intel-cover-placeholder" hidden>
-              <i class="ti ti-vinyl" aria-hidden="true"></i>
-            </div>
           </div>
           <div class="album-intel-info">
             <p id="albumIntelArtist" class="album-intel-artist"></p>
@@ -2057,11 +2075,8 @@
           <button type="button" id="albumIntelAddWishlistBtn" class="btn-primary">
             <i class="ti ti-heart" aria-hidden="true"></i> Add to Wishlist
           </button>
-          <button type="button" id="albumIntelAddCollectionBtn" class="btn-secondary">
+          <button type="button" id="albumIntelAddCollectionBtn" class="btn-secondary album-intel-collection-btn">
             <i class="ti ti-disc" aria-hidden="true"></i> Add to Collection
-          </button>
-          <button type="button" id="albumIntelScanAgainBtn" class="btn-text">
-            <i class="ti ti-scan" aria-hidden="true"></i> Scan another
           </button>
         </div>
         <p id="albumIntelActionStatus" class="form-status"></p>
@@ -3302,6 +3317,22 @@
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') { closeFab(); closeFilterSheet(); closeCollectionFilterSheet(); }
     });
+
+    // ── modal-open class: hides bottom nav/FAB when any modal is open ──
+    // Watches all .modal-overlay elements for the `hidden` attribute being removed
+    (function () {
+      function updateModalOpen() {
+        const anyOpen = Array.from(document.querySelectorAll('.modal-overlay')).some(el => !el.hidden);
+        document.body.classList.toggle('modal-open', anyOpen);
+        // Also close FAB if a modal just opened
+        if (anyOpen) closeFab();
+      }
+      const observer = new MutationObserver(updateModalOpen);
+      document.querySelectorAll('.modal-overlay').forEach(el => {
+        observer.observe(el, { attributes: true, attributeFilter: ['hidden'] });
+      });
+      updateModalOpen();
+    })();
 
   })();
   </script>
