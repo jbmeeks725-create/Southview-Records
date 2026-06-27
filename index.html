@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <title>SPIN VINYL — The Digital Home for Your Vinyl Collection</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="description" content="The digital home for your vinyl collection. Catalog, discover, listen, and share." />
 
   <!-- Open Graph — controls how links look in iMessage, Slack, Twitter etc. -->
@@ -55,17 +55,23 @@
     #controls {
       display: none !important;
     }
+    /* Also hide #pageNav directly — it sits outside #controls in the DOM */
+    #pageNav {
+      display: none !important;
+    }
 
     /* ── 2. Bottom navigation bar ── */
     #mobileBottomNav {
       display: flex;
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      height: 58px;
+      height: auto;
       background: #0d0d11;
       border-top: 1px solid #1e1c24;
       z-index: 900;
       align-items: stretch;
+      /* Safe area: clears the iPhone home indicator + Safari floating URL bar */
+      padding-bottom: env(safe-area-inset-bottom, 8px);
     }
     .mob-nav-item {
       flex: 1;
@@ -77,7 +83,8 @@
       cursor: pointer;
       border: none;
       background: transparent;
-      padding: 6px 0 8px;
+      padding: 10px 0 8px;
+      min-height: 52px;
       -webkit-tap-highlight-color: transparent;
     }
     .mob-nav-icon {
@@ -105,7 +112,7 @@
 
     /* ── 3. Push page content above bottom nav ── */
     body {
-      padding-bottom: 68px;
+      padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
     }
 
     /* ── 4. Compact the suggestions card to a single inline strip ── */
@@ -214,7 +221,7 @@
       background: #1a1820;
       border-radius: 16px 16px 0 0;
       border-top: 1px solid #2a2830;
-      padding: 16px 16px 32px;
+      padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
       z-index: 1;
     }
     .mob-sheet-handle {
@@ -282,7 +289,7 @@
     #mobileFab {
       display: flex;
       position: fixed;
-      bottom: 70px;
+      bottom: calc(68px + env(safe-area-inset-bottom, 0px));
       right: 18px;
       width: 52px; height: 52px;
       border-radius: 50%;
@@ -322,7 +329,7 @@
     /* ── 9. FAB option buttons ── */
     #mobileFabOptions {
       position: fixed;
-      bottom: 134px;
+      bottom: calc(134px + env(safe-area-inset-bottom, 0px));
       right: 18px;
       display: flex;
       flex-direction: column;
@@ -374,15 +381,91 @@
     .mob-fab-icon.gold  { background: #c9a84c; }
     .mob-fab-icon.slate { background: #1e1c24; border: 1px solid #2e2b38; }
 
-  }
+    /* ── 10. Collection section: hide stacked filters, show compact toolbar ── */
+    /* Hide the 4 verbose filter dropdowns + actions on mobile */
+    #collectionDnaSection .page-toolbar {
+      flex-direction: column !important;
+      gap: 8px !important;
+      padding: 12px 0 0 !important;
+    }
+    #collectionFilters {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      gap: 8px !important;
+      align-items: center !important;
+    }
+    /* Search input takes remaining width */
+    #searchInput {
+      flex: 1 1 auto !important;
+      min-width: 0 !important;
+    }
+    /* Hide the four dropdowns — they move to the bottom sheet */
+    #genreFilter,
+    #subgenreFilter,
+    #ratingFilter,
+    #sortSelect {
+      display: none !important;
+    }
+    /* Compact action row on mobile */
+    #collectionDnaSection .page-toolbar-actions {
+      display: flex !important;
+      gap: 8px !important;
+      align-items: center !important;
+      flex-wrap: nowrap !important;
+    }
+    #gridDensityControl {
+      display: none !important;
+    }
+    #importBtn {
+      display: none !important;
+    }
+    #shareCollectionBtn {
+      padding: 8px 10px !important;
+      font-size: 12px !important;
+    }
+    #addRecordBtn {
+      flex: 1 !important;
+      text-align: center !important;
+    }
+    /* Mobile collection filter button (injected via JS below) */
+    #mobileCollectionFilterBtn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: #1e1c24;
+      border: 1px solid #2a2830;
+      border-radius: 6px;
+      padding: 7px 11px;
+      font-size: 12px;
+      color: #e8e0d0;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: Inter, sans-serif;
+      flex-shrink: 0;
+    }
+    #mobileCollectionFilterBtn .mob-filter-dot {
+      width: 6px; height: 6px;
+      background: #c9a84c;
+      border-radius: 50%;
+      display: none;
+    }
+    #mobileCollectionFilterBtn.has-filters .mob-filter-dot {
+      display: block;
+    }
+    /* Collection DNA card pushed below on mobile */
+    .dna-card {
+      margin-top: 0 !important;
+    }
 
-  /* Hide bottom nav on desktop */
+  
   @media (min-width: 769px) {
     #mobileBottomNav,
     #mobileFab,
     #mobileFabBackdrop,
     #mobileFabOptions,
     #mobileFilterSheet,
+    #mobileCollectionFilterSheet,
+    #mobileCollectionFilterBtn,
     #mobileWishlistFilterBtn { display: none !important; }
   }
   /* ── Admin panel ── */
@@ -2879,6 +2962,47 @@
     </div>
   </div>
 
+  <!-- ── Mobile Collection Filter Sheet ── -->
+  <div id="mobileCollectionFilterSheet" role="dialog" aria-modal="true" aria-label="Filter and sort collection">
+    <div class="mob-sheet-backdrop" id="mobileCollectionFilterSheetBackdrop"></div>
+    <div class="mob-sheet-body">
+      <div class="mob-sheet-handle"></div>
+      <div class="mob-sheet-title">Filter &amp; Sort</div>
+      <span class="mob-sheet-label">Genre</span>
+      <select class="mob-sheet-select" id="mobileCollectionGenreFilter">
+        <option value="">All genres</option>
+      </select>
+      <span class="mob-sheet-label">Subgenre</span>
+      <select class="mob-sheet-select" id="mobileCollectionSubgenreFilter">
+        <option value="">All subgenres</option>
+      </select>
+      <span class="mob-sheet-label">Rating</span>
+      <select class="mob-sheet-select" id="mobileCollectionRatingFilter">
+        <option value="">All ratings</option>
+        <option value="love">Love</option>
+        <option value="like">Like</option>
+        <option value="neutral">Neutral</option>
+        <option value="dislike">Dislike</option>
+        <option value="unrated">Unrated</option>
+      </select>
+      <span class="mob-sheet-label">Sort by</span>
+      <select class="mob-sheet-select" id="mobileCollectionSortSelect">
+        <option value="artist-asc">Artist: A–Z</option>
+        <option value="artist-desc">Artist: Z–A</option>
+        <option value="album-asc">Album: A–Z</option>
+        <option value="album-desc">Album: Z–A</option>
+        <option value="year-desc">Year: Newest first</option>
+        <option value="year-asc">Year: Oldest first</option>
+        <option value="added-desc">Recently added</option>
+        <option value="added-asc">Oldest added</option>
+      </select>
+      <div class="mob-sheet-actions">
+        <button type="button" class="mob-sheet-clear" id="mobileCollectionFilterClear">Clear all</button>
+        <button type="button" class="mob-sheet-apply" id="mobileCollectionFilterApply">Show records</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Mobile UX JavaScript ── -->
   <script>
   (function () {
@@ -3066,10 +3190,7 @@
       document.getElementById(id)?.addEventListener('change', updateFilterDot);
     });
 
-    // ── Escape key closes everything ──
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') { closeFab(); closeFilterSheet(); }
-    });
+    // ── Escape key — handled in collection filter section below ──
 
     // ── Set initial active tab on load ──
     // Use a short delay to let app.js finish its own init and set aria-pressed
@@ -3083,6 +3204,103 @@
         }
         setActiveTab('mobNavHome'); // fallback
       }, 300);
+    });
+
+    // ── Collection filter bottom sheet ──
+    if (window.innerWidth <= 768) {
+      // Inject the "Filters" button into #collectionFilters after the search input
+      const collectionFilters = document.getElementById('collectionFilters');
+      const searchInput = document.getElementById('searchInput');
+      if (collectionFilters && searchInput) {
+        const collBtn = document.createElement('button');
+        collBtn.type = 'button';
+        collBtn.id = 'mobileCollectionFilterBtn';
+        collBtn.setAttribute('aria-label', 'Filter and sort');
+        collBtn.innerHTML = '<i class="ti ti-adjustments-horizontal"></i> Filter <span class="mob-filter-dot"></span>';
+        searchInput.insertAdjacentElement('afterend', collBtn);
+      }
+    }
+
+    const collFilterSheet    = document.getElementById('mobileCollectionFilterSheet');
+    const collFilterBackdrop = document.getElementById('mobileCollectionFilterSheetBackdrop');
+    const collFilterBtn      = document.getElementById('mobileCollectionFilterBtn');
+    const mobCollGenre       = document.getElementById('mobileCollectionGenreFilter');
+    const mobCollSubgenre    = document.getElementById('mobileCollectionSubgenreFilter');
+    const mobCollRating      = document.getElementById('mobileCollectionRatingFilter');
+    const mobCollSort        = document.getElementById('mobileCollectionSortSelect');
+
+    function syncCollectionSheetOptions() {
+      const srcGenre    = document.getElementById('genreFilter');
+      const srcSubgenre = document.getElementById('subgenreFilter');
+      if (srcGenre    && mobCollGenre    && mobCollGenre.options.length    <= 1) mobCollGenre.innerHTML    = srcGenre.innerHTML;
+      if (srcSubgenre && mobCollSubgenre && mobCollSubgenre.options.length <= 1) mobCollSubgenre.innerHTML = srcSubgenre.innerHTML;
+    }
+
+    function openCollectionFilterSheet() {
+      syncCollectionSheetOptions();
+      const sg = document.getElementById('genreFilter');
+      const ss = document.getElementById('subgenreFilter');
+      const sr = document.getElementById('ratingFilter');
+      const so = document.getElementById('sortSelect');
+      if (sg && mobCollGenre)    mobCollGenre.value    = sg.value;
+      if (ss && mobCollSubgenre) mobCollSubgenre.value = ss.value;
+      if (sr && mobCollRating)   mobCollRating.value   = sr.value;
+      if (so && mobCollSort)     mobCollSort.value     = so.value;
+      collFilterSheet?.classList.add('visible');
+    }
+
+    function closeCollectionFilterSheet() {
+      collFilterSheet?.classList.remove('visible');
+    }
+
+    function updateCollectionFilterDot() {
+      const sg = document.getElementById('genreFilter');
+      const ss = document.getElementById('subgenreFilter');
+      const sr = document.getElementById('ratingFilter');
+      const hasFilters = !!(sg?.value || ss?.value || sr?.value);
+      collFilterBtn?.classList.toggle('has-filters', hasFilters);
+    }
+
+    collFilterBtn?.addEventListener('click', openCollectionFilterSheet);
+    collFilterBackdrop?.addEventListener('click', closeCollectionFilterSheet);
+
+    document.getElementById('mobileCollectionFilterApply')?.addEventListener('click', () => {
+      const sg = document.getElementById('genreFilter');
+      const ss = document.getElementById('subgenreFilter');
+      const sr = document.getElementById('ratingFilter');
+      const so = document.getElementById('sortSelect');
+      if (sg) { sg.value = mobCollGenre?.value    ?? ''; sg.dispatchEvent(new Event('change')); }
+      if (ss) { ss.value = mobCollSubgenre?.value ?? ''; ss.dispatchEvent(new Event('change')); }
+      if (sr) { sr.value = mobCollRating?.value   ?? ''; sr.dispatchEvent(new Event('change')); }
+      if (so) { so.value = mobCollSort?.value     ?? 'artist-asc'; so.dispatchEvent(new Event('change')); }
+      updateCollectionFilterDot();
+      closeCollectionFilterSheet();
+    });
+
+    document.getElementById('mobileCollectionFilterClear')?.addEventListener('click', () => {
+      if (mobCollGenre)    mobCollGenre.value    = '';
+      if (mobCollSubgenre) mobCollSubgenre.value = '';
+      if (mobCollRating)   mobCollRating.value   = '';
+      if (mobCollSort)     mobCollSort.value     = 'artist-asc';
+      const sg = document.getElementById('genreFilter');
+      const ss = document.getElementById('subgenreFilter');
+      const sr = document.getElementById('ratingFilter');
+      const so = document.getElementById('sortSelect');
+      if (sg) { sg.value = ''; sg.dispatchEvent(new Event('change')); }
+      if (ss) { ss.value = ''; ss.dispatchEvent(new Event('change')); }
+      if (sr) { sr.value = ''; sr.dispatchEvent(new Event('change')); }
+      if (so) { so.value = 'artist-asc'; so.dispatchEvent(new Event('change')); }
+      updateCollectionFilterDot();
+      closeCollectionFilterSheet();
+    });
+
+    ['genreFilter','subgenreFilter','ratingFilter'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', updateCollectionFilterDot);
+    });
+
+    // Update Escape key handler to also close collection filter sheet
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { closeFab(); closeFilterSheet(); closeCollectionFilterSheet(); }
     });
 
   })();
