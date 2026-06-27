@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Page Not Found — Spin Vinyl</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" />
+  <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: #0b0c0f;
+      color: #e8e0d0;
+      font-family: Inter, sans-serif;
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
+    }
+    .page-header {
+      background: #0d0d11;
+      border-bottom: 1px solid #1e1c24;
+      padding: 16px 24px;
+    }
+    .page-header a {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .page-header img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+    }
+    .brand {
+      font-family: Jost, sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      color: #e8e0d0;
+      letter-spacing: 0.05em;
+    }
+    .brand span {
+      color: #c9a84c;
+      font-size: 11px;
+      font-weight: 500;
+      margin-left: 4px;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Main centred content ── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 24px;
+      text-align: center;
+    }
+
+    /* Vinyl record illustration */
+    .vinyl {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 50%, #1a1820 0%, #1a1820 12%,
+          transparent 12%, transparent 13%,
+          #0d0c12 13%, #0d0c12 100%);
+      box-shadow:
+        0 0 0 2px #2a2830,
+        0 0 0 18px #0d0c12,
+        0 0 0 20px #2a2830,
+        0 0 0 36px #0d0c12,
+        0 0 0 38px #2a2830,
+        0 0 0 54px #0d0c12,
+        0 0 0 56px #2a2830,
+        0 20px 60px rgba(0,0,0,0.6);
+      margin-bottom: 40px;
+      position: relative;
+      animation: slowspin 8s linear infinite;
+    }
+    .vinyl::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #c9a84c;
+      box-shadow: 0 0 0 3px #0d0c12;
+    }
+    @keyframes slowspin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .error-code {
+      font-family: Jost, sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #c9a84c;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-family: Jost, sans-serif;
+      font-size: clamp(24px, 5vw, 36px);
+      font-weight: 700;
+      color: #e8e0d0;
+      margin-bottom: 14px;
+      line-height: 1.2;
+    }
+    p {
+      font-size: 15px;
+      color: #6b6470;
+      max-width: 380px;
+      margin-bottom: 36px;
+    }
+
+    .btn-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #c9a84c;
+      color: #0b0c0f;
+      font-family: Jost, sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .btn-home:hover {
+      background: #d4b660;
+      transform: translateY(-1px);
+    }
+    .btn-home svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid #1e1c24;
+      padding: 20px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: #3a3840;
+    }
+    footer a {
+      color: #6b6470;
+      text-decoration: none;
+      margin: 0 8px;
+    }
+    footer a:hover { color: #c9a84c; }
+  </style>
+</head>
+<body>
+
+  <header class="page-header">
+    <a href="/">
+      <img src="icon-192.png" alt="Spin Vinyl" />
+      <span class="brand">Spin <span>VINYL</span></span>
+    </a>
+  </header>
+
+  <main>
+    <div class="vinyl" aria-hidden="true"></div>
+    <p class="error-code">404 — Not Found</p>
+    <h1>This record isn't in the crates.</h1>
+    <p>The page you're looking for doesn't exist, may have moved, or the needle skipped.</p>
+    <a href="/" class="btn-home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9,22 9,12 15,12 15,22"/>
+      </svg>
+      Back to my collection
+    </a>
+  </main>
+
+  <footer>
+    <a href="/">Home</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms of Service</a>
+    &nbsp;·&nbsp; © 2025 Spin Vinyl
+  </footer>
+
+</body>
+</html>
