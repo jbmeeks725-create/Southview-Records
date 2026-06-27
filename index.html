@@ -803,6 +803,44 @@
     .site-footer { display: none; } /* footer already hidden on mobile; nav serves that purpose */
   }
 
+  /* ── Cover Identify: square viewport ── */
+  .cover-identify-viewport {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    margin: 0 auto 12px;
+    aspect-ratio: 1 / 1;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+  }
+  .cover-identify-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+  /* Corner bracket overlay — like a camera viewfinder */
+  .cover-identify-frame {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .cover-identify-corner {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-color: #c9a84c;
+    border-style: solid;
+    border-width: 0;
+  }
+  .cover-identify-corner.tl { top: 12px;    left: 12px;   border-top-width: 3px;    border-left-width: 3px;   border-top-left-radius: 4px; }
+  .cover-identify-corner.tr { top: 12px;    right: 12px;  border-top-width: 3px;    border-right-width: 3px;  border-top-right-radius: 4px; }
+  .cover-identify-corner.bl { bottom: 12px; left: 12px;   border-bottom-width: 3px; border-left-width: 3px;   border-bottom-left-radius: 4px; }
+  .cover-identify-corner.br { bottom: 12px; right: 12px;  border-bottom-width: 3px; border-right-width: 3px;  border-bottom-right-radius: 4px; }
+
   /* ── Admin panel ── */
   .admin-page {
     max-width: 760px;
@@ -2465,6 +2503,9 @@
         <div class="album-intel-result">
           <div class="album-intel-cover-wrap">
             <img id="albumIntelCover" class="album-intel-cover" alt="" />
+            <div id="albumIntelCoverPlaceholder" class="album-intel-cover-placeholder" hidden>
+              <i class="ti ti-vinyl" aria-hidden="true"></i>
+            </div>
           </div>
           <div class="album-intel-info">
             <p id="albumIntelArtist" class="album-intel-artist"></p>
@@ -2515,7 +2556,15 @@
           <i class="ti ti-camera" aria-hidden="true"></i>
           Point camera at the album cover
         </p>
-        <video id="coverIdentifyVideo" class="cover-identify-video" autoplay playsinline muted></video>
+        <div class="cover-identify-viewport">
+          <video id="coverIdentifyVideo" class="cover-identify-video" autoplay playsinline muted></video>
+          <div class="cover-identify-frame">
+            <span class="cover-identify-corner tl"></span>
+            <span class="cover-identify-corner tr"></span>
+            <span class="cover-identify-corner bl"></span>
+            <span class="cover-identify-corner br"></span>
+          </div>
+        </div>
         <canvas id="coverIdentifyCanvas" class="cover-identify-canvas" hidden></canvas>
         <div class="cover-identify-actions">
           <button type="button" id="coverIdentifyCaptureBtn" class="btn-primary">
