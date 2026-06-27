@@ -562,16 +562,21 @@
   .collection-collapsible-body {
     padding: 4px 0 8px;
   }
-  /* On desktop, show both expanded by default and without the pill header */
+  /* atAGlanceSection is a shim for app.js — never render it, just let hidden toggle */
+  #atAGlanceSection {
+    display: none !important;
+  }
+
+  /* On desktop: hide the pill header, force open, restore normal block layout */
   @media (min-width: 769px) {
     .collection-collapsible-header {
-      display: none;
+      display: none !important;
     }
-    .collection-collapsible,
+    /* Must NOT use display:contents — it breaks <details> rendering */
     details.collection-collapsible {
-      display: contents;
+      display: block;
     }
-    /* Force open on desktop */
+    /* Force the details open by showing its body regardless of open attribute */
     details.collection-collapsible .collection-collapsible-body {
       display: block !important;
     }
@@ -2183,8 +2188,10 @@
     </details>
   </section>
 
-  <!-- atAGlanceSection shim: app.js shows/hides this; we mirror it to the collapsible details -->
-  <section id="atAGlanceSection" hidden style="display:none!important"></section>
+  <!-- atAGlanceSection shim: app.js shows/hides this via the hidden attribute;
+       we mirror that to the collapsible <details> via MutationObserver below.
+       Must NOT have display:none!important — app.js needs to remove [hidden]. -->
+  <section id="atAGlanceSection" hidden></section>
 
   <details id="atAGlanceDetails" class="collection-collapsible" hidden>
     <summary class="collection-collapsible-header">
@@ -3761,6 +3768,14 @@
           details.hidden = true;
         } else {
           details.hidden = false;
+          // Chart.js can't render into hidden elements — trigger resize now they're visible
+          setTimeout(() => {
+            if (window.Chart) {
+              Object.values(Chart.instances || {}).forEach(c => {
+                try { c.resize(); } catch {}
+              });
+            }
+          }, 50);
         }
       });
       obs.observe(shim, { attributes: true, attributeFilter: ['hidden'] });
