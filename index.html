@@ -814,6 +814,48 @@
     position: relative;
   }
 
+  /* ── Profile edit form: ensure it renders inline inside its card, not at bottom ── */
+  .profile-card {
+    position: relative;
+  }
+  .profile-edit-form {
+    position: static !important;
+    display: block;
+  }
+  .profile-edit-form[hidden] {
+    display: none !important;
+  }
+
+  /* ── Record shops editor: input-based rows so shops are editable ── */
+  .record-shops-editor-item {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .record-shops-editor-name {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: #e8e0d0;
+    font-size: 13px;
+    font-family: Inter, sans-serif;
+  }
+  .record-shops-editor-url {
+    flex: 1.2;
+    min-width: 0;
+    padding: 7px 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: #e8e0d0;
+    font-size: 13px;
+    font-family: Inter, sans-serif;
+  }
+
   /* ── Cover Identify: square viewport ── */
   .cover-identify-viewport {
     position: relative;

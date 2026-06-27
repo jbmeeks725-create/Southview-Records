@@ -1929,7 +1929,14 @@ function buildAlbumGridRow(label, albums, metaByAlbum) {
     const cell = document.createElement("div");
     cell.className = "profile-album-cell";
 
-    const coverUrl = meta[albumName]?.cover_url;
+    // First try stored meta, then fall back to live collection for fresh cover art
+    let coverUrl = meta[albumName]?.cover_url;
+    if (!coverUrl) {
+      const liveRecord = (typeof allRecords !== "undefined" ? allRecords : [])
+        .find((r) => r.album?.toLowerCase() === albumName.toLowerCase());
+      coverUrl = liveRecord?.cover_url || null;
+    }
+
     if (coverUrl) {
       const img = document.createElement("img");
       img.src = coverUrl;
@@ -2444,25 +2451,31 @@ function addShopEditorRow(list, name, url) {
   if (!name?.trim()) return;
   const row = document.createElement("div");
   row.className = "record-shops-editor-item";
-  row.dataset.name = name.trim();
-  row.dataset.url = url?.trim() || "";
 
-  const nameEl = document.createElement("span");
-  nameEl.className = "record-shops-editor-name";
-  nameEl.textContent = name.trim();
+  // Use inputs so both name and URL are editable after adding
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.className = "record-shops-editor-name";
+  nameInput.value = name.trim();
+  nameInput.placeholder = "Shop name";
+  nameInput.setAttribute("aria-label", "Shop name");
 
-  const urlEl = document.createElement("span");
-  urlEl.className = "record-shops-editor-url";
-  urlEl.textContent = url?.trim() || "No URL";
+  const urlInput = document.createElement("input");
+  urlInput.type = "text";
+  urlInput.className = "record-shops-editor-url";
+  urlInput.value = url?.trim() || "";
+  urlInput.placeholder = "Website (optional)";
+  urlInput.setAttribute("aria-label", "Shop website");
 
   const removeBtn = document.createElement("button");
   removeBtn.type = "button";
   removeBtn.className = "record-shops-editor-remove";
+  removeBtn.setAttribute("aria-label", "Remove shop");
   removeBtn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
   removeBtn.addEventListener("click", () => row.remove());
 
-  row.appendChild(nameEl);
-  row.appendChild(urlEl);
+  row.appendChild(nameInput);
+  row.appendChild(urlInput);
   row.appendChild(removeBtn);
   list.appendChild(row);
 }
@@ -2523,6 +2536,10 @@ function toggleProfileEdit(section, editing) {
     if (section === "wishlistPersonality") fillWishlistPersonalityForm();
     if (section === "taste") fillTasteForm();
     if (section === "system") fillSystemForm();
+    // Scroll the form into view smoothly so it appears inline, not at bottom
+    setTimeout(() => {
+      form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 50);
   }
 }
 
@@ -2568,12 +2585,14 @@ async function handleWishlistPersonalitySubmit(event) {
   statusEl.textContent = "Saving...";
   statusEl.className = "form-status";
   try {
-    // Collect shops from the editor
+    // Collect shops from the editor — rows now use <input> elements
     const shopRows = document.querySelectorAll(".record-shops-editor-item");
-    const recordShops = Array.from(shopRows).map((row) => ({
-      name: row.dataset.name,
-      url: row.dataset.url || null,
-    }));
+    const recordShops = Array.from(shopRows)
+      .map((row) => ({
+        name: row.querySelector(".record-shops-editor-name")?.value?.trim() || "",
+        url:  row.querySelector(".record-shops-editor-url")?.value?.trim()  || null,
+      }))
+      .filter((s) => s.name); // skip any blank rows
 
     await saveProfileFields({
       my_grail: document.getElementById("wishGrailInput").value.trim() || null,
@@ -7095,7 +7114,7 @@ async function captureAndIdentifyCover() {
   document.getElementById("coverIdentifyLoadingText").textContent = "Analysing cover art…";
 
   try {
-    // Ask Claude to identify the album via Edge Function (CORS prevents direct browser calls)
+    // Call via Edge Function — direct browser calls to api.anthropic.com are CORS-blocked
     const { data: { session } } = await supabaseClient.auth.getSession();
     const response = await fetch(IDENTIFY_COVER_FUNCTION_URL, {
       method: "POST",
@@ -12991,24 +13010,18 @@ window.spinvinylDeleteAccount = async function () {
 
 // ── New User Testing Mode ────────────────────────────────────────────────────
 let testModeActive = false;
-
 function isTestMode() { return testModeActive; }
-
 function enterTestMode() {
   if (!isOwner() || testModeActive) return;
   testModeActive = true;
   window._testMode_savedRecords = allRecords.slice();
   window._testMode_savedWishlist = wishlist.slice();
   window._testMode_savedProfile = currentProfile ? { ...currentProfile } : null;
-  allRecords = [];
-  wishlist   = [];
-  currentProfile = {
-    ...(currentProfile || {}),
-    onboarding_done: false, preferred_name: null, username: "new_user_preview",
-    avatar_url: null, favorite_genres: [], favorite_artists: [],
+  allRecords = []; wishlist = [];
+  currentProfile = { ...(currentProfile || {}), onboarding_done: false, preferred_name: null,
+    username: "new_user_preview", avatar_url: null, favorite_genres: [], favorite_artists: [],
     favorite_albums: [], favorite_albums_meta: {}, pinned_trophies: [],
-    wishlist_public: false, collection_public: false,
-  };
+    wishlist_public: false, collection_public: false };
   if (!supabaseClient._testModeProxied) {
     const _orig = supabaseClient.from.bind(supabaseClient);
     supabaseClient.from = function(table) {
@@ -13026,35 +13039,27 @@ function enterTestMode() {
   }
   showTestModeBanner(true);
   localStorage.removeItem("spin-onboarding-done");
-  maybeShowOnboarding();
-  render(); renderHome();
+  maybeShowOnboarding(); render(); renderHome();
   console.log("[TestMode] Active");
 }
-
 function exitTestMode() {
   if (!testModeActive) return;
   testModeActive = false;
   allRecords = window._testMode_savedRecords || [];
   wishlist = window._testMode_savedWishlist || [];
   currentProfile = window._testMode_savedProfile || currentProfile;
-  delete window._testMode_savedRecords;
-  delete window._testMode_savedWishlist;
-  delete window._testMode_savedProfile;
+  delete window._testMode_savedRecords; delete window._testMode_savedWishlist; delete window._testMode_savedProfile;
   delete supabaseClient._testModeProxied;
   const ob = document.getElementById("onboardingScreen");
   if (ob) ob.hidden = true;
   localStorage.setItem("spin-onboarding-done", "true");
-  showTestModeBanner(false);
-  window.location.hash = "";
-  render(); renderHome();
-  console.log("[TestMode] Exited");
+  showTestModeBanner(false); window.location.hash = "";
+  render(); renderHome(); console.log("[TestMode] Exited");
 }
-
 function showTestModeBanner(show) {
   let b = document.getElementById("testModeBanner");
   if (!b) {
-    b = document.createElement("div");
-    b.id = "testModeBanner";
+    b = document.createElement("div"); b.id = "testModeBanner";
     b.innerHTML = `<span>🧪</span><span style="flex:1"><strong>New User Testing Mode</strong> — writes blocked, data masked as empty</span><button id="testModeExitBtn" style="background:#c9a84c;color:#0d0d11;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Exit Test Mode</button>`;
     b.style.cssText = "position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:9999;background:#2a1a00;border-bottom:2px solid #c9a84c;padding:10px 16px;display:flex;align-items:center;gap:10px;font-family:Inter,sans-serif;font-size:13px;color:#e8e0d0;box-shadow:0 2px 12px rgba(0,0,0,.5)";
     document.body.appendChild(b);
@@ -13065,13 +13070,9 @@ function showTestModeBanner(show) {
   b.hidden = !show;
   if (!show) { const h = document.querySelector("header"); if (h?._tmPad !== undefined) h.style.paddingTop = h._tmPad; }
 }
-
 (function setupTestMode() {
   if (!isOwner()) return;
-  function check() {
-    if (window.location.hash === "#testmode") enterTestMode();
-    else if (testModeActive) exitTestMode();
-  }
+  function check() { if (window.location.hash === "#testmode") enterTestMode(); else if (testModeActive) exitTestMode(); }
   window.addEventListener("hashchange", check);
   window.addEventListener("load", () => { if (window.location.hash === "#testmode") setTimeout(enterTestMode, 500); });
 })();
