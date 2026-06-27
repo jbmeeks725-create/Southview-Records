@@ -1,4 +1,4 @@
-// ── SPIN VINYL Service Worker ──
+// ── Spin Vinyl Service Worker ──
 // Strategy:
 //   • App shell (HTML, CSS, JS, fonts, icons) → Cache First
 //   • Supabase API calls → Network First (never cache auth/data)
@@ -169,7 +169,7 @@ self.addEventListener('push', event => {
   if (!event.data) return;
   const data = event.data.json();
   event.waitUntil(
-    self.registration.showNotification(data.title || 'SPIN VINYL', {
+    self.registration.showNotification(data.title || 'Spin Vinyl', {
       body:  data.body  || '',
       icon:  data.icon  || '/icon-192.png',
       badge: data.badge || '/icon-192.png',

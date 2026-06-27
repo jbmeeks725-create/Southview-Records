@@ -1,6 +1,6 @@
 {
-  "name": "SPIN VINYL",
-  "short_name": "SPIN VINYL",
+  "name": "Spin Vinyl",
+  "short_name": "Spin Vinyl",
   "description": "The digital home for your vinyl collection. Catalog, discover, listen, and share.",
   "start_url": "/",
   "scope": "/",
@@ -36,7 +36,7 @@
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "SPIN VINYL — Your Collection at a Glance"
+      "label": "Spin Vinyl — Your Collection at a Glance"
     }
   ],
   "shortcuts": [

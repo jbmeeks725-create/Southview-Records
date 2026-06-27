@@ -5570,7 +5570,7 @@ const TROPHY_DEFS = [
     check: (r, w, p) => !!p?.wishlist_public,
   },
 
-  // SPIN VINYL — app-specific room trophies
+  // Spin Vinyl — app-specific room trophies
   {
     id: "gallery_wall",
     name: "Gallery Wall",
@@ -6652,7 +6652,7 @@ async function stopBarcodeScan() {
 //
 // MusicBrainz is a free, open music encyclopedia with a public REST API.
 // No authentication required. Rate limit: 1 req/sec.
-// All calls include a User-Agent identifying SPIN VINYL per MB policy.
+// All calls include a User-Agent identifying Spin Vinyl per MB policy.
 //
 // Four uses:
 //   1. mbLookupByBarcode()    — fallback when Discogs scan fails
@@ -6672,7 +6672,7 @@ function mbDelay(ms = 1100) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
-// Normalise a MusicBrainz release into a SPIN VINYL record shape
+// Normalise a MusicBrainz release into a Spin Vinyl record shape
 function mbReleaseToRecord(release) {
   const artistCredit = release["artist-credit"]?.[0];
   const artist = artistCredit?.artist?.name || artistCredit?.name || null;
@@ -8476,8 +8476,8 @@ async function handleShareCollection() {
     "Your collection is currently private. Enable public sharing so anyone with the link can view it?",
     getCollectionShareUrl(),
     "shareCollectionBtn",
-    "My Vinyl Collection — SPIN VINYL",
-    "Check out my vinyl collection on SPIN VINYL."
+    "My Vinyl Collection — Spin Vinyl",
+    "Check out my vinyl collection on Spin Vinyl."
   );
 }
 
@@ -8487,8 +8487,8 @@ async function handleShareTrophies() {
     "Sharing trophies requires your collection to be public. Enable public sharing?",
     getTrophiesShareUrl(),
     "shareTrophiesBtn",
-    "My Trophies — SPIN VINYL",
-    "Check out my vinyl trophies on SPIN VINYL."
+    "My Trophies — Spin Vinyl",
+    "Check out my vinyl trophies on Spin Vinyl."
   );
 }
 
@@ -8614,8 +8614,8 @@ async function handleShareWishlist() {
   try {
     if (navigator.share) {
       await navigator.share({
-        title: "My Vinyl Wishlist — SPIN VINYL",
-        text: "Check out my vinyl wishlist on SPIN VINYL.",
+        title: "My Vinyl Wishlist — Spin Vinyl",
+        text: "Check out my vinyl wishlist on Spin Vinyl.",
         url,
       });
       return;
@@ -8704,7 +8704,7 @@ async function maybeShowSharedWishlist() {
       (profile.username ? `@${profile.username}` : "Someone's");
     document.getElementById("sharedWishlistOwnerName").textContent =
       `${ownerName}'s Wishlist`;
-    document.title = `${ownerName}'s Wishlist — SPIN VINYL`;
+    document.title = `${ownerName}'s Wishlist — Spin Vinyl`;
 
     const { data: items, error: wishlistError } = await supabaseClient
       .from("wishlist")
@@ -8807,7 +8807,7 @@ async function renderSharedCollection(uid) {
       (profile.username ? `@${profile.username}` : "Someone's");
     document.getElementById("sharedCollectionOwnerName").textContent =
       `${ownerName}'s Collection`;
-    document.title = `${ownerName}'s Collection — SPIN VINYL`;
+    document.title = `${ownerName}'s Collection — Spin Vinyl`;
 
     const { data: records, error: recordsError } = await supabaseClient
       .from("records")
@@ -8893,7 +8893,7 @@ async function renderSharedTrophies(uid) {
       (profile.username ? `@${profile.username}` : "Someone's");
     document.getElementById("sharedTrophiesOwnerName").textContent =
       `${ownerName}'s Trophies`;
-    document.title = `${ownerName}'s Trophies — SPIN VINYL`;
+    document.title = `${ownerName}'s Trophies — Spin Vinyl`;
 
     const { data: records, error: recordsError } = await supabaseClient
       .from("records")
@@ -10889,7 +10889,7 @@ async function ensureSpotifyPlayer() {
   await loadSpotifyPlaybackSdk();
 
   spotifyPlayer = new window.Spotify.Player({
-    name: "SPIN VINYL Listening Room",
+    name: "Spin Vinyl Listening Room",
     getOAuthToken: async (callback) => {
       const token = await getValidSpotifyAccessToken();
       callback(token || "");
