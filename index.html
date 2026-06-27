@@ -526,59 +526,56 @@
   }
 
   /* ── Collapsible sections: Collection DNA + By the Numbers ── */
-  .collection-collapsible {
-    margin: 0;
-    border: none;
+
+  /* atAGlanceSection is a shim for app.js — never render it, just let hidden attr toggle */
+  #atAGlanceSection {
+    display: none !important;
   }
+
+  /* Desktop: toggle button hidden, body always visible */
   .collection-collapsible-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
-    cursor: pointer;
-    list-style: none;
-    font-family: Jost, sans-serif;
-    font-size: 16px;
-    font-weight: 600;
-    color: #c9a84c;
-    background: #13121a;
-    border: 1px solid #1e1c24;
-    border-radius: 10px;
-    margin: 8px 16px;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
+    display: none;
   }
-  .collection-collapsible-header::-webkit-details-marker { display: none; }
-  .collection-collapsible-header::marker { display: none; }
+  .collection-collapsible-body {
+    display: block;
+  }
   .collection-collapsible-icon {
     font-size: 16px;
     color: #6b6470;
     transition: transform 0.2s ease;
     flex-shrink: 0;
   }
-  details.collection-collapsible[open] .collection-collapsible-icon {
-    transform: rotate(180deg);
-  }
-  .collection-collapsible-body {
-    padding: 4px 0 8px;
-  }
-  /* atAGlanceSection is a shim for app.js — never render it, just let hidden toggle */
-  #atAGlanceSection {
-    display: none !important;
-  }
 
-  /* On desktop: hide the pill header, force open, restore normal block layout */
-  @media (min-width: 769px) {
+  @media (max-width: 768px) {
+    /* Mobile: show the gold toggle button */
     .collection-collapsible-header {
-      display: none !important;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: calc(100% - 32px);
+      padding: 14px 20px;
+      margin: 8px 16px;
+      cursor: pointer;
+      font-family: Jost, sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #c9a84c;
+      background: #13121a;
+      border: 1px solid #1e1c24;
+      border-radius: 10px;
+      text-align: left;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    /* Must NOT use display:contents — it breaks <details> rendering */
-    details.collection-collapsible {
+    .collection-collapsible-header[aria-expanded="true"] .collection-collapsible-icon {
+      transform: rotate(180deg);
+    }
+    /* Body collapsed by default on mobile; JS adds .expanded to show */
+    .collection-collapsible-body {
+      display: none;
+    }
+    .collection-collapsible-body.expanded {
       display: block;
-    }
-    /* Force the details open by showing its body regardless of open attribute */
-    details.collection-collapsible .collection-collapsible-body {
-      display: block !important;
     }
   }
 
@@ -2177,28 +2174,28 @@
     </div>
     <div id="activeFiltersBar" class="active-filters-bar" hidden></div>
 
-    <details id="collectionDnaDetails" class="collection-collapsible">
-      <summary class="collection-collapsible-header">
-        <span>Your Collection DNA</span>
-        <i class="ti ti-chevron-down collection-collapsible-icon" aria-hidden="true"></i>
-      </summary>
-      <div class="dna-card collection-collapsible-body">
-        <div id="superlativesWrap" class="superlatives-wrap" hidden></div>
+    <div id="collectionDnaWrap">
+      <div class="dna-card">
+        <button type="button" class="collection-collapsible-header" id="collectionDnaToggle" aria-expanded="false" aria-controls="collectionDnaBody">
+          <span>Your Collection DNA</span>
+          <i class="ti ti-chevron-down collection-collapsible-icon" aria-hidden="true"></i>
+        </button>
+        <div id="collectionDnaBody" class="collection-collapsible-body" hidden>
+          <div id="superlativesWrap" class="superlatives-wrap" hidden></div>
+        </div>
       </div>
-    </details>
+    </div>
   </section>
 
-  <!-- atAGlanceSection shim: app.js shows/hides this via the hidden attribute;
-       we mirror that to the collapsible <details> via MutationObserver below.
-       Must NOT have display:none!important — app.js needs to remove [hidden]. -->
+  <!-- atAGlanceSection shim kept for app.js compatibility -->
   <section id="atAGlanceSection" hidden></section>
 
-  <details id="atAGlanceDetails" class="collection-collapsible" hidden>
-    <summary class="collection-collapsible-header">
+  <div id="atAGlanceWrap" hidden>
+    <button type="button" class="collection-collapsible-header" id="atAGlanceToggle" aria-expanded="false" aria-controls="atAGlanceBody">
       <span>Your Collection by the Numbers</span>
       <i class="ti ti-chevron-down collection-collapsible-icon" aria-hidden="true"></i>
-    </summary>
-    <div class="collection-collapsible-body">
+    </button>
+    <div id="atAGlanceBody" class="collection-collapsible-body">
       <div class="charts-grid">
         <div class="chart-card">
           <h3>By Genre</h3>
@@ -2222,7 +2219,7 @@
       </div>
       <p class="field-hint">Click a bar to filter your collection below.</p>
     </div>
-  </details>
+  </div>
 
   <section id="cardSectionHeader" class="card-section-header" hidden>
     <h2>Your Collection in Detail</h2>
@@ -3757,18 +3754,16 @@
       updateModalOpen();
     })();
 
-    // ── Mirror atAGlanceSection hidden state → atAGlanceDetails ──
-    // app.js shows/hides #atAGlanceSection; we reflect that on the <details> collapsible
+    // ── Mirror atAGlanceSection hidden state → atAGlanceWrap ──
+    // app.js shows/hides #atAGlanceSection; we reflect that on #atAGlanceWrap
     (function () {
-      const shim    = document.getElementById('atAGlanceSection');
-      const details = document.getElementById('atAGlanceDetails');
-      if (!shim || !details) return;
-      const obs = new MutationObserver(() => {
-        if (shim.hidden) {
-          details.hidden = true;
-        } else {
-          details.hidden = false;
-          // Chart.js can't render into hidden elements — trigger resize now they're visible
+      const shim = document.getElementById('atAGlanceSection');
+      const wrap = document.getElementById('atAGlanceWrap');
+      if (!shim || !wrap) return;
+      function syncAtAGlance() {
+        wrap.hidden = shim.hidden;
+        if (!shim.hidden) {
+          // Chart.js can't render into hidden elements — resize after reveal
           setTimeout(() => {
             if (window.Chart) {
               Object.values(Chart.instances || {}).forEach(c => {
@@ -3777,8 +3772,27 @@
             }
           }, 50);
         }
-      });
+      }
+      const obs = new MutationObserver(syncAtAGlance);
       obs.observe(shim, { attributes: true, attributeFilter: ['hidden'] });
+      syncAtAGlance(); // sync initial state
+    })();
+
+    // ── Mobile collapsible toggle buttons ──
+    // Only active on mobile (buttons are display:none on desktop via CSS)
+    (function () {
+      function wireToggle(btnId, bodyId) {
+        const btn  = document.getElementById(btnId);
+        const body = document.getElementById(bodyId);
+        if (!btn || !body) return;
+        btn.addEventListener('click', () => {
+          const expanded = btn.getAttribute('aria-expanded') === 'true';
+          btn.setAttribute('aria-expanded', String(!expanded));
+          body.classList.toggle('expanded', !expanded);
+        });
+      }
+      wireToggle('collectionDnaToggle',  'collectionDnaBody');
+      wireToggle('atAGlanceToggle',      'atAGlanceBody');
     })();
 
     // ── PWA Install banner wiring ──
