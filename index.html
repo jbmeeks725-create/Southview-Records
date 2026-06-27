@@ -803,6 +803,17 @@
     .site-footer { display: none; } /* footer already hidden on mobile; nav serves that purpose */
   }
 
+  /* ── Album Intel: placeholder must not show when cover image is present ── */
+  /* style.css may override the hidden attribute with display:block — force it off */
+  #albumIntelCoverPlaceholder[hidden],
+  #coverIdentifyResultPlaceholder[hidden] {
+    display: none !important;
+  }
+  /* Ensure the cover wrap stacks img and placeholder in the same space */
+  .album-intel-cover-wrap {
+    position: relative;
+  }
+
   /* ── Cover Identify: square viewport ── */
   .cover-identify-viewport {
     position: relative;
