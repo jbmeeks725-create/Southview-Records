@@ -211,6 +211,18 @@
     #mobileFilterSheet.visible {
       display: flex;
     }
+    /* Collection filter sheet — same pattern, hidden by default */
+    #mobileCollectionFilterSheet {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 910;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    #mobileCollectionFilterSheet.visible {
+      display: flex;
+    }
     .mob-sheet-backdrop {
       position: absolute;
       inset: 0;
@@ -463,6 +475,63 @@
   .album-intel-collection-btn {
     width: 100%;
     justify-content: center;
+  }
+  @media (max-width: 768px) {
+    .album-intel-scan-again-btn {
+      display: none !important;
+    }
+  }
+
+  /* ── Collapsible sections: Collection DNA + By the Numbers ── */
+  .collection-collapsible {
+    margin: 0;
+    border: none;
+  }
+  .collection-collapsible-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    cursor: pointer;
+    list-style: none;
+    font-family: Jost, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #c9a84c;
+    background: #13121a;
+    border: 1px solid #1e1c24;
+    border-radius: 10px;
+    margin: 8px 16px;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .collection-collapsible-header::-webkit-details-marker { display: none; }
+  .collection-collapsible-header::marker { display: none; }
+  .collection-collapsible-icon {
+    font-size: 16px;
+    color: #6b6470;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+  details.collection-collapsible[open] .collection-collapsible-icon {
+    transform: rotate(180deg);
+  }
+  .collection-collapsible-body {
+    padding: 4px 0 8px;
+  }
+  /* On desktop, show both expanded by default and without the pill header */
+  @media (min-width: 769px) {
+    .collection-collapsible-header {
+      display: none;
+    }
+    .collection-collapsible,
+    details.collection-collapsible {
+      display: contents;
+    }
+    /* Force open on desktop */
+    details.collection-collapsible .collection-collapsible-body {
+      display: block !important;
+    }
   }
 
   /* ── Modals must sit above bottom nav (z-900) and FAB (z-905) on mobile ── */
@@ -1782,37 +1851,50 @@
     </div>
     <div id="activeFiltersBar" class="active-filters-bar" hidden></div>
 
-    <div class="dna-card">
-      <h2>Your Collection DNA</h2>
-      <div id="superlativesWrap" class="superlatives-wrap" hidden></div>
-    </div>
+    <details id="collectionDnaDetails" class="collection-collapsible">
+      <summary class="collection-collapsible-header">
+        <span>Your Collection DNA</span>
+        <i class="ti ti-chevron-down collection-collapsible-icon" aria-hidden="true"></i>
+      </summary>
+      <div class="dna-card collection-collapsible-body">
+        <div id="superlativesWrap" class="superlatives-wrap" hidden></div>
+      </div>
+    </details>
   </section>
 
-  <section id="atAGlanceSection" hidden>
-    <h2>Your Collection by the Numbers</h2>
-    <div class="charts-grid">
-      <div class="chart-card">
-        <h3>By Genre</h3>
-        <p id="genreChartHeadline" class="chart-headline"></p>
-        <div class="chart-canvas-wrap"><canvas id="genreChart"></canvas></div>
-        <div id="genreChartMosaic" class="chart-cover-mosaic"></div>
-      </div>
-      <div class="chart-card">
-        <h3>Top Artists</h3>
-        <p id="artistChartHeadline" class="chart-headline"></p>
-        <div class="chart-canvas-wrap chart-canvas-wrap-with-covers">
-          <div id="artistChartCovers" class="chart-bar-covers"></div>
-          <canvas id="artistChart"></canvas>
+  <!-- atAGlanceSection shim: app.js shows/hides this; we mirror it to the collapsible details -->
+  <section id="atAGlanceSection" hidden style="display:none!important"></section>
+
+  <details id="atAGlanceDetails" class="collection-collapsible" hidden>
+    <summary class="collection-collapsible-header">
+      <span>Your Collection by the Numbers</span>
+      <i class="ti ti-chevron-down collection-collapsible-icon" aria-hidden="true"></i>
+    </summary>
+    <div class="collection-collapsible-body">
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3>By Genre</h3>
+          <p id="genreChartHeadline" class="chart-headline"></p>
+          <div class="chart-canvas-wrap"><canvas id="genreChart"></canvas></div>
+          <div id="genreChartMosaic" class="chart-cover-mosaic"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Top Artists</h3>
+          <p id="artistChartHeadline" class="chart-headline"></p>
+          <div class="chart-canvas-wrap chart-canvas-wrap-with-covers">
+            <div id="artistChartCovers" class="chart-bar-covers"></div>
+            <canvas id="artistChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>By Decade</h3>
+          <p id="decadeChartHeadline" class="chart-headline"></p>
+          <div class="chart-canvas-wrap"><canvas id="decadeChart"></canvas></div>
         </div>
       </div>
-      <div class="chart-card">
-        <h3>By Decade</h3>
-        <p id="decadeChartHeadline" class="chart-headline"></p>
-        <div class="chart-canvas-wrap"><canvas id="decadeChart"></canvas></div>
-      </div>
+      <p class="field-hint">Click a bar to filter your collection below.</p>
     </div>
-    <p class="field-hint">Click a bar to filter your collection below.</p>
-  </section>
+  </details>
 
   <section id="cardSectionHeader" class="card-section-header" hidden>
     <h2>Your Collection in Detail</h2>
@@ -2077,6 +2159,9 @@
           </button>
           <button type="button" id="albumIntelAddCollectionBtn" class="btn-secondary album-intel-collection-btn">
             <i class="ti ti-disc" aria-hidden="true"></i> Add to Collection
+          </button>
+          <button type="button" id="albumIntelScanAgainBtn" class="btn-text album-intel-scan-again-btn">
+            <i class="ti ti-scan" aria-hidden="true"></i> Scan another
           </button>
         </div>
         <p id="albumIntelActionStatus" class="form-status"></p>
@@ -3332,6 +3417,22 @@
         observer.observe(el, { attributes: true, attributeFilter: ['hidden'] });
       });
       updateModalOpen();
+    })();
+
+    // ── Mirror atAGlanceSection hidden state → atAGlanceDetails ──
+    // app.js shows/hides #atAGlanceSection; we reflect that on the <details> collapsible
+    (function () {
+      const shim    = document.getElementById('atAGlanceSection');
+      const details = document.getElementById('atAGlanceDetails');
+      if (!shim || !details) return;
+      const obs = new MutationObserver(() => {
+        if (shim.hidden) {
+          details.hidden = true;
+        } else {
+          details.hidden = false;
+        }
+      });
+      obs.observe(shim, { attributes: true, attributeFilter: ['hidden'] });
     })();
 
   })();
