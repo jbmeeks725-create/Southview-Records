@@ -1929,7 +1929,7 @@ function buildAlbumGridRow(label, albums, metaByAlbum) {
     const cell = document.createElement("div");
     cell.className = "profile-album-cell";
 
-    // First try stored meta, then fall back to live collection for fresh cover art
+    // Use stored meta first; fall back to live collection for fresher cover art
     let coverUrl = meta[albumName]?.cover_url;
     if (!coverUrl) {
       const liveRecord = (typeof allRecords !== "undefined" ? allRecords : [])
@@ -2452,7 +2452,6 @@ function addShopEditorRow(list, name, url) {
   const row = document.createElement("div");
   row.className = "record-shops-editor-item";
 
-  // Use inputs so both name and URL are editable after adding
   const nameInput = document.createElement("input");
   nameInput.type = "text";
   nameInput.className = "record-shops-editor-name";
@@ -2536,10 +2535,7 @@ function toggleProfileEdit(section, editing) {
     if (section === "wishlistPersonality") fillWishlistPersonalityForm();
     if (section === "taste") fillTasteForm();
     if (section === "system") fillSystemForm();
-    // Scroll the form into view smoothly so it appears inline, not at bottom
-    setTimeout(() => {
-      form.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 50);
+    setTimeout(() => form.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   }
 }
 
@@ -2585,14 +2581,14 @@ async function handleWishlistPersonalitySubmit(event) {
   statusEl.textContent = "Saving...";
   statusEl.className = "form-status";
   try {
-    // Collect shops from the editor — rows now use <input> elements
+    // Collect shops from the editor — rows use <input> elements
     const shopRows = document.querySelectorAll(".record-shops-editor-item");
     const recordShops = Array.from(shopRows)
       .map((row) => ({
         name: row.querySelector(".record-shops-editor-name")?.value?.trim() || "",
         url:  row.querySelector(".record-shops-editor-url")?.value?.trim()  || null,
       }))
-      .filter((s) => s.name); // skip any blank rows
+      .filter((s) => s.name);
 
     await saveProfileFields({
       my_grail: document.getElementById("wishGrailInput").value.trim() || null,
@@ -13040,7 +13036,6 @@ function enterTestMode() {
   showTestModeBanner(true);
   localStorage.removeItem("spin-onboarding-done");
   maybeShowOnboarding(); render(); renderHome();
-  console.log("[TestMode] Active");
 }
 function exitTestMode() {
   if (!testModeActive) return;
@@ -13054,7 +13049,7 @@ function exitTestMode() {
   if (ob) ob.hidden = true;
   localStorage.setItem("spin-onboarding-done", "true");
   showTestModeBanner(false); window.location.hash = "";
-  render(); renderHome(); console.log("[TestMode] Exited");
+  render(); renderHome();
 }
 function showTestModeBanner(show) {
   let b = document.getElementById("testModeBanner");
