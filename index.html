@@ -361,8 +361,9 @@
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
-    .mob-fab-option:nth-child(1) { transition-delay: 0.05s; }
-    .mob-fab-option:nth-child(2) { transition-delay: 0.01s; }
+    .mob-fab-option:nth-child(1) { transition-delay: 0.07s; }
+    .mob-fab-option:nth-child(2) { transition-delay: 0.04s; }
+    .mob-fab-option:nth-child(3) { transition-delay: 0.01s; }
     .mob-fab-option.visible {
       opacity: 1;
       transform: translateY(0) scale(1);
@@ -3023,6 +3024,10 @@
       <span class="mob-fab-label">Add Manually</span>
       <span class="mob-fab-icon gold"><i class="ti ti-pencil"></i></span>
     </div>
+    <div class="mob-fab-option" id="mobFabIdentify" role="button" tabindex="0" aria-label="Identify cover">
+      <span class="mob-fab-label">Identify Cover</span>
+      <span class="mob-fab-icon slate"><i class="ti ti-camera"></i></span>
+    </div>
     <div class="mob-fab-option" id="mobFabScanner" role="button" tabindex="0" aria-label="Barcode scanner">
       <span class="mob-fab-label">Barcode Scanner</span>
       <span class="mob-fab-icon slate"><i class="ti ti-scan"></i></span>
@@ -3215,6 +3220,12 @@
     document.getElementById('mobFabManual')?.addEventListener('click', () => {
       closeFab();
       setTimeout(() => document.getElementById('addWishlistBtn')?.click(), 150);
+    });
+
+    // Identify Cover → fires existing #identifyCoverBtn
+    document.getElementById('mobFabIdentify')?.addEventListener('click', () => {
+      closeFab();
+      setTimeout(() => document.getElementById('identifyCoverBtn')?.click(), 150);
     });
 
     // Keyboard support on FAB options
