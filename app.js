@@ -13005,3 +13005,267 @@ window.spinvinylDeleteAccount = async function () {
   }
 };
 // ── End Account Deletion ─────────────────────────────────────────────────────
+
+
+// ── New User Testing Mode ────────────────────────────────────────────────────
+//
+// Lets the admin experience the site as a brand-new user, without touching
+// any real data. Activated via spinvinyl.co/#testmode (owner-only).
+//
+// What it does:
+//   • Masks allRecords and wishlist as empty arrays so the UI sees no data
+//   • Overrides currentProfile to look like a fresh account (no onboarding_done)
+//   • Intercepts supabaseClient.from() to block all writes (insert/upsert/update/delete)
+//   • Shows a persistent banner so you never forget you're in test mode
+//   • Deactivated by navigating to any other hash or clicking "Exit"
+//
+// Reads still go to the real database (for genres, subgenres, etc.) — only
+// the data presentation and writes are affected.
+// ─────────────────────────────────────────────────────────────────────────────
+
+let testModeActive = false;
+
+// Real references — saved before any proxying
+const _realAllRecords = () => allRecords;
+const _realWishlist   = () => wishlist;
+
+function isTestMode() {
+  return testModeActive;
+}
+
+function enterTestMode() {
+  if (!isOwner()) return;
+  if (testModeActive) return;
+  testModeActive = true;
+
+  // ── 1. Mask data as empty ──────────────────────────────────────────────
+  // Store real data so we can restore it on exit
+  window._testMode_savedRecords = allRecords.slice();
+  window._testMode_savedWishlist = wishlist.slice();
+  window._testMode_savedProfile = currentProfile ? { ...currentProfile } : null;
+
+  allRecords = [];
+  wishlist   = [];
+
+  // Make the app think this is a fresh profile
+  currentProfile = {
+    ...(currentProfile || {}),
+    onboarding_done:        false,
+    preferred_name:         null,
+    username:               "new_user_preview",
+    avatar_url:             null,
+    favorite_genres:        [],
+    favorite_artists:       [],
+    favorite_albums:        [],
+    favorite_albums_meta:   {},
+    pinned_trophies:        [],
+    wishlist_public:        false,
+    collection_public:      false,
+  };
+
+  // ── 2. Intercept Supabase writes ───────────────────────────────────────
+  // Proxy supabaseClient.from() so any insert/upsert/update/delete no-ops
+  // with a fake success response instead of hitting the real database.
+  if (!supabaseClient._testModeProxied) {
+    const _originalFrom = supabaseClient.from.bind(supabaseClient);
+    supabaseClient.from = function(table) {
+      const builder = _originalFrom(table);
+      if (!testModeActive) return builder;
+
+      const noop = () => Promise.resolve({ data: null, error: null, count: null, status: 200, statusText: 'OK' });
+      const noopBuilder = {
+        ...builder,
+        insert:  () => ({ ...noopBuilder, select: () => Promise.resolve({ data: [], error: null }) }),
+        upsert:  () => ({ ...noopBuilder, select: () => Promise.resolve({ data: [], error: null }) }),
+        update:  () => ({ ...noopBuilder, eq: () => ({ ...noopBuilder, select: () => noop() }), select: () => noop() }),
+        delete:  () => ({ ...noopBuilder, eq: () => noop(), match: () => noop() }),
+        // Allow reads to pass through normally
+        select:  builder.select.bind(builder),
+      };
+
+      // Only block writes — reads use real builder
+      return {
+        ...builder,
+        insert:  noopBuilder.insert,
+        upsert:  noopBuilder.upsert,
+        update:  (...args) => {
+          const updateBuilder = builder.update(...args);
+          const _originalEq = updateBuilder.eq?.bind(updateBuilder);
+          updateBuilder.eq = (...eqArgs) => {
+            const eqBuilder = _originalEq ? _originalEq(...eqArgs) : updateBuilder;
+            eqBuilder.select = () => noop();
+            eqBuilder.then   = noop;
+            return eqBuilder;
+          };
+          updateBuilder.select = () => noop();
+          updateBuilder.then   = noop;
+          return updateBuilder;
+        },
+        delete: (...args) => {
+          const delBuilder = builder.delete(...args);
+          delBuilder.eq    = () => noop();
+          delBuilder.match = () => noop();
+          delBuilder.then  = noop;
+          return delBuilder;
+        },
+      };
+    };
+    supabaseClient._testModeProxied = true;
+  }
+
+  // ── 3. Block storage uploads ───────────────────────────────────────────
+  if (supabaseClient.storage && !supabaseClient.storage._testModeProxied) {
+    const _originalStorageFrom = supabaseClient.storage.from.bind(supabaseClient.storage);
+    supabaseClient.storage.from = function(bucket) {
+      const storageBucket = _originalStorageFrom(bucket);
+      if (!testModeActive) return storageBucket;
+      return {
+        ...storageBucket,
+        upload: () => Promise.resolve({ data: null, error: null }),
+        remove: () => Promise.resolve({ data: null, error: null }),
+        getPublicUrl: storageBucket.getPublicUrl.bind(storageBucket),
+      };
+    };
+    supabaseClient.storage._testModeProxied = true;
+  }
+
+  // ── 4. Show banner ─────────────────────────────────────────────────────
+  showTestModeBanner(true);
+
+  // ── 5. Re-render as new user ───────────────────────────────────────────
+  // Trigger onboarding since profile.onboarding_done is now false
+  localStorage.removeItem("spin-onboarding-done");
+  maybeShowOnboarding();
+  render();
+  renderHome();
+
+  console.log("[TestMode] Entered — all writes blocked, data masked as empty");
+}
+
+function exitTestMode() {
+  if (!testModeActive) return;
+  testModeActive = false;
+
+  // Restore real data
+  allRecords     = window._testMode_savedRecords  || [];
+  wishlist       = window._testMode_savedWishlist || [];
+  currentProfile = window._testMode_savedProfile  || currentProfile;
+
+  // Clean up saved refs
+  delete window._testMode_savedRecords;
+  delete window._testMode_savedWishlist;
+  delete window._testMode_savedProfile;
+
+  // Remove proxy flag so next testMode entry re-proxies cleanly
+  delete supabaseClient._testModeProxied;
+  if (supabaseClient.storage) delete supabaseClient.storage._testModeProxied;
+
+  // Hide onboarding if it was showing
+  const onboardingScreen = document.getElementById("onboardingScreen");
+  if (onboardingScreen) onboardingScreen.hidden = true;
+
+  // Restore localStorage onboarding flag
+  localStorage.setItem("spin-onboarding-done", "true");
+
+  // Hide banner and navigate home
+  showTestModeBanner(false);
+  window.location.hash = "";
+  render();
+  renderHome();
+
+  console.log("[TestMode] Exited — real data and write access restored");
+}
+
+function showTestModeBanner(show) {
+  let banner = document.getElementById("testModeBanner");
+
+  if (!banner) {
+    banner = document.createElement("div");
+    banner.id = "testModeBanner";
+    banner.innerHTML = `
+      <span class="test-mode-icon">🧪</span>
+      <span class="test-mode-text">
+        <strong>New User Testing Mode</strong>
+        — writes blocked, data masked as empty
+      </span>
+      <button type="button" class="test-mode-exit" id="testModeExitBtn">Exit Test Mode</button>
+    `;
+    banner.style.cssText = `
+      position: fixed;
+      top: env(safe-area-inset-top, 0px);
+      left: 0; right: 0;
+      z-index: 9999;
+      background: #2a1a00;
+      border-bottom: 2px solid #c9a84c;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: Inter, sans-serif;
+      font-size: 13px;
+      color: #e8e0d0;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    `;
+    const exitBtn = banner.querySelector(".test-mode-exit");
+    if (exitBtn) {
+      exitBtn.style.cssText = `
+        margin-left: auto;
+        background: #c9a84c;
+        color: #0d0d11;
+        border: none;
+        border-radius: 6px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: Inter, sans-serif;
+        white-space: nowrap;
+        flex-shrink: 0;
+      `;
+      exitBtn.addEventListener("click", exitTestMode);
+    }
+    document.body.appendChild(banner);
+
+    // Push header down so banner doesn't cover it
+    const header = document.querySelector("header");
+    if (header) {
+      header._testModeOriginalPaddingTop = header.style.paddingTop;
+      header.style.paddingTop = `calc(${getComputedStyle(header).paddingTop} + 44px)`;
+    }
+  }
+
+  banner.hidden = !show;
+
+  if (!show) {
+    // Restore header padding
+    const header = document.querySelector("header");
+    if (header && header._testModeOriginalPaddingTop !== undefined) {
+      header.style.paddingTop = header._testModeOriginalPaddingTop;
+    }
+  }
+}
+
+// ── Wire up hash-based activation ─────────────────────────────────────────
+(function setupTestMode() {
+  if (!isOwner()) return; // Belt-and-suspenders: owner only
+
+  function checkTestModeHash() {
+    if (window.location.hash === "#testmode") {
+      enterTestMode();
+    } else if (testModeActive && window.location.hash !== "#testmode") {
+      exitTestMode();
+    }
+  }
+
+  window.addEventListener("hashchange", checkTestModeHash);
+
+  // Check on load in case someone bookmarks the URL
+  window.addEventListener("load", () => {
+    if (window.location.hash === "#testmode" && isOwner()) {
+      // Small delay to let app init complete first
+      setTimeout(enterTestMode, 500);
+    }
+  });
+})();
+
+// ── End New User Testing Mode ────────────────────────────────────────────────
