@@ -1,37 +1,44 @@
 {
   "name": "SPIN VINYL",
   "short_name": "SPIN VINYL",
-  "description": "The digital home for your vinyl collection",
+  "description": "The digital home for your vinyl collection. Catalog, discover, listen, and share.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0b0c0f",
   "theme_color": "#0b0c0f",
-  "orientation": "portrait-primary",
-  "scope": "/",
   "lang": "en",
+  "categories": ["music", "lifestyle", "entertainment"],
   "icons": [
     {
       "src": "icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
+      "purpose": "any"
+    },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "form_factor": "narrow"
+      "purpose": "maskable"
     }
   ],
-  "categories": ["music", "entertainment", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "SPIN VINYL — Your Collection at a Glance"
+    }
+  ],
   "shortcuts": [
     {
       "name": "My Collection",
@@ -43,9 +50,11 @@
     {
       "name": "My Wishlist",
       "short_name": "Wishlist",
-      "description": "View your vinyl wishlist",
+      "description": "View and add to your wishlist",
       "url": "/#wishlist",
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
 }
