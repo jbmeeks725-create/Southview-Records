@@ -1929,14 +1929,7 @@ function buildAlbumGridRow(label, albums, metaByAlbum) {
     const cell = document.createElement("div");
     cell.className = "profile-album-cell";
 
-    // Use stored meta first; fall back to live collection for fresher cover art
-    let coverUrl = meta[albumName]?.cover_url;
-    if (!coverUrl) {
-      const liveRecord = (typeof allRecords !== "undefined" ? allRecords : [])
-        .find((r) => r.album?.toLowerCase() === albumName.toLowerCase());
-      coverUrl = liveRecord?.cover_url || null;
-    }
-
+    const coverUrl = meta[albumName]?.cover_url;
     if (coverUrl) {
       const img = document.createElement("img");
       img.src = coverUrl;
@@ -2451,30 +2444,25 @@ function addShopEditorRow(list, name, url) {
   if (!name?.trim()) return;
   const row = document.createElement("div");
   row.className = "record-shops-editor-item";
+  row.dataset.name = name.trim();
+  row.dataset.url = url?.trim() || "";
 
-  const nameInput = document.createElement("input");
-  nameInput.type = "text";
-  nameInput.className = "record-shops-editor-name";
-  nameInput.value = name.trim();
-  nameInput.placeholder = "Shop name";
-  nameInput.setAttribute("aria-label", "Shop name");
+  const nameEl = document.createElement("span");
+  nameEl.className = "record-shops-editor-name";
+  nameEl.textContent = name.trim();
 
-  const urlInput = document.createElement("input");
-  urlInput.type = "text";
-  urlInput.className = "record-shops-editor-url";
-  urlInput.value = url?.trim() || "";
-  urlInput.placeholder = "Website (optional)";
-  urlInput.setAttribute("aria-label", "Shop website");
+  const urlEl = document.createElement("span");
+  urlEl.className = "record-shops-editor-url";
+  urlEl.textContent = url?.trim() || "No URL";
 
   const removeBtn = document.createElement("button");
   removeBtn.type = "button";
   removeBtn.className = "record-shops-editor-remove";
-  removeBtn.setAttribute("aria-label", "Remove shop");
   removeBtn.innerHTML = '<i class="ti ti-x" aria-hidden="true"></i>';
   removeBtn.addEventListener("click", () => row.remove());
 
-  row.appendChild(nameInput);
-  row.appendChild(urlInput);
+  row.appendChild(nameEl);
+  row.appendChild(urlEl);
   row.appendChild(removeBtn);
   list.appendChild(row);
 }
@@ -2535,7 +2523,6 @@ function toggleProfileEdit(section, editing) {
     if (section === "wishlistPersonality") fillWishlistPersonalityForm();
     if (section === "taste") fillTasteForm();
     if (section === "system") fillSystemForm();
-    setTimeout(() => form.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   }
 }
 
@@ -2581,14 +2568,12 @@ async function handleWishlistPersonalitySubmit(event) {
   statusEl.textContent = "Saving...";
   statusEl.className = "form-status";
   try {
-    // Collect shops from the editor — rows use <input> elements
+    // Collect shops from the editor
     const shopRows = document.querySelectorAll(".record-shops-editor-item");
-    const recordShops = Array.from(shopRows)
-      .map((row) => ({
-        name: row.querySelector(".record-shops-editor-name")?.value?.trim() || "",
-        url:  row.querySelector(".record-shops-editor-url")?.value?.trim()  || null,
-      }))
-      .filter((s) => s.name);
+    const recordShops = Array.from(shopRows).map((row) => ({
+      name: row.dataset.name,
+      url: row.dataset.url || null,
+    }));
 
     await saveProfileFields({
       my_grail: document.getElementById("wishGrailInput").value.trim() || null,
@@ -5570,7 +5555,7 @@ const TROPHY_DEFS = [
     check: (r, w, p) => !!p?.wishlist_public,
   },
 
-  // Spin Vinyl — app-specific room trophies
+  // SPIN VINYL — app-specific room trophies
   {
     id: "gallery_wall",
     name: "Gallery Wall",
@@ -6652,7 +6637,7 @@ async function stopBarcodeScan() {
 //
 // MusicBrainz is a free, open music encyclopedia with a public REST API.
 // No authentication required. Rate limit: 1 req/sec.
-// All calls include a User-Agent identifying Spin Vinyl per MB policy.
+// All calls include a User-Agent identifying SPIN VINYL per MB policy.
 //
 // Four uses:
 //   1. mbLookupByBarcode()    — fallback when Discogs scan fails
@@ -6672,7 +6657,7 @@ function mbDelay(ms = 1100) {
   return new Promise((res) => setTimeout(res, ms));
 }
 
-// Normalise a MusicBrainz release into a Spin Vinyl record shape
+// Normalise a MusicBrainz release into a SPIN VINYL record shape
 function mbReleaseToRecord(release) {
   const artistCredit = release["artist-credit"]?.[0];
   const artist = artistCredit?.artist?.name || artistCredit?.name || null;
@@ -8476,8 +8461,8 @@ async function handleShareCollection() {
     "Your collection is currently private. Enable public sharing so anyone with the link can view it?",
     getCollectionShareUrl(),
     "shareCollectionBtn",
-    "My Vinyl Collection — Spin Vinyl",
-    "Check out my vinyl collection on Spin Vinyl."
+    "My Vinyl Collection — SPIN VINYL",
+    "Check out my vinyl collection on SPIN VINYL."
   );
 }
 
@@ -8487,8 +8472,8 @@ async function handleShareTrophies() {
     "Sharing trophies requires your collection to be public. Enable public sharing?",
     getTrophiesShareUrl(),
     "shareTrophiesBtn",
-    "My Trophies — Spin Vinyl",
-    "Check out my vinyl trophies on Spin Vinyl."
+    "My Trophies — SPIN VINYL",
+    "Check out my vinyl trophies on SPIN VINYL."
   );
 }
 
@@ -8614,8 +8599,8 @@ async function handleShareWishlist() {
   try {
     if (navigator.share) {
       await navigator.share({
-        title: "My Vinyl Wishlist — Spin Vinyl",
-        text: "Check out my vinyl wishlist on Spin Vinyl.",
+        title: "My Vinyl Wishlist — SPIN VINYL",
+        text: "Check out my vinyl wishlist on SPIN VINYL.",
         url,
       });
       return;
@@ -8704,7 +8689,7 @@ async function maybeShowSharedWishlist() {
       (profile.username ? `@${profile.username}` : "Someone's");
     document.getElementById("sharedWishlistOwnerName").textContent =
       `${ownerName}'s Wishlist`;
-    document.title = `${ownerName}'s Wishlist — Spin Vinyl`;
+    document.title = `${ownerName}'s Wishlist — SPIN VINYL`;
 
     const { data: items, error: wishlistError } = await supabaseClient
       .from("wishlist")
@@ -8807,7 +8792,7 @@ async function renderSharedCollection(uid) {
       (profile.username ? `@${profile.username}` : "Someone's");
     document.getElementById("sharedCollectionOwnerName").textContent =
       `${ownerName}'s Collection`;
-    document.title = `${ownerName}'s Collection — Spin Vinyl`;
+    document.title = `${ownerName}'s Collection — SPIN VINYL`;
 
     const { data: records, error: recordsError } = await supabaseClient
       .from("records")
@@ -8893,7 +8878,7 @@ async function renderSharedTrophies(uid) {
       (profile.username ? `@${profile.username}` : "Someone's");
     document.getElementById("sharedTrophiesOwnerName").textContent =
       `${ownerName}'s Trophies`;
-    document.title = `${ownerName}'s Trophies — Spin Vinyl`;
+    document.title = `${ownerName}'s Trophies — SPIN VINYL`;
 
     const { data: records, error: recordsError } = await supabaseClient
       .from("records")
@@ -10889,7 +10874,7 @@ async function ensureSpotifyPlayer() {
   await loadSpotifyPlaybackSdk();
 
   spotifyPlayer = new window.Spotify.Player({
-    name: "Spin Vinyl Listening Room",
+    name: "SPIN VINYL Listening Room",
     getOAuthToken: async (callback) => {
       const token = await getValidSpotifyAccessToken();
       callback(token || "");
@@ -12944,6 +12929,229 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupAdmin();
   startHeaderNowPlayingPolling();
 });
+
+
+// ── Analytics & Event Tracking ───────────────────────────────────────────────
+//
+// Three-layer approach:
+//   1. Supabase `events` table  — your own data, queryable forever, free
+//   2. PostHog                  — session replays, funnels, retention charts
+//   3. Plausible                — loaded via <script> tag in index.html
+//
+// Usage anywhere in app.js:
+//   logEvent('record_added', { genre: 'Jazz', has_cover: true })
+//   logEvent('barcode_scanned', { result: 'found' })
+//   logEvent('page_viewed', { page: 'listening_room' })
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── PostHog key — paste yours here after signing up ──
+// Found in PostHog → Project Settings → Project API Key
+const POSTHOG_KEY  = "phc_yzp4WhVRDXSMWMpho4hnjh3g8yoNr9psKHJm2LcgBviJ";
+const POSTHOG_HOST = "https://us.posthog.com";
+
+// ── Core logEvent function ───────────────────────────────────────────────────
+async function logEvent(eventName, properties = {}) {
+  if (!currentUser) return; // only track authenticated users
+
+  const payload = {
+    event_name:  eventName,
+    user_id:     currentUser.id,
+    properties:  {
+      ...properties,
+      // Auto-attach useful context to every event
+      collection_size: allRecords?.length ?? 0,
+      wishlist_size:   wishlist?.length   ?? 0,
+      platform:        /iphone|ipad|ipod|android/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+      url:             window.location.pathname + window.location.hash,
+    },
+    created_at: new Date().toISOString(),
+  };
+
+  // Layer 1: Supabase events table (fire-and-forget, never block UI)
+  try {
+    await supabaseClient.from("events").insert(payload);
+  } catch (e) {
+    // Silently ignore — analytics must never break the app
+  }
+
+  // Layer 2: PostHog (if configured)
+  try {
+    if (
+      typeof window.posthog !== "undefined" &&
+      POSTHOG_KEY !== "PASTE_YOUR_POSTHOG_KEY_HERE"
+    ) {
+      window.posthog.capture(eventName, payload.properties);
+    }
+  } catch (e) {
+    // Silently ignore
+  }
+}
+
+// ── Identify user in PostHog when they sign in ──────────────────────────────
+function identifyUserForAnalytics(user, profile) {
+  try {
+    if (
+      typeof window.posthog !== "undefined" &&
+      POSTHOG_KEY !== "PASTE_YOUR_POSTHOG_KEY_HERE"
+    ) {
+      window.posthog.identify(user.id, {
+        email:           user.email,
+        username:        profile?.username         ?? null,
+        collection_size: allRecords?.length        ?? 0,
+        created_at:      user.created_at           ?? null,
+      });
+    }
+  } catch (e) {}
+}
+
+// ── Instrumented wrappers ────────────────────────────────────────────────────
+// These patch the existing functions to emit events without modifying them.
+
+// Page navigation
+const _originalSetPage = setPage;
+window.setPage = function(page) {
+  _originalSetPage(page);
+  logEvent("page_viewed", { page });
+};
+
+// Sign in / sign out
+const _originalOnSignedIn = onSignedIn;
+window.onSignedIn = async function(user) {
+  await _originalOnSignedIn(user);
+  logEvent("user_signed_in", { method: "email" });
+  identifyUserForAnalytics(user, currentProfile);
+};
+
+const _originalOnSignedOut = onSignedOut;
+window.onSignedOut = function() {
+  logEvent("user_signed_out");
+  try { if (typeof window.posthog !== "undefined") window.posthog.reset(); } catch(e) {}
+  _originalOnSignedOut();
+};
+
+// ── Event instrumentation via addEventListener patches ──────────────────────
+// Attached after DOMContentLoaded so all elements exist
+
+document.addEventListener("DOMContentLoaded", () => {
+  // ── Barcode scanner ──────────────────────────────────────────────────────
+  document.getElementById("scanInStoreBtn")?.addEventListener("click", () => {
+    logEvent("barcode_scanner_opened");
+  });
+
+  // ── Cover identification ─────────────────────────────────────────────────
+  document.getElementById("identifyCoverBtn")?.addEventListener("click", () => {
+    logEvent("cover_identify_opened");
+  });
+
+  // ── Add Record ───────────────────────────────────────────────────────────
+  document.getElementById("addRecordBtn")?.addEventListener("click", () => {
+    logEvent("add_record_opened");
+  });
+
+  // ── Wishlist add ─────────────────────────────────────────────────────────
+  document.getElementById("addWishlistBtn")?.addEventListener("click", () => {
+    logEvent("wishlist_add_opened");
+  });
+
+  // ── Discogs import ───────────────────────────────────────────────────────
+  document.getElementById("importBtn")?.addEventListener("click", () => {
+    logEvent("discogs_import_opened");
+  });
+
+  // ── Share collection ─────────────────────────────────────────────────────
+  document.getElementById("shareCollectionBtn")?.addEventListener("click", () => {
+    logEvent("collection_shared");
+  });
+
+  // ── Listening Room ───────────────────────────────────────────────────────
+  // Room tab nav item
+  document.querySelector('[data-page="room"], #mobNavRoom')
+    ?.addEventListener("click", () => {
+      logEvent("listening_room_viewed");
+    });
+
+  // ── Trophies ─────────────────────────────────────────────────────────────
+  document.querySelector('[data-page="trophies"]')
+    ?.addEventListener("click", () => {
+      logEvent("trophies_viewed");
+    });
+
+  // ── Taste Profile ────────────────────────────────────────────────────────
+  document.querySelector('[data-page="taste"]')
+    ?.addEventListener("click", () => {
+      logEvent("taste_profile_viewed");
+    });
+
+  // ── Feedback ─────────────────────────────────────────────────────────────
+  document.getElementById("feedbackFab")?.addEventListener("click", () => {
+    logEvent("feedback_opened");
+  });
+
+  // ── Spotify connect ──────────────────────────────────────────────────────
+  document.getElementById("spotifyConnectBtn")?.addEventListener("click", () => {
+    logEvent("spotify_connect_clicked");
+  });
+
+  // ── Album Intel: add to collection from scan ─────────────────────────────
+  document.getElementById("albumIntelAddCollectionBtn")?.addEventListener("click", () => {
+    const intel = window.albumIntelPendingResult;
+    logEvent("record_added_from_scan", {
+      artist: intel?.artist ?? null,
+      album:  intel?.album  ?? null,
+      source: "barcode_scanner",
+    });
+  });
+
+  // ── Album Intel: add to wishlist from scan ───────────────────────────────
+  document.getElementById("albumIntelAddWishlistBtn")?.addEventListener("click", () => {
+    const intel = window.albumIntelPendingResult;
+    logEvent("wishlist_added_from_scan", {
+      artist: intel?.artist ?? null,
+      album:  intel?.album  ?? null,
+    });
+  });
+
+  // ── Cover identify: add to wishlist ─────────────────────────────────────
+  document.getElementById("coverIdentifyAddWishlistBtn")?.addEventListener("click", () => {
+    logEvent("wishlist_added_from_cover_identify");
+  });
+
+  // ── Onboarding completion ────────────────────────────────────────────────
+  document.getElementById("onboardingFinishBtn")?.addEventListener("click", () => {
+    logEvent("onboarding_completed");
+  });
+
+});
+
+// ── Session start — fires once when the app fully loads ─────────────────────
+window.addEventListener("load", () => {
+  if (currentUser) {
+    logEvent("session_started", {
+      returning_user: true,
+    });
+  }
+});
+
+// ── PostHog init helper — call this after you have your key ─────────────────
+// This is called from index.html after the PostHog snippet loads.
+// Once you have your key, replace the constants at the top of this block.
+window._initPostHog = function() {
+  if (POSTHOG_KEY === "PASTE_YOUR_POSTHOG_KEY_HERE") return;
+  try {
+    window.posthog.init(POSTHOG_KEY, {
+      api_host:          POSTHOG_HOST,
+      capture_pageview:  false, // we track pages manually via logEvent
+      capture_pageleave: true,
+      session_recording: {
+        maskAllInputs:    true,  // don't record what users type
+        maskInputOptions: { password: true, email: true },
+      },
+    });
+  } catch(e) {}
+};
+
+// ── End Analytics & Event Tracking ───────────────────────────────────────────
 // ── Account Deletion ────────────────────────────────────────────────────────
 //
 // Called by the Delete Account UI in index.html.
