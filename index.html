@@ -88,7 +88,139 @@
   <style>
   @media (max-width: 768px) {
 
-    /* ── 1. Hide desktop horizontal nav, replaced by bottom nav ── */
+    /* ── Mobile landing page: native app feel ── */
+    @media (max-width: 768px) {
+      /* Hide the side video columns entirely */
+      .landing-video-col {
+        display: none !important;
+      }
+
+      /* Full-screen auth overlay with background image feel */
+      #authOverlay.landing-screen {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        min-height: 100dvh !important;
+        background:
+          linear-gradient(
+            to bottom,
+            rgba(11,12,15,0.55) 0%,
+            rgba(11,12,15,0.85) 45%,
+            rgba(11,12,15,1) 70%
+          ),
+          url('https://images.unsplash.com/photo-1593078166039-c9878df5c520?w=800&q=80') center/cover no-repeat !important;
+        padding: env(safe-area-inset-top, 24px) 0 env(safe-area-inset-bottom, 24px) !important;
+        overflow-y: auto !important;
+      }
+
+      /* Center column fills full width */
+      #authOverlay .landing-center {
+        width: 100% !important;
+        max-width: 400px !important;
+        padding: 32px 28px 40px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 0 !important;
+      }
+
+      /* Logo: larger, more prominent */
+      .landing-logo {
+        width: 88px !important;
+        height: 88px !important;
+        border-radius: 22px !important;
+        margin-bottom: 20px !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+      }
+
+      /* Title */
+      .landing-title {
+        font-size: 36px !important;
+        letter-spacing: 0.12em !important;
+        margin-bottom: 6px !important;
+        text-align: center !important;
+      }
+
+      /* Tagline */
+      .landing-tagline {
+        font-size: 14px !important;
+        text-align: center !important;
+        margin-bottom: 32px !important;
+        color: rgba(201,168,76,0.85) !important;
+        letter-spacing: 0.06em !important;
+        text-transform: uppercase !important;
+      }
+
+      /* Auth form: full width */
+      #landingAuthForms {
+        width: 100% !important;
+      }
+
+      .landing-form {
+        width: 100% !important;
+      }
+
+      /* Inputs: taller tap targets */
+      .landing-form input[type="email"],
+      .landing-form input[type="password"] {
+        height: 52px !important;
+        font-size: 16px !important; /* prevents iOS zoom */
+        border-radius: 10px !important;
+      }
+
+      /* Buttons: full width, tall */
+      .landing-btn {
+        width: 100% !important;
+        height: 52px !important;
+        font-size: 16px !important;
+        border-radius: 10px !important;
+      }
+
+      .landing-form-actions {
+        flex-direction: column !important;
+        gap: 10px !important;
+        width: 100% !important;
+      }
+
+      /* Social buttons */
+      .auth-social-buttons {
+        flex-direction: column !important;
+        gap: 10px !important;
+        width: 100% !important;
+      }
+
+      .auth-social-btn {
+        width: 100% !important;
+        height: 52px !important;
+        font-size: 16px !important;
+        border-radius: 10px !important;
+        justify-content: center !important;
+      }
+
+      /* Divider */
+      .auth-social-divider {
+        margin: 20px 0 !important;
+        width: 100% !important;
+      }
+
+      /* Tour button */
+      .landing-tour-btn {
+        margin-top: 24px !important;
+        width: 100% !important;
+        height: 48px !important;
+        border-radius: 10px !important;
+        font-size: 15px !important;
+      }
+
+      /* Keywords */
+      .landing-keywords {
+        margin-top: 20px !important;
+        font-size: 12px !important;
+        text-align: center !important;
+        color: rgba(255,255,255,0.3) !important;
+      }
+    }
     #controls {
       display: none !important;
     }
