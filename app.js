@@ -6284,6 +6284,7 @@ function setPage(page) {
   const tasteProfileBtn = document.getElementById("tasteProfilePageBtn");
   const genreEvolutionBtn = document.getElementById("genreEvolutionPageBtn");
   const trophiesBtn = document.getElementById("trophiesPageBtn");
+  const collectionValueBtn = document.getElementById("collectionValuePageBtn");
 
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
@@ -6298,6 +6299,7 @@ function setPage(page) {
   const wishlistSection = document.getElementById("wishlistSection");
   const statusSection = document.getElementById("status");
   const pageNav = document.getElementById("pageNav");
+  const collectionValueSection = document.getElementById("collectionValueSection");
 
   const isHome = page === "home";
   const isCollection = page === "collection";
@@ -6309,6 +6311,7 @@ function setPage(page) {
   const isGenreEvolution = page === "genreEvolution";
   const isTrophies = page === "trophies";
   const isAdmin = page === "admin";
+  const isCollectionValue = page === "collectionValue";
 
   [
     [homeBtn, isHome],
@@ -6318,7 +6321,9 @@ function setPage(page) {
     [tasteProfileBtn, isTasteProfile],
     [genreEvolutionBtn, isGenreEvolution],
     [trophiesBtn, isTrophies],
+    [collectionValueBtn, isCollectionValue],
   ].forEach(([btn, active]) => {
+    if (!btn) return;
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-pressed", String(active));
   });
@@ -6335,9 +6340,10 @@ function setPage(page) {
   document.getElementById("cardSectionHeader").hidden = !isCollection;
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
+  if (collectionValueSection) collectionValueSection.hidden = !isCollectionValue;
   const adminSection = document.getElementById("adminSection");
   if (adminSection) adminSection.hidden = !isAdmin;
-  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies;
+  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isCollectionValue;
   pageNav.hidden = isProfile || isSettings || isAdmin;
 
   if (isProfile) {
@@ -6367,6 +6373,11 @@ function setPage(page) {
 
   if (isTrophies) {
     renderTrophies();
+    return;
+  }
+
+  if (isCollectionValue) {
+    renderCollectionValue();
     return;
   }
 
@@ -9766,16 +9777,15 @@ async function loadData() {
         acquired_location,
         listening_notes,
         personal_story,
+        discogs_release_id,
+        market_value_override,
+        market_value_override_note,
+        market_value_cached,
+        market_value_cached_at,
+        market_value_type,
+        pinned_for_value,
         genres ( name ),
         subgenres ( name )
-      `
-      )
-      .order("artist", { ascending: true })
-      .limit(1000); // safe upper bound for now
-    if (recordsError) throw recordsError;
-
-    // Flatten genre/subgenre names into each record
-    allRecords =
       recordsData?.map((r) => ({
         ...r,
         genre_name: r.genres?.name ?? "",
@@ -12927,6 +12937,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupSpotify();
   setupFeedback();
   setupAdmin();
+  setupCollectionValue();
   startHeaderNowPlayingPolling();
 });
 
@@ -13269,6 +13280,578 @@ function showTestModeBanner(show) {
     b.querySelector("#testModeExitBtn").addEventListener("click", exitTestMode);
     const h = document.querySelector("header");
     if (h) { h._tmPad = h.style.paddingTop; h.style.paddingTop = `calc(${getComputedStyle(h).paddingTop} + 44px)`; }
+  }
+  b.hidden = !show;
+  if (!show) { const h = document.querySelector("header"); if (h?._tmPad !== undefined) h.style.paddingTop = h._tmPad; }
+}
+(function setupTestMode() {
+  if (!isOwner()) return;
+  function check() { if (window.location.hash === "#testmode") enterTestMode(); else if (testModeActive) exitTestMode(); }
+  window.addEventListener("hashchange", check);
+  window.addEventListener("load", () => { if (window.location.hash === "#testmode") setTimeout(enterTestMode, 500); });
+})();
+// ── End Testing Mode ─────────────────────────────────────────────────────────
+
+
+// ── My Collection Value ──────────────────────────────────────────────────────
+
+// State
+let cvValueCache = {}; // recordId -> { value, type, cachedAt }
+let cvOverrideRecordId = null;
+
+// Get the effective value for a record
+function cvGetValue(record) {
+  if (record.market_value_override != null) {
+    return { value: parseFloat(record.market_value_override), type: "user", note: record.market_value_override_note };
+  }
+  if (record.market_value_cached != null) {
+    return { value: parseFloat(record.market_value_cached), type: record.market_value_type || "estimate" };
+  }
+  if (cvValueCache[record.id]) return cvValueCache[record.id];
+  return null;
+}
+
+// Format currency
+function cvFormatPrice(value) {
+  if (value == null) return null;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+}
+
+// Main render
+function renderCollectionValue() {
+  if (!allRecords.length) {
+    document.getElementById("cvTotalAmount").textContent = "$0";
+    document.getElementById("cvValuedCount").textContent = "0";
+    document.getElementById("cvHighestValue").textContent = "—";
+    renderCvTop5([]);
+    renderCvTable([]);
+    return;
+  }
+
+  renderCvStats();
+  renderCvTop5(getSortedByValue().slice(0, 5));
+  renderCvTable(getSortedByValue());
+}
+
+function getSortedByValue() {
+  return [...allRecords]
+    .map(r => ({ ...r, _cv: cvGetValue(r) }))
+    .sort((a, b) => {
+      const av = a._cv?.value ?? -1;
+      const bv = b._cv?.value ?? -1;
+      return bv - av;
+    });
+}
+
+function renderCvStats() {
+  const valued = allRecords.filter(r => cvGetValue(r) !== null);
+  const total  = valued.reduce((sum, r) => sum + (cvGetValue(r)?.value ?? 0), 0);
+  const sorted = getSortedByValue();
+  const top    = sorted[0]?._cv?.value ?? null;
+
+  document.getElementById("cvTotalAmount").textContent = cvFormatPrice(total) ?? "—";
+  document.getElementById("cvTotalSub").textContent    = `across ${valued.length} valued record${valued.length !== 1 ? "s" : ""}`;
+  document.getElementById("cvValuedCount").textContent = `${valued.length} / ${allRecords.length}`;
+  document.getElementById("cvValuedSub").textContent   = `${Math.round((valued.length / allRecords.length) * 100)}% of collection valued`;
+  document.getElementById("cvHighestValue").textContent = top ? cvFormatPrice(top) : "—";
+  const topRecord = sorted[0];
+  document.getElementById("cvHighestSub").textContent  = topRecord?._cv ? `${topRecord.artist} — ${topRecord.album}` : "";
+}
+
+function renderCvTop5(records) {
+  const grid = document.getElementById("cvTop5Grid");
+  grid.innerHTML = "";
+
+  if (!records.length) {
+    grid.innerHTML = '<p class="cv-empty">No values yet — click "Refresh all prices" to get started.</p>';
+    return;
+  }
+
+  // Auto-ranked + any pinned records that might not be in top 5 by value
+  const pinned   = allRecords.filter(r => r.pinned_for_value && !records.find(x => x.id === r.id)).slice(0, 2);
+  const toShow   = [...pinned.map(r => ({ ...r, _cv: cvGetValue(r) })), ...records].slice(0, 5);
+
+  toShow.forEach((record, idx) => {
+    const val  = record._cv;
+    const card = document.createElement("div");
+    card.className = "cv-top5-card";
+
+    // Cover
+    if (record.cover_url) {
+      const img = document.createElement("img");
+      img.className = "cv-top5-cover";
+      img.src = record.cover_url;
+      img.alt = record.album;
+      img.loading = "lazy";
+      card.appendChild(img);
+    } else {
+      const ph = document.createElement("div");
+      ph.className = "cv-top5-cover-placeholder";
+      ph.innerHTML = '<i class="ti ti-vinyl"></i>';
+      card.appendChild(ph);
+    }
+
+    // Value badge
+    if (val) {
+      const badge = document.createElement("span");
+      badge.className = `cv-top5-badge ${val.type === "user" ? "cv-badge-user" : val.type === "exact" ? "cv-badge-exact" : "cv-badge-estimate"}`;
+      badge.textContent = val.type === "user" ? "Your value" : val.type === "exact" ? "Exact" : "Est. avg.";
+      card.appendChild(badge);
+    }
+
+    // Pin button
+    const pinBtn = document.createElement("button");
+    pinBtn.className = `cv-pin-btn ${record.pinned_for_value ? "pinned" : ""}`;
+    pinBtn.title = record.pinned_for_value ? "Unpin" : "Pin to Top 5";
+    pinBtn.innerHTML = `<i class="ti ti-pin${record.pinned_for_value ? "" : "-off"}"></i>`;
+    pinBtn.addEventListener("click", (e) => { e.stopPropagation(); cvTogglePin(record.id, !record.pinned_for_value); });
+    card.appendChild(pinBtn);
+
+    // Info
+    const info = document.createElement("div");
+    info.className = "cv-top5-info";
+    info.innerHTML = `
+      <div class="cv-top5-value">${val ? cvFormatPrice(val.value) : "—"}</div>
+      <div class="cv-top5-artist">${record.artist}</div>
+      <div class="cv-top5-album">${record.album}</div>
+    `;
+    card.appendChild(info);
+
+    card.addEventListener("click", () => openRecordDetailModal?.(record.id));
+    grid.appendChild(card);
+  });
+}
+
+function renderCvTable(records) {
+  const tbody = document.getElementById("cvTableBody");
+  const empty = document.getElementById("cvTableEmpty");
+  tbody.innerHTML = "";
+
+  const search = document.getElementById("cvSearchInput")?.value?.toLowerCase() ?? "";
+  const sort   = document.getElementById("cvSortSelect")?.value ?? "value-desc";
+
+  let filtered = records;
+  if (search) {
+    filtered = filtered.filter(r =>
+      r.artist?.toLowerCase().includes(search) ||
+      r.album?.toLowerCase().includes(search)
+    );
+  }
+
+  if (sort === "artist-asc") {
+    filtered = [...filtered].sort((a, b) => a.artist.localeCompare(b.artist));
+  } else if (sort === "value-asc") {
+    filtered = [...filtered].sort((a, b) => (a._cv?.value ?? -1) - (b._cv?.value ?? -1));
+  } else if (sort === "unvalued") {
+    filtered = [...filtered].sort((a, b) => {
+      const aHas = a._cv !== null ? 1 : 0;
+      const bHas = b._cv !== null ? 1 : 0;
+      return aHas - bHas;
+    });
+  }
+  // default: value-desc (already sorted from getSortedByValue)
+
+  empty.hidden = filtered.length > 0;
+
+  filtered.forEach(record => {
+    const val = record._cv;
+    const tr  = document.createElement("tr");
+
+    // Cover
+    const tdCover = document.createElement("td");
+    if (record.cover_url) {
+      const img = document.createElement("img");
+      img.className = "cv-row-cover";
+      img.src = record.cover_url;
+      img.alt = "";
+      img.loading = "lazy";
+      tdCover.appendChild(img);
+    } else {
+      const ph = document.createElement("div");
+      ph.className = "cv-row-cover-placeholder";
+      ph.innerHTML = '<i class="ti ti-vinyl"></i>';
+      tdCover.appendChild(ph);
+    }
+    tr.appendChild(tdCover);
+
+    // Record info
+    const tdInfo = document.createElement("td");
+    tdInfo.innerHTML = `
+      <div class="cv-row-artist">${record.artist}</div>
+      <div class="cv-row-album">${record.album}</div>
+      <div class="cv-row-year">${[record.year, record.label].filter(Boolean).join(" · ")}</div>
+    `;
+    tr.appendChild(tdInfo);
+
+    // Pressing
+    const tdPressing = document.createElement("td");
+    const pressingWrap = document.createElement("div");
+    pressingWrap.className = "cv-pressing-wrap";
+    if (record.discogs_release_id) {
+      const idSpan = document.createElement("span");
+      idSpan.className = "cv-pressing-id";
+      idSpan.textContent = `#${record.discogs_release_id}`;
+      pressingWrap.appendChild(idSpan);
+    } else {
+      const findBtn = document.createElement("button");
+      findBtn.className = "cv-find-pressing-btn";
+      findBtn.textContent = "Find exact pressing";
+      findBtn.addEventListener("click", () => cvOpenPressingFinder(record));
+      pressingWrap.appendChild(findBtn);
+    }
+    tdPressing.appendChild(pressingWrap);
+    tr.appendChild(tdPressing);
+
+    // Value
+    const tdValue = document.createElement("td");
+    const valWrap = document.createElement("div");
+    valWrap.className = "cv-value-wrap";
+    if (val) {
+      const amt = document.createElement("div");
+      amt.className = "cv-value-amount";
+      amt.textContent = cvFormatPrice(val.value);
+      valWrap.appendChild(amt);
+      const badge = document.createElement("div");
+      badge.className = "cv-value-note";
+      badge.textContent = val.type === "user"
+        ? `Your valuation${val.note ? ` · ${val.note}` : ""}`
+        : val.type === "exact"
+          ? "Exact pressing · Discogs"
+          : "Estimated average · Discogs";
+      valWrap.appendChild(badge);
+    } else {
+      const amt = document.createElement("div");
+      amt.className = "cv-value-amount unvalued";
+      amt.textContent = "Not yet valued";
+      valWrap.appendChild(amt);
+    }
+    tdValue.appendChild(valWrap);
+    tr.appendChild(tdValue);
+
+    // Actions
+    const tdActions = document.createElement("td");
+    const actionsWrap = document.createElement("div");
+    actionsWrap.className = "cv-actions";
+
+    // Refresh price from Discogs
+    const refreshBtn = document.createElement("button");
+    refreshBtn.className = "cv-action-btn";
+    refreshBtn.title = record.discogs_release_id ? "Refresh exact price" : "Fetch estimated price";
+    refreshBtn.innerHTML = '<i class="ti ti-refresh"></i>';
+    refreshBtn.addEventListener("click", () => cvFetchSinglePrice(record, refreshBtn));
+    actionsWrap.appendChild(refreshBtn);
+
+    // Manual override
+    const editBtn = document.createElement("button");
+    editBtn.className = "cv-action-btn";
+    editBtn.title = "Set your own valuation";
+    editBtn.innerHTML = '<i class="ti ti-pencil"></i>';
+    editBtn.addEventListener("click", () => cvOpenOverrideModal(record));
+    actionsWrap.appendChild(editBtn);
+
+    tdActions.appendChild(actionsWrap);
+    tr.appendChild(tdActions);
+
+    tbody.appendChild(tr);
+  });
+}
+
+// Fetch price for a single record
+async function cvFetchSinglePrice(record, btn) {
+  btn?.classList.add("fetching");
+
+  try {
+    let priceData;
+    if (record.discogs_release_id) {
+      // Exact pressing lookup
+      const res = await fetch(DISCOGS_LOOKUP_FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({ release_id: record.discogs_release_id, action: "price" }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        priceData = { value: d.median_price ?? d.lowest_price, type: "exact" };
+      }
+    } else {
+      // Estimated average — search by artist + album
+      const res = await fetch(DISCOGS_LOOKUP_FUNCTION_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({ artist: record.artist, album: record.album, action: "search_price" }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        priceData = { value: d.median_price ?? d.average_price, type: "estimate" };
+      }
+    }
+
+    if (priceData?.value != null) {
+      // Save to DB
+      await supabaseClient.from("records").update({
+        market_value_cached: priceData.value,
+        market_value_type: priceData.type,
+        market_value_cached_at: new Date().toISOString(),
+      }).eq("id", record.id);
+
+      // Update in-memory
+      const idx = allRecords.findIndex(r => r.id === record.id);
+      if (idx !== -1) {
+        allRecords[idx].market_value_cached = priceData.value;
+        allRecords[idx].market_value_type   = priceData.type;
+        allRecords[idx].market_value_cached_at = new Date().toISOString();
+      }
+
+      renderCollectionValue();
+    }
+  } catch (e) {
+    console.error("Price fetch failed:", e);
+  } finally {
+    btn?.classList.remove("fetching");
+  }
+}
+
+// Refresh all prices (rate-limited)
+async function cvRefreshAllPrices() {
+  const btn = document.getElementById("refreshAllValuesBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Refreshing…"; }
+
+  // Only refresh records without an override, in batches of 5
+  const toRefresh = allRecords.filter(r => r.market_value_override == null);
+  const BATCH = 5;
+  for (let i = 0; i < toRefresh.length; i += BATCH) {
+    const batch = toRefresh.slice(i, i + BATCH);
+    await Promise.all(batch.map(r => cvFetchSinglePrice(r, null)));
+    if (i + BATCH < toRefresh.length) await new Promise(res => setTimeout(res, 1200)); // respect rate limits
+  }
+
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Refresh all prices'; }
+  renderCollectionValue();
+  logEvent("collection_value_refreshed_all", { count: toRefresh.length });
+}
+
+// Pin/unpin a record to Top 5
+async function cvTogglePin(recordId, pinned) {
+  await supabaseClient.from("records").update({ pinned_for_value: pinned }).eq("id", recordId);
+  const idx = allRecords.findIndex(r => r.id === recordId);
+  if (idx !== -1) allRecords[idx].pinned_for_value = pinned;
+  renderCollectionValue();
+}
+
+// Manual override modal
+function cvOpenOverrideModal(record) {
+  cvOverrideRecordId = record.id;
+  document.getElementById("cvOverrideRecordName").textContent = `${record.artist} — ${record.album}`;
+  document.getElementById("cvOverrideAmount").value = record.market_value_override ?? "";
+  document.getElementById("cvOverrideNote").value   = record.market_value_override_note ?? "";
+  document.getElementById("cvOverrideStatus").textContent = "";
+  document.getElementById("cvOverrideModal").hidden = false;
+}
+
+async function cvSaveOverride() {
+  const amount = parseFloat(document.getElementById("cvOverrideAmount").value);
+  const note   = document.getElementById("cvOverrideNote").value.trim();
+  const status = document.getElementById("cvOverrideStatus");
+
+  if (isNaN(amount) || amount < 0) {
+    status.textContent = "Please enter a valid amount.";
+    return;
+  }
+
+  const { error } = await supabaseClient.from("records").update({
+    market_value_override: amount,
+    market_value_override_note: note || null,
+  }).eq("id", cvOverrideRecordId);
+
+  if (error) { status.textContent = "Couldn't save. Try again."; return; }
+
+  const idx = allRecords.findIndex(r => r.id === cvOverrideRecordId);
+  if (idx !== -1) {
+    allRecords[idx].market_value_override = amount;
+    allRecords[idx].market_value_override_note = note || null;
+  }
+
+  document.getElementById("cvOverrideModal").hidden = true;
+  renderCollectionValue();
+  logEvent("collection_value_override_set", { value: amount });
+}
+
+async function cvClearOverride() {
+  await supabaseClient.from("records").update({
+    market_value_override: null,
+    market_value_override_note: null,
+  }).eq("id", cvOverrideRecordId);
+
+  const idx = allRecords.findIndex(r => r.id === cvOverrideRecordId);
+  if (idx !== -1) {
+    allRecords[idx].market_value_override = null;
+    allRecords[idx].market_value_override_note = null;
+  }
+
+  document.getElementById("cvOverrideModal").hidden = true;
+  renderCollectionValue();
+}
+
+// Pressing finder — opens record's Discogs page to find the release ID
+function cvOpenPressingFinder(record) {
+  const query = encodeURIComponent(`${record.artist} ${record.album}`);
+  const url = `https://www.discogs.com/search/?q=${query}&type=release`;
+  window.open(url, "_blank", "noopener");
+}
+
+// Wire up Collection Value events
+function setupCollectionValue() {
+  document.getElementById("collectionValuePageBtn")
+    ?.addEventListener("click", () => setPage("collectionValue"));
+
+  document.getElementById("refreshAllValuesBtn")
+    ?.addEventListener("click", cvRefreshAllPrices);
+
+  document.getElementById("cvOverrideCloseBtn")
+    ?.addEventListener("click", () => { document.getElementById("cvOverrideModal").hidden = true; });
+
+  document.getElementById("cvOverrideSaveBtn")
+    ?.addEventListener("click", cvSaveOverride);
+
+  document.getElementById("cvOverrideClearBtn")
+    ?.addEventListener("click", cvClearOverride);
+
+  document.getElementById("cvSearchInput")
+    ?.addEventListener("input", () => renderCvTable(getSortedByValue()));
+
+  document.getElementById("cvSortSelect")
+    ?.addEventListener("change", () => renderCvTable(getSortedByValue()));
+}
+
+// ── End My Collection Value ───────────────────────────────────────────────────
+// ── Account Deletion ────────────────────────────────────────────────────────
+//
+// Called by the Delete Account UI in index.html.
+// Exposed on window so the inline mobile script can reach it.
+//
+// Flow:
+//   1. Get the current session access token
+//   2. Call the delete-account Edge Function (which deletes all data + auth account)
+//   3. Sign out locally and redirect to home
+//
+// The Edge Function uses the service role key server-side — it never touches
+// the client. We only send the user's own JWT to prove identity.
+
+const DELETE_ACCOUNT_FUNCTION_URL =
+  "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/delete-account";
+
+window.spinvinylDeleteAccount = async function () {
+  // Get the current session so we can send the access token
+  const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+  if (sessionError || !session) {
+    throw new Error("You must be signed in to delete your account.");
+  }
+
+  const response = await fetch(DELETE_ACCOUNT_FUNCTION_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session.access_token}`,
+      "apikey": SUPABASE_ANON_KEY,
+    },
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.error || `Deletion failed (${response.status})`);
+  }
+
+  // Data and auth account are gone — sign out locally and reset UI
+  // supabaseClient.auth.signOut() will 401 since the account no longer exists,
+  // so we call onSignedOut() directly to clean up the UI
+  try {
+    await supabaseClient.auth.signOut();
+  } catch {
+    // Expected — account is already deleted server-side
+  }
+
+  onSignedOut();
+
+  // Show a brief confirmation before the auth overlay appears
+  const deleteStatus = document.getElementById("deleteAccountStatus");
+  if (deleteStatus) {
+    deleteStatus.textContent = "Your account has been deleted.";
+    deleteStatus.style.color = "#70c070";
+  }
+};
+// ── End Account Deletion ─────────────────────────────────────────────────────
+
+
+// ── Analytics ────────────────────────────────────────────────────────────────
+const POSTHOG_KEY  = "phc_yzp4WhVRDXSMWMpho4hnjh3g8yoNr9psKHJm2LcgBviJ";
+const POSTHOG_HOST = "https://us.posthog.com";
+
+async function logEvent(eventName, properties = {}) {
+  if (!currentUser) return;
+  const payload = {
+    event_name: eventName, user_id: currentUser.id,
+    properties: { ...properties, collection_size: allRecords?.length ?? 0, wishlist_size: wishlist?.length ?? 0, platform: /iphone|ipad|ipod|android/i.test(navigator.userAgent) ? "mobile" : "desktop", url: window.location.pathname + window.location.hash },
+    created_at: new Date().toISOString(),
+  };
+  try { await supabaseClient.from("events").insert(payload); } catch {}
+  try { if (typeof window.posthog !== "undefined" && POSTHOG_KEY !== "PASTE_YOUR_POSTHOG_KEY_HERE") window.posthog.capture(eventName, payload.properties); } catch {}
+}
+
+function identifyUserForAnalytics(user, profile) {
+  try { if (typeof window.posthog !== "undefined") window.posthog.identify(user.id, { email: user.email, username: profile?.username ?? null, collection_size: allRecords?.length ?? 0 }); } catch {}
+}
+
+const _originalSetPage = setPage;
+window.setPage = function(page) { _originalSetPage(page); logEvent("page_viewed", { page }); };
+
+window._initPostHog = function() {
+  if (POSTHOG_KEY === "PASTE_YOUR_POSTHOG_KEY_HERE") return;
+  try { window.posthog.init(POSTHOG_KEY, { api_host: POSTHOG_HOST, capture_pageview: false, capture_pageleave: true, session_recording: { maskAllInputs: true, maskInputOptions: { password: true, email: true } } }); } catch {}
+};
+// ── End Analytics ─────────────────────────────────────────────────────────────
+
+
+// ── New User Testing Mode ────────────────────────────────────────────────────
+let testModeActive = false;
+function isTestMode() { return testModeActive; }
+function enterTestMode() {
+  if (!isOwner() || testModeActive) return;
+  testModeActive = true;
+  window._testMode_savedRecords = allRecords.slice();
+  window._testMode_savedWishlist = wishlist.slice();
+  window._testMode_savedProfile = currentProfile ? { ...currentProfile } : null;
+  allRecords = []; wishlist = [];
+  currentProfile = { ...(currentProfile || {}), onboarding_done: false, preferred_name: null, username: "new_user_preview", avatar_url: null, favorite_genres: [], favorite_artists: [], favorite_albums: [], favorite_albums_meta: {}, pinned_trophies: [], wishlist_public: false, collection_public: false };
+  if (!supabaseClient._testModeProxied) {
+    const _orig = supabaseClient.from.bind(supabaseClient);
+    supabaseClient.from = function(table) {
+      const b = _orig(table);
+      if (!testModeActive) return b;
+      const noop = () => Promise.resolve({ data: null, error: null, status: 200 });
+      return { ...b, insert: () => ({ select: () => Promise.resolve({ data: [], error: null }) }), upsert: () => ({ select: () => Promise.resolve({ data: [], error: null }) }), update: () => ({ eq: () => ({ select: noop, then: noop }), select: noop, then: noop }), delete: () => ({ eq: noop, match: noop, then: noop }) };
+    };
+    supabaseClient._testModeProxied = true;
+  }
+  showTestModeBanner(true); localStorage.removeItem("spin-onboarding-done");
+  maybeShowOnboarding(); render(); renderHome();
+}
+function exitTestMode() {
+  if (!testModeActive) return; testModeActive = false;
+  allRecords = window._testMode_savedRecords || []; wishlist = window._testMode_savedWishlist || []; currentProfile = window._testMode_savedProfile || currentProfile;
+  delete window._testMode_savedRecords; delete window._testMode_savedWishlist; delete window._testMode_savedProfile; delete supabaseClient._testModeProxied;
+  const ob = document.getElementById("onboardingScreen"); if (ob) ob.hidden = true;
+  localStorage.setItem("spin-onboarding-done", "true"); showTestModeBanner(false); window.location.hash = ""; render(); renderHome();
+}
+function showTestModeBanner(show) {
+  let b = document.getElementById("testModeBanner");
+  if (!b) {
+    b = document.createElement("div"); b.id = "testModeBanner";
+    b.innerHTML = `<span>🧪</span><span style="flex:1"><strong>New User Testing Mode</strong> — writes blocked, data masked as empty</span><button id="testModeExitBtn" style="background:#c9a84c;color:#0d0d11;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Exit Test Mode</button>`;
+    b.style.cssText = "position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:9999;background:#2a1a00;border-bottom:2px solid #c9a84c;padding:10px 16px;display:flex;align-items:center;gap:10px;font-family:Inter,sans-serif;font-size:13px;color:#e8e0d0;box-shadow:0 2px 12px rgba(0,0,0,.5)";
+    document.body.appendChild(b); b.querySelector("#testModeExitBtn").addEventListener("click", exitTestMode);
+    const h = document.querySelector("header"); if (h) { h._tmPad = h.style.paddingTop; h.style.paddingTop = `calc(${getComputedStyle(h).paddingTop} + 44px)`; }
   }
   b.hidden = !show;
   if (!show) { const h = document.querySelector("header"); if (h?._tmPad !== undefined) h.style.paddingTop = h._tmPad; }
