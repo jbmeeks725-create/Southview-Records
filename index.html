@@ -88,137 +88,192 @@
   <style>
   @media (max-width: 768px) {
 
-    /* ── Mobile landing page: native app feel ── */
+    /* ── Mobile landing page: premium native feel ── */
     @media (max-width: 768px) {
-      /* Hide the side video columns entirely */
-      .landing-video-col {
-        display: none !important;
-      }
+      /* Hide side video columns */
+      .landing-video-col { display: none !important; }
 
-      /* Full-screen auth overlay with background image feel */
+      /* Full-screen overlay */
       #authOverlay.landing-screen {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
         justify-content: flex-start !important;
         min-height: 100dvh !important;
-        background:
-          linear-gradient(
-            to bottom,
-            rgba(11,12,15,0.55) 0%,
-            rgba(11,12,15,0.85) 45%,
-            rgba(11,12,15,1) 70%
-          ),
-          url('https://images.unsplash.com/photo-1593078166039-c9878df5c520?w=800&q=80') center/cover no-repeat !important;
-        padding: env(safe-area-inset-top, 24px) 0 env(safe-area-inset-bottom, 24px) !important;
+        width: 100% !important;
+        background: var(--ink, #0b0c0f) !important;
+        padding: 0 !important;
         overflow-y: auto !important;
+        overflow-x: hidden !important;
       }
 
-      /* Center column fills full width */
+      /* Center column: full width, properly centered */
       #authOverlay .landing-center {
         width: 100% !important;
-        max-width: 400px !important;
-        padding: 32px 28px 40px !important;
+        max-width: 100% !important;
+        padding: calc(env(safe-area-inset-top, 0px) + 48px) 28px calc(env(safe-area-inset-bottom, 0px) + 40px) !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
+        text-align: center !important;
         gap: 0 !important;
+        position: relative !important;
       }
 
-      /* Logo: larger, more prominent */
+      /* Decorative gold arc behind logo */
+      #authOverlay .landing-center::before {
+        content: '';
+        position: absolute;
+        top: calc(env(safe-area-inset-top, 0px) + 24px);
+        left: 50%;
+        transform: translateX(-50%);
+        width: 280px;
+        height: 280px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* Logo */
       .landing-logo {
-        width: 88px !important;
-        height: 88px !important;
-        border-radius: 22px !important;
-        margin-bottom: 20px !important;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+        width: 96px !important;
+        height: 96px !important;
+        border-radius: 24px !important;
+        margin-bottom: 22px !important;
+        box-shadow: 0 8px 40px rgba(201,168,76,0.2), 0 2px 12px rgba(0,0,0,0.6) !important;
+        position: relative !important;
+        z-index: 1 !important;
       }
 
-      /* Title */
+      /* Title: SPIN VINYL */
       .landing-title {
-        font-size: 36px !important;
-        letter-spacing: 0.12em !important;
+        font-size: 38px !important;
+        letter-spacing: 0.14em !important;
         margin-bottom: 6px !important;
         text-align: center !important;
+        position: relative !important;
+        z-index: 1 !important;
       }
 
       /* Tagline */
       .landing-tagline {
-        font-size: 14px !important;
+        font-size: 11px !important;
         text-align: center !important;
-        margin-bottom: 32px !important;
-        color: rgba(201,168,76,0.85) !important;
-        letter-spacing: 0.06em !important;
+        margin-bottom: 10px !important;
+        color: rgba(201,168,76,0.8) !important;
+        letter-spacing: 0.1em !important;
         text-transform: uppercase !important;
+        position: relative !important;
+        z-index: 1 !important;
       }
 
-      /* Auth form: full width */
+      /* Mobile optimised badge */
+      .landing-mobile-badge {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        background: rgba(201,168,76,0.1) !important;
+        border: 1px solid rgba(201,168,76,0.25) !important;
+        border-radius: 100px !important;
+        padding: 5px 12px !important;
+        font-family: Inter, sans-serif !important;
+        font-size: 11px !important;
+        font-weight: 500 !important;
+        color: rgba(201,168,76,0.85) !important;
+        margin-bottom: 28px !important;
+        letter-spacing: 0.03em !important;
+      }
+
+      /* Gold divider line */
+      .landing-center::after {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 1px;
+        background: rgba(201,168,76,0.3);
+        margin: 0 auto 28px;
+      }
+
+      /* Auth forms */
       #landingAuthForms {
         width: 100% !important;
       }
+      .landing-form { width: 100% !important; }
 
-      .landing-form {
-        width: 100% !important;
+      /* Form rows tighter */
+      .landing-form .form-row {
+        margin-bottom: 12px !important;
+        text-align: left !important;
+      }
+      .landing-form label {
+        font-size: 12px !important;
+        letter-spacing: 0.06em !important;
+        text-transform: uppercase !important;
+        margin-bottom: 6px !important;
+        color: rgba(255,255,255,0.5) !important;
       }
 
-      /* Inputs: taller tap targets */
+      /* Inputs: tall tap targets, no iOS zoom */
       .landing-form input[type="email"],
       .landing-form input[type="password"] {
         height: 52px !important;
-        font-size: 16px !important; /* prevents iOS zoom */
-        border-radius: 10px !important;
-      }
-
-      /* Buttons: full width, tall */
-      .landing-btn {
-        width: 100% !important;
-        height: 52px !important;
         font-size: 16px !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
+        width: 100% !important;
       }
 
+      /* Buttons */
       .landing-form-actions {
         flex-direction: column !important;
         gap: 10px !important;
         width: 100% !important;
+        margin-top: 8px !important;
       }
-
-      /* Social buttons */
-      .auth-social-buttons {
-        flex-direction: column !important;
-        gap: 10px !important;
+      .landing-btn {
         width: 100% !important;
-      }
-
-      .auth-social-btn {
-        width: 100% !important;
-        height: 52px !important;
+        height: 54px !important;
         font-size: 16px !important;
-        border-radius: 10px !important;
-        justify-content: center !important;
+        border-radius: 14px !important;
+        font-weight: 600 !important;
       }
 
-      /* Divider */
+      /* OR divider */
       .auth-social-divider {
         margin: 20px 0 !important;
         width: 100% !important;
       }
 
+      /* Social buttons stacked */
+      .auth-social-buttons {
+        flex-direction: column !important;
+        gap: 10px !important;
+        width: 100% !important;
+      }
+      .auth-social-btn {
+        width: 100% !important;
+        height: 54px !important;
+        font-size: 15px !important;
+        border-radius: 14px !important;
+        justify-content: center !important;
+      }
+
       /* Tour button */
       .landing-tour-btn {
-        margin-top: 24px !important;
+        margin-top: 20px !important;
         width: 100% !important;
         height: 48px !important;
-        border-radius: 10px !important;
-        font-size: 15px !important;
+        border-radius: 14px !important;
+        font-size: 14px !important;
       }
 
       /* Keywords */
       .landing-keywords {
         margin-top: 20px !important;
-        font-size: 12px !important;
+        font-size: 11px !important;
         text-align: center !important;
-        color: rgba(255,255,255,0.3) !important;
+        color: rgba(255,255,255,0.2) !important;
+        letter-spacing: 0.1em !important;
       }
     }
     #controls {
@@ -1238,6 +1293,12 @@
       <img src="icon-192.png" alt="" class="landing-logo" />
       <h1 class="landing-title">SPIN<span class="landing-title-sub">VINYL</span></h1>
       <p class="landing-tagline">The digital home for your vinyl collection</p>
+
+      <!-- Mobile only: optimised badge + visual divider -->
+      <span class="landing-mobile-badge" id="landingMobileBadge" style="display:none">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+        Optimised for mobile
+      </span>
 
       <div id="landingAuthForms">
         <form id="authForm" class="landing-form">
@@ -3989,6 +4050,10 @@
       });
       updateModalOpen();
     })();
+
+    // ── Show mobile-only badge ──
+    const mobileBadge = document.getElementById('landingMobileBadge');
+    if (mobileBadge) mobileBadge.style.display = 'inline-flex';
 
     // ── Mirror atAGlanceSection hidden state → atAGlanceWrap ──
     // app.js shows/hides #atAGlanceSection; we reflect that on #atAGlanceWrap
