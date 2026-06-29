@@ -4053,7 +4053,7 @@
 
     // ── Show mobile-only badge ──
     const mobileBadge = document.getElementById('landingMobileBadge');
-    if (mobileBadge) mobileBadge.style.display = 'inline-flex';
+    if (mobileBadge && window.innerWidth <= 768) mobileBadge.style.display = 'inline-flex';
 
     // ── Mirror atAGlanceSection hidden state → atAGlanceWrap ──
     // app.js shows/hides #atAGlanceSection; we reflect that on #atAGlanceWrap
