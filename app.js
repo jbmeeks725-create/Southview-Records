@@ -6286,6 +6286,8 @@ function setPage(page) {
   const trophiesBtn = document.getElementById("trophiesPageBtn");
   const collectionValueBtn = document.getElementById("collectionValuePageBtn");
   const collectionInsightsBtn = document.getElementById("collectionInsightsPageBtn");
+  const fellowCollectorsBtn = document.getElementById("fellowCollectorsPageBtn");
+  const activityFeedBtn = document.getElementById("activityFeedPageBtn");
 
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
@@ -6302,6 +6304,8 @@ function setPage(page) {
   const pageNav = document.getElementById("pageNav");
   const collectionValueSection = document.getElementById("collectionValueSection");
   const collectionInsightsSection = document.getElementById("collectionInsightsSection");
+  const fellowCollectorsSection = document.getElementById("fellowCollectorsSection");
+  const activityFeedSection = document.getElementById("activityFeedSection");
 
   const isHome = page === "home";
   const isCollection = page === "collection";
@@ -6315,6 +6319,8 @@ function setPage(page) {
   const isAdmin = page === "admin";
   const isCollectionValue = page === "collectionValue";
   const isCollectionInsights = page === "collectionInsights";
+  const isFellowCollectors = page === "fellowCollectors";
+  const isActivityFeed = page === "activityFeed";
 
   [
     [homeBtn, isHome],
@@ -6326,6 +6332,8 @@ function setPage(page) {
     [trophiesBtn, isTrophies],
     [collectionValueBtn, isCollectionValue],
     [collectionInsightsBtn, isCollectionInsights],
+    [fellowCollectorsBtn, isFellowCollectors],
+    [activityFeedBtn, isActivityFeed],
   ].forEach(([btn, active]) => {
     if (!btn) return;
     btn.classList.toggle("active", active);
@@ -6346,9 +6354,11 @@ function setPage(page) {
   wishlistSection.hidden = !isWishlist;
   if (collectionValueSection) collectionValueSection.hidden = !isCollectionValue;
   if (collectionInsightsSection) collectionInsightsSection.hidden = !isCollectionInsights;
+  if (fellowCollectorsSection) fellowCollectorsSection.hidden = !isFellowCollectors;
+  if (activityFeedSection) activityFeedSection.hidden = !isActivityFeed;
   const adminSection = document.getElementById("adminSection");
   if (adminSection) adminSection.hidden = !isAdmin;
-  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isCollectionValue || isCollectionInsights;
+  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isCollectionValue || isCollectionInsights || isFellowCollectors || isActivityFeed;
   pageNav.hidden = isProfile || isSettings || isAdmin;
 
   if (isProfile) {
@@ -6388,6 +6398,16 @@ function setPage(page) {
 
   if (isCollectionInsights) {
     renderCollectionInsights();
+    return;
+  }
+
+  if (isFellowCollectors) {
+    renderFellowCollectors();
+    return;
+  }
+
+  if (isActivityFeed) {
+    renderActivityFeed();
     return;
   }
 
@@ -8813,7 +8833,10 @@ async function renderSharedCollection(uid) {
       (profile.username ? `@${profile.username}` : "Someone's");
     document.getElementById("sharedCollectionOwnerName").textContent =
       `${ownerName}'s Collection`;
-    document.title = `${ownerName}'s Collection — SPIN VINYL`;
+    document.title = `${ownerName}'s Collection — Spin Vinyl`;
+
+    // Follow button (works for both logged-in and logged-out visitors)
+    setupSharedCollectionFollowButton(uid);
 
     const { data: records, error: recordsError } = await supabaseClient
       .from("records")
@@ -13246,6 +13269,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupAdmin();
   setupCollectionValue();
   setupCollectionInsights();
+  setupFellowCollectors();
   setupPressingPicker();
   startHeaderNowPlayingPolling();
 });
@@ -14514,3 +14538,412 @@ function syncInsightsToggles() {
 }
 
 // ── End My Collection Insights ────────────────────────────────────────────────
+
+
+// ── Social Graph: Fellow Collectors & Activity Feed ──────────────────────────
+//
+// Asymmetric follow model (like Letterboxd) — no approval needed. Built on
+// the `follows` table: follower_id, following_id. Profile search is by
+// username only — never exposes email.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+let fcFollowingList = [];   // profiles I follow
+let fcFollowersList = [];   // profiles following me
+let fcActiveTab = "following";
+let fcSearchDebounceTimer = null;
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fcDisplayName(p) {
+  return p.preferred_name || (p.username ? `@${p.username}` : "A collector");
+}
+
+function fcAvatarHtml(p, sizeClass) {
+  if (p.avatar_url) {
+    return `<img src="${p.avatar_url}" alt="" class="${sizeClass}" loading="lazy" />`;
+  }
+  const phClass = sizeClass.replace(/avatar$/, "avatar-placeholder").replace(/cover$/, "cover-placeholder");
+  return `<div class="${phClass}"><i class="ti ti-user" aria-hidden="true"></i></div>`;
+}
+
+// ── Follow / unfollow ─────────────────────────────────────────────────────────
+
+async function followUser(targetUserId) {
+  if (!currentUser || targetUserId === currentUser.id) return false;
+  const { error } = await supabaseClient.from("follows").insert({
+    follower_id: currentUser.id,
+    following_id: targetUserId,
+  });
+  if (error && error.code !== "23505") { // ignore unique constraint (already following)
+    console.error("Follow failed:", error);
+    return false;
+  }
+  logEvent("user_followed", { target_user_id: targetUserId });
+  return true;
+}
+
+async function unfollowUser(targetUserId) {
+  if (!currentUser) return false;
+  const { error } = await supabaseClient
+    .from("follows")
+    .delete()
+    .eq("follower_id", currentUser.id)
+    .eq("following_id", targetUserId);
+  if (error) { console.error("Unfollow failed:", error); return false; }
+  logEvent("user_unfollowed", { target_user_id: targetUserId });
+  return true;
+}
+
+async function isFollowing(targetUserId) {
+  if (!currentUser) return false;
+  const { data } = await supabaseClient
+    .from("follows")
+    .select("id")
+    .eq("follower_id", currentUser.id)
+    .eq("following_id", targetUserId)
+    .maybeSingle();
+  return !!data;
+}
+
+// ── Load following / followers lists ─────────────────────────────────────────
+
+async function loadFollowingList() {
+  if (!currentUser) { fcFollowingList = []; return; }
+
+  const { data: follows, error } = await supabaseClient
+    .from("follows")
+    .select("following_id, created_at")
+    .eq("follower_id", currentUser.id)
+    .order("created_at", { ascending: false });
+
+  if (error || !follows?.length) { fcFollowingList = []; return; }
+
+  const ids = follows.map(f => f.following_id);
+  const { data: profiles } = await supabaseClient
+    .from("profiles")
+    .select("user_id, username, preferred_name, avatar_url")
+    .in("user_id", ids);
+
+  const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+  fcFollowingList = follows
+    .map(f => profileMap.get(f.following_id))
+    .filter(Boolean);
+}
+
+async function loadFollowersList() {
+  if (!currentUser) { fcFollowersList = []; return; }
+
+  const { data: follows, error } = await supabaseClient
+    .from("follows")
+    .select("follower_id, created_at")
+    .eq("following_id", currentUser.id)
+    .order("created_at", { ascending: false });
+
+  if (error || !follows?.length) { fcFollowersList = []; return; }
+
+  const ids = follows.map(f => f.follower_id);
+  const { data: profiles } = await supabaseClient
+    .from("profiles")
+    .select("user_id, username, preferred_name, avatar_url")
+    .in("user_id", ids);
+
+  const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+  fcFollowersList = follows
+    .map(f => profileMap.get(f.follower_id))
+    .filter(Boolean);
+}
+
+// ── Render: My Fellow Collectors page ────────────────────────────────────────
+
+async function renderFellowCollectors() {
+  await Promise.all([loadFollowingList(), loadFollowersList()]);
+
+  document.getElementById("fcFollowingCount").textContent = fcFollowingList.length || "";
+  document.getElementById("fcFollowersCount").textContent = fcFollowersList.length || "";
+
+  renderFcGrid("fcFollowingGrid", fcFollowingList, "following");
+  renderFcGrid("fcFollowersGrid", fcFollowersList, "followers");
+}
+
+function renderFcGrid(gridId, list, context) {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+
+  if (!list.length) {
+    // Keep the existing empty-state markup (already in HTML), just ensure visible
+    const empty = grid.querySelector(".fellow-collectors-empty");
+    grid.innerHTML = "";
+    if (empty) grid.appendChild(empty);
+    else {
+      grid.innerHTML = context === "following"
+        ? `<div class="fellow-collectors-empty"><i class="ti ti-users" aria-hidden="true"></i><p>You're not following anyone yet.</p><p class="field-hint">Search above to find fellow collectors.</p></div>`
+        : `<div class="fellow-collectors-empty"><i class="ti ti-user-heart" aria-hidden="true"></i><p>No one is following you yet.</p><p class="field-hint">Share your collection link to start building your following.</p></div>`;
+    }
+    return;
+  }
+
+  grid.innerHTML = "";
+  list.forEach(p => grid.appendChild(buildFcCollectorCard(p)));
+}
+
+function buildFcCollectorCard(profile) {
+  const card = document.createElement("div");
+  card.className = "fc-collector-card";
+
+  const avatarWrap = document.createElement("div");
+  avatarWrap.innerHTML = fcAvatarHtml(profile, "fc-collector-avatar");
+  card.appendChild(avatarWrap.firstElementChild);
+
+  const info = document.createElement("div");
+  info.className = "fc-collector-info";
+  info.innerHTML = `
+    <div class="fc-collector-name">${fcDisplayName(profile)}</div>
+    ${profile.username ? `<div class="fc-collector-username">@${profile.username}</div>` : ""}
+  `;
+  info.addEventListener("click", () => fcOpenProfile(profile));
+  card.appendChild(info);
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "fc-follow-btn";
+  card.appendChild(btn);
+  refreshFcFollowButton(btn, profile.user_id);
+
+  return card;
+}
+
+async function refreshFcFollowButton(btn, targetUserId) {
+  const following = await isFollowing(targetUserId);
+  btn.textContent = following ? "Following" : "Follow";
+  btn.classList.toggle("following", following);
+  btn.onclick = async (e) => {
+    e.stopPropagation();
+    btn.disabled = true;
+    if (following) {
+      await unfollowUser(targetUserId);
+    } else {
+      await followUser(targetUserId);
+    }
+    btn.disabled = false;
+    refreshFcFollowButton(btn, targetUserId);
+    // Refresh the page data so counts / lists stay accurate
+    if (currentPage === "fellowCollectors") renderFellowCollectors();
+  };
+}
+
+function fcOpenProfile(profile) {
+  if (!profile.user_id) return;
+  window.location.hash = `share=collection&uid=${profile.user_id}`;
+  window.location.reload();
+}
+
+// ── Search / Discover ─────────────────────────────────────────────────────────
+
+function setupFcSearch() {
+  const input = document.getElementById("fcSearchInput");
+  if (!input) return;
+
+  input.addEventListener("input", () => {
+    clearTimeout(fcSearchDebounceTimer);
+    const query = input.value.trim();
+    const resultsEl = document.getElementById("fcSearchResults");
+
+    if (!query) {
+      resultsEl.hidden = true;
+      resultsEl.innerHTML = "";
+      return;
+    }
+
+    fcSearchDebounceTimer = setTimeout(() => runFcSearch(query), 300);
+  });
+}
+
+async function runFcSearch(query) {
+  const resultsEl = document.getElementById("fcSearchResults");
+  resultsEl.hidden = false;
+  resultsEl.innerHTML = `<div class="fellow-collectors-empty"><p class="field-hint">Searching…</p></div>`;
+
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("user_id, username, preferred_name, avatar_url")
+    .ilike("username", `%${query}%`)
+    .neq("user_id", currentUser?.id || "")
+    .limit(20);
+
+  if (error || !data?.length) {
+    resultsEl.innerHTML = `<div class="fellow-collectors-empty"><p>No collectors found for "${query}".</p></div>`;
+    return;
+  }
+
+  resultsEl.innerHTML = "";
+  data.forEach(p => resultsEl.appendChild(buildFcCollectorCard(p)));
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+
+function setupFcTabs() {
+  document.getElementById("fcTabFollowing")?.addEventListener("click", () => setFcTab("following"));
+  document.getElementById("fcTabFollowers")?.addEventListener("click", () => setFcTab("followers"));
+}
+
+function setFcTab(tab) {
+  fcActiveTab = tab;
+  document.getElementById("fcTabFollowing").classList.toggle("active", tab === "following");
+  document.getElementById("fcTabFollowers").classList.toggle("active", tab === "followers");
+  document.getElementById("fcTabFollowing").setAttribute("aria-selected", String(tab === "following"));
+  document.getElementById("fcTabFollowers").setAttribute("aria-selected", String(tab === "followers"));
+  document.getElementById("fcFollowingPanel").hidden = tab !== "following";
+  document.getElementById("fcFollowersPanel").hidden = tab !== "followers";
+}
+
+// ── Activity Feed ─────────────────────────────────────────────────────────────
+
+async function renderActivityFeed() {
+  const list = document.getElementById("activityFeedList");
+  const empty = document.getElementById("activityFeedEmpty");
+  const emptyHint = document.getElementById("activityFeedEmptyHint");
+
+  if (!currentUser) return;
+
+  await loadFollowingList();
+
+  if (!fcFollowingList.length) {
+    list.innerHTML = "";
+    empty.hidden = false;
+    emptyHint.textContent = "Follow a few collectors to see what they're adding here.";
+    return;
+  }
+
+  const followingIds = fcFollowingList.map(p => p.user_id);
+
+  const { data: records, error } = await supabaseClient
+    .from("records")
+    .select("id, artist, album, cover_url, user_id, created_at")
+    .in("user_id", followingIds)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error || !records?.length) {
+    list.innerHTML = "";
+    empty.hidden = false;
+    emptyHint.textContent = "Nothing new yet — check back once the collectors you follow add something.";
+    return;
+  }
+
+  empty.hidden = true;
+
+  const profileMap = new Map(fcFollowingList.map(p => [p.user_id, p]));
+
+  list.innerHTML = "";
+  records.forEach(record => {
+    const profile = profileMap.get(record.user_id);
+    if (!profile) return;
+
+    const item = document.createElement("div");
+    item.className = "activity-feed-item";
+
+    const avatarWrap = document.createElement("div");
+    avatarWrap.innerHTML = fcAvatarHtml(profile, "activity-feed-avatar");
+    item.appendChild(avatarWrap.firstElementChild);
+
+    let coverHtml;
+    if (record.cover_url) {
+      coverHtml = `<img src="${record.cover_url}" alt="" class="activity-feed-cover" loading="lazy" />`;
+    } else {
+      coverHtml = `<div class="activity-feed-cover-placeholder"><i class="ti ti-vinyl" aria-hidden="true"></i></div>`;
+    }
+    const coverWrap = document.createElement("div");
+    coverWrap.innerHTML = coverHtml;
+    item.appendChild(coverWrap.firstElementChild);
+
+    const text = document.createElement("div");
+    text.className = "activity-feed-text";
+    text.innerHTML = `
+      <div class="activity-feed-who"><strong>${fcDisplayName(profile)}</strong> added a record</div>
+      <div class="activity-feed-what">${record.artist} — <em>${record.album}</em></div>
+    `;
+    item.appendChild(text);
+
+    const when = document.createElement("div");
+    when.className = "activity-feed-when";
+    when.textContent = fcRelativeTime(record.created_at);
+    item.appendChild(when);
+
+    item.addEventListener("click", () => fcOpenProfile(profile));
+    list.appendChild(item);
+  });
+}
+
+function fcRelativeTime(isoString) {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHr / 24);
+
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// ── Follow button on public shared collection page ───────────────────────────
+
+async function setupSharedCollectionFollowButton(profileUserId) {
+  const btn = document.getElementById("sharedCollectionFollowBtn");
+  if (!btn || !profileUserId) return;
+
+  // Don't show follow button on your own collection, or if not configured
+  if (currentUser && currentUser.id === profileUserId) {
+    btn.hidden = true;
+    return;
+  }
+
+  btn.hidden = false;
+
+  if (!currentUser) {
+    // Logged-out visitor — clicking prompts sign up
+    btn.querySelector("span").textContent = "Follow";
+    btn.classList.remove("following");
+    btn.onclick = () => {
+      window.location.href = "/";
+    };
+    return;
+  }
+
+  const following = await isFollowing(profileUserId);
+  btn.querySelector("span").textContent = following ? "Following" : "Follow";
+  btn.classList.toggle("following", following);
+
+  btn.onclick = async () => {
+    btn.disabled = true;
+    const nowFollowing = btn.classList.contains("following");
+    if (nowFollowing) {
+      await unfollowUser(profileUserId);
+    } else {
+      await followUser(profileUserId);
+    }
+    btn.disabled = false;
+    const stillFollowing = await isFollowing(profileUserId);
+    btn.querySelector("span").textContent = stillFollowing ? "Following" : "Follow";
+    btn.classList.toggle("following", stillFollowing);
+  };
+}
+
+// ── Setup / wiring ────────────────────────────────────────────────────────────
+
+function setupFellowCollectors() {
+  document.getElementById("fellowCollectorsPageBtn")
+    ?.addEventListener("click", () => setPage("fellowCollectors"));
+
+  document.getElementById("activityFeedPageBtn")
+    ?.addEventListener("click", () => setPage("activityFeed"));
+
+  setupFcSearch();
+  setupFcTabs();
+}
+
+// ── End Social Graph ──────────────────────────────────────────────────────────
