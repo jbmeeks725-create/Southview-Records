@@ -6285,6 +6285,7 @@ function setPage(page) {
   const genreEvolutionBtn = document.getElementById("genreEvolutionPageBtn");
   const trophiesBtn = document.getElementById("trophiesPageBtn");
   const collectionValueBtn = document.getElementById("collectionValuePageBtn");
+  const collectionInsightsBtn = document.getElementById("collectionInsightsPageBtn");
 
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
@@ -6300,6 +6301,7 @@ function setPage(page) {
   const statusSection = document.getElementById("status");
   const pageNav = document.getElementById("pageNav");
   const collectionValueSection = document.getElementById("collectionValueSection");
+  const collectionInsightsSection = document.getElementById("collectionInsightsSection");
 
   const isHome = page === "home";
   const isCollection = page === "collection";
@@ -6312,6 +6314,7 @@ function setPage(page) {
   const isTrophies = page === "trophies";
   const isAdmin = page === "admin";
   const isCollectionValue = page === "collectionValue";
+  const isCollectionInsights = page === "collectionInsights";
 
   [
     [homeBtn, isHome],
@@ -6322,6 +6325,7 @@ function setPage(page) {
     [genreEvolutionBtn, isGenreEvolution],
     [trophiesBtn, isTrophies],
     [collectionValueBtn, isCollectionValue],
+    [collectionInsightsBtn, isCollectionInsights],
   ].forEach(([btn, active]) => {
     if (!btn) return;
     btn.classList.toggle("active", active);
@@ -6341,9 +6345,10 @@ function setPage(page) {
   cardSection.hidden = !isCollection;
   wishlistSection.hidden = !isWishlist;
   if (collectionValueSection) collectionValueSection.hidden = !isCollectionValue;
+  if (collectionInsightsSection) collectionInsightsSection.hidden = !isCollectionInsights;
   const adminSection = document.getElementById("adminSection");
   if (adminSection) adminSection.hidden = !isAdmin;
-  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isCollectionValue;
+  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isCollectionValue || isCollectionInsights;
   pageNav.hidden = isProfile || isSettings || isAdmin;
 
   if (isProfile) {
@@ -6378,6 +6383,11 @@ function setPage(page) {
 
   if (isCollectionValue) {
     renderCollectionValue();
+    return;
+  }
+
+  if (isCollectionInsights) {
+    renderCollectionInsights();
     return;
   }
 
@@ -10072,12 +10082,14 @@ async function loadData() {
         listening_notes,
         personal_story,
         discogs_release_id,
+        pressing_country,
         market_value_override,
         market_value_override_note,
         market_value_cached,
         market_value_cached_at,
         market_value_type,
         pinned_for_value,
+        created_at,
         genres ( name ),
         subgenres ( name )
       recordsData?.map((r) => ({
@@ -10727,6 +10739,7 @@ async function handleSignOut() {
 
 function renderSettings() {
   document.getElementById("settingsCurrentEmail").textContent = currentUser?.email || "—";
+  syncInsightsToggles();
 
   const emailForm = document.getElementById("changeEmailForm");
   const emailStatus = document.getElementById("changeEmailStatus");
@@ -13232,6 +13245,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupFeedback();
   setupAdmin();
   setupCollectionValue();
+  setupCollectionInsights();
   setupPressingPicker();
   startHeaderNowPlayingPolling();
 });
@@ -14156,3 +14170,347 @@ function showTestModeBanner(show) {
   window.addEventListener("load", () => { if (window.location.hash === "#testmode") setTimeout(enterTestMode, 500); });
 })();
 // ── End Testing Mode ─────────────────────────────────────────────────────────
+
+
+// ── My Collection Insights ───────────────────────────────────────────────────
+//
+// Data-quality-aware visualization system. Each viz declares the fields it
+// needs and a minimum threshold; we compute readiness per-user and only show
+// (or only fully render) visualizations that will actually look good. Users
+// can also manually hide any viz via Settings regardless of data quality.
+//
+// ─────────────────────────────────────────────────────────────────────────────
+
+let ciTimelineChartInstance = null;
+let ciLabelChartInstance = null;
+
+const CI_PALETTE = [
+  "#c9a84c", "#e07070", "#70b8e0", "#a070e0", "#70e0a0",
+  "#e0a070", "#70d0d0", "#d070b0", "#a0c070", "#7090e0",
+];
+
+// ── Data quality assessment ──────────────────────────────────────────────────
+// Returns a readiness object per visualization: { ready, level, count, total }
+// level: 'locked' (not enough data) | 'partial' (some, low confidence) | 'ready'
+function assessInsightsDataQuality() {
+  const total = allRecords.length;
+
+  const withCreatedAt = allRecords.filter(r => !!r.created_at).length;
+  const withLabel      = allRecords.filter(r => !!r.label?.trim()).length;
+  const withGrade      = allRecords.filter(r => !!r.vinyl_grade?.trim()).length;
+  const withCountry    = allRecords.filter(r => !!r.pressing_country).length;
+  const withCreatedDates = allRecords.filter(r => !!r.created_at).length;
+
+  function level(count, total, readyThreshold = 0.6, partialThreshold = 0.15, minCount = 5) {
+    if (total === 0 || count < minCount) return "locked";
+    const pct = count / total;
+    if (pct >= readyThreshold) return "ready";
+    if (pct >= partialThreshold) return "partial";
+    return "locked";
+  }
+
+  return {
+    timeline: {
+      level: level(withCreatedAt, total, 0.5, 0.1, 5),
+      count: withCreatedAt, total,
+    },
+    label: {
+      level: level(withLabel, total, 0.5, 0.15, 8),
+      count: withLabel, total,
+    },
+    condition: {
+      level: level(withGrade, total, 0.5, 0.15, 8),
+      count: withGrade, total,
+    },
+    geography: {
+      level: level(withCountry, total, 0.3, 0.05, 5),
+      count: withCountry, total,
+    },
+    heatmap: {
+      level: level(withCreatedDates, total, 0.7, 0.2, 15),
+      count: withCreatedDates, total,
+    },
+    network: {
+      // Needs decent genre + label overlap across many artists — proxy with
+      // total record count and label coverage as a stand-in until built
+      level: level(Math.min(withLabel, total), total, 0.5, 0.2, 20),
+      count: total, total,
+    },
+  };
+}
+
+// Check user's manual on/off overrides (stored in profile.insights_disabled)
+function isInsightEnabled(key) {
+  const disabled = currentProfile?.insights_disabled || {};
+  return disabled[key] !== true;
+}
+
+async function setInsightEnabled(key, enabled) {
+  const disabled = { ...(currentProfile?.insights_disabled || {}) };
+  if (enabled) delete disabled[key];
+  else disabled[key] = true;
+
+  currentProfile = { ...currentProfile, insights_disabled: disabled };
+  await supabaseClient.from("profiles").update({ insights_disabled: disabled }).eq("id", currentUser.id);
+}
+
+// ── Main render ───────────────────────────────────────────────────────────────
+function renderCollectionInsights() {
+  const quality = assessInsightsDataQuality();
+
+  renderCiTimeline(quality.timeline);
+  renderCiLabelLoyalty(quality.label);
+  renderCiLockedCard("ciConditionCard", "ciConditionStatus", quality.condition, "condition");
+  renderCiLockedCard("ciGeoCard", "ciGeoStatus", quality.geography, "geography");
+  renderCiLockedCard("ciHeatmapCard", "ciHeatmapStatus", quality.heatmap, "heatmap");
+  renderCiLockedCard("ciNetworkCard", "ciNetworkStatus", quality.network, "network");
+}
+
+// ── 1. Collecting Velocity (Acquisition Timeline) ────────────────────────────
+function renderCiTimeline(quality) {
+  const card  = document.getElementById("ciTimelineCard");
+  const empty = document.getElementById("ciTimelineEmpty");
+  const canvasWrap = document.querySelector("#ciTimelineCard .ci-chart-wrap");
+
+  const userEnabled = isInsightEnabled("timeline");
+  const dataReady    = quality.level !== "locked";
+
+  if (!userEnabled || !dataReady) {
+    card.hidden = false;
+    canvasWrap.hidden = true;
+    empty.hidden = false;
+    empty.textContent = !userEnabled
+      ? "Collecting Velocity is turned off — re-enable it in Settings."
+      : "Add a few more records (with dates) and your collecting timeline will appear here.";
+    if (ciTimelineChartInstance) { ciTimelineChartInstance.destroy(); ciTimelineChartInstance = null; }
+    return;
+  }
+
+  canvasWrap.hidden = false;
+  empty.hidden = true;
+
+  const grouping = document.getElementById("ciTimelineGrouping")?.value || "year";
+
+  const buckets = {};
+  allRecords.forEach(r => {
+    if (!r.created_at) return;
+    const d = new Date(r.created_at);
+    const key = grouping === "month"
+      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+      : `${d.getFullYear()}`;
+    buckets[key] = (buckets[key] || 0) + 1;
+  });
+
+  const sortedKeys = Object.keys(buckets).sort();
+  const labels = sortedKeys.map(k => {
+    if (grouping === "month") {
+      const [y, m] = k.split("-");
+      return new Date(Number(y), Number(m) - 1).toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+    }
+    return k;
+  });
+  const data = sortedKeys.map(k => buckets[k]);
+
+  const canvas = document.getElementById("ciTimelineChart");
+  if (ciTimelineChartInstance) ciTimelineChartInstance.destroy();
+
+  ciTimelineChartInstance = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: "rgba(201,168,76,0.55)",
+        hoverBackgroundColor: "#c9a84c",
+        borderRadius: 4,
+        maxBarThickness: 36,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (item) => `${item.parsed.y} record${item.parsed.y !== 1 ? "s" : ""} added`,
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { color: "#9ca3af" }, grid: { display: false } },
+        y: { ticks: { color: "#9ca3af", precision: 0 }, grid: { color: "#1f2937" }, beginAtZero: true },
+      },
+    },
+  });
+}
+
+// ── 2. Label Loyalty ──────────────────────────────────────────────────────────
+function renderCiLabelLoyalty(quality) {
+  const card  = document.getElementById("ciLabelCard");
+  const empty = document.getElementById("ciLabelEmpty");
+  const layout = document.querySelector("#ciLabelCard .ci-label-layout");
+
+  const userEnabled = isInsightEnabled("label");
+  const dataReady    = quality.level !== "locked";
+
+  if (!userEnabled || !dataReady) {
+    card.hidden = false;
+    layout.hidden = true;
+    empty.hidden = false;
+    empty.textContent = !userEnabled
+      ? "Label Loyalty is turned off — re-enable it in Settings."
+      : "Add labels to a few more records (in the record detail view) to see your label breakdown.";
+    if (ciLabelChartInstance) { ciLabelChartInstance.destroy(); ciLabelChartInstance = null; }
+    document.getElementById("ciLabelLegend").innerHTML = "";
+    return;
+  }
+
+  layout.hidden = false;
+  empty.hidden = true;
+
+  const counts = {};
+  allRecords.forEach(r => {
+    const label = r.label?.trim();
+    if (!label) return;
+    counts[label] = (counts[label] || 0) + 1;
+  });
+
+  let entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+
+  // Top 9 + "Other" bucket for readability
+  const TOP_N = 9;
+  let top = entries.slice(0, TOP_N);
+  const rest = entries.slice(TOP_N);
+  if (rest.length) {
+    const otherTotal = rest.reduce((sum, [, c]) => sum + c, 0);
+    top = [...top, ["Other labels", otherTotal]];
+  }
+
+  const labels = top.map(([name]) => name);
+  const data   = top.map(([, count]) => count);
+  const colors = top.map((_, i) => CI_PALETTE[i % CI_PALETTE.length]);
+
+  const canvas = document.getElementById("ciLabelChart");
+  if (ciLabelChartInstance) ciLabelChartInstance.destroy();
+
+  ciLabelChartInstance = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors,
+        borderColor: "#0d0d11",
+        borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "62%",
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (item) => `${item.label}: ${item.parsed} record${item.parsed !== 1 ? "s" : ""}`,
+          },
+        },
+      },
+    },
+  });
+
+  const legend = document.getElementById("ciLabelLegend");
+  legend.innerHTML = "";
+  top.forEach(([name, count], i) => {
+    const row = document.createElement("div");
+    row.className = "ci-label-legend-item";
+    row.innerHTML = `
+      <span class="ci-label-legend-swatch" style="background:${colors[i]}"></span>
+      <span class="ci-label-legend-name">${name}</span>
+      <span class="ci-label-legend-count">${count}</span>
+    `;
+    legend.appendChild(row);
+  });
+}
+
+// ── 3–6. Scaffolded visualizations ───────────────────────────────────────────
+// These render a status badge showing data readiness. The actual chart code
+// will be added when each is built — for now they communicate clearly what's
+// needed to unlock them, which keeps expectations honest rather than showing
+// a broken or empty chart.
+function renderCiLockedCard(cardId, statusId, quality, vizKey) {
+  const card   = document.getElementById(cardId);
+  const status = document.getElementById(statusId);
+  if (!card || !status) return;
+
+  const userEnabled = isInsightEnabled(vizKey);
+
+  if (!userEnabled) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+
+  card.classList.remove("ci-unlockable");
+  status.classList.remove("ci-status-locked", "ci-status-partial", "ci-status-ready");
+
+  if (quality.level === "ready") {
+    status.classList.add("ci-status-ready");
+    status.textContent = "Coming soon — your data is ready";
+  } else if (quality.level === "partial") {
+    status.classList.add("ci-status-partial");
+    status.textContent = `Coming soon — ${quality.count}/${quality.total} records have what's needed`;
+  } else {
+    status.classList.add("ci-status-locked");
+    status.textContent = "Not enough data yet";
+  }
+}
+
+// ── Settings wiring ───────────────────────────────────────────────────────────
+function setupCollectionInsights() {
+  document.getElementById("collectionInsightsPageBtn")
+    ?.addEventListener("click", () => setPage("collectionInsights"));
+
+  document.getElementById("ciTimelineGrouping")
+    ?.addEventListener("change", () => {
+      const quality = assessInsightsDataQuality();
+      renderCiTimeline(quality.timeline);
+    });
+
+  const toggleMap = {
+    settingsInsightTimeline:  "timeline",
+    settingsInsightLabel:     "label",
+    settingsInsightCondition: "condition",
+    settingsInsightGeo:       "geography",
+    settingsInsightHeatmap:   "heatmap",
+    settingsInsightNetwork:   "network",
+  };
+
+  Object.entries(toggleMap).forEach(([elId, vizKey]) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.addEventListener("change", async () => {
+      await setInsightEnabled(vizKey, el.checked);
+      if (currentPage === "collectionInsights") renderCollectionInsights();
+    });
+  });
+}
+
+// Sync toggle states when entering Settings
+function syncInsightsToggles() {
+  const toggleMap = {
+    settingsInsightTimeline:  "timeline",
+    settingsInsightLabel:     "label",
+    settingsInsightCondition: "condition",
+    settingsInsightGeo:       "geography",
+    settingsInsightHeatmap:   "heatmap",
+    settingsInsightNetwork:   "network",
+  };
+  Object.entries(toggleMap).forEach(([elId, vizKey]) => {
+    const el = document.getElementById(elId);
+    if (el) el.checked = isInsightEnabled(vizKey);
+  });
+}
+
+// ── End My Collection Insights ────────────────────────────────────────────────

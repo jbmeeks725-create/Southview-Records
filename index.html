@@ -701,6 +701,150 @@
 
   }
 
+  /* ── My Collection Insights ── */
+  .ci-page { max-width: 1100px; margin: 0 auto; padding: 24px 0 60px; }
+  .ci-header { margin-bottom: 28px; }
+  .ci-header h2 { font-family: Jost, sans-serif; font-size: 24px; font-weight: 700; color: #e8e0d0; margin-bottom: 10px; }
+
+  .ci-card {
+    background: #0d0d11;
+    border: 1px solid #1e1c24;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .ci-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .ci-card-title {
+    font-family: Jost, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #e8e0d0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ci-card-title .ti { color: #c9a84c; }
+  .ci-card-sub { font-size: 12px; color: #6b6470; margin-top: 4px; }
+  .ci-select {
+    padding: 6px 10px;
+    background: #1e1c24;
+    border: 1px solid #2a2830;
+    border-radius: 6px;
+    color: #e8e0d0;
+    font-size: 12px;
+    font-family: Inter, sans-serif;
+  }
+  .ci-chart-wrap { height: 280px; position: relative; }
+
+  .ci-label-layout {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 20px;
+    align-items: center;
+  }
+  @media (max-width: 700px) {
+    .ci-label-layout { grid-template-columns: 1fr; }
+  }
+  .ci-label-chart-wrap { height: 260px; }
+  .ci-label-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .ci-label-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .ci-label-legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .ci-label-legend-name {
+    color: #e8e0d0;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ci-label-legend-count { color: #6b6470; font-variant-numeric: tabular-nums; }
+
+  /* Locked / scaffolded visualization cards */
+  .ci-locked-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 8px;
+  }
+  @media (max-width: 700px) { .ci-locked-grid { grid-template-columns: 1fr; } }
+
+  .ci-locked-card {
+    background: #0d0d11;
+    border: 1px dashed #2a2830;
+    border-radius: 12px;
+    padding: 22px;
+    position: relative;
+    opacity: 0.7;
+  }
+  .ci-locked-card.ci-unlockable {
+    opacity: 1;
+    border-style: solid;
+    border-color: rgba(201,168,76,0.25);
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .ci-locked-card.ci-unlockable:hover { border-color: rgba(201,168,76,0.5); }
+  .ci-locked-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(201,168,76,0.08);
+    border: 1px solid rgba(201,168,76,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #c9a84c;
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+  .ci-locked-title {
+    font-family: Jost, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #e8e0d0;
+    margin-bottom: 6px;
+  }
+  .ci-locked-desc {
+    font-size: 12px;
+    color: #6b6470;
+    line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .ci-locked-status {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 100px;
+    display: inline-block;
+  }
+  .ci-status-locked   { background: rgba(255,255,255,0.04); color: #3a3840; border: 1px solid #1e1c24; }
+  .ci-status-partial  { background: rgba(201,168,76,0.08); color: #c9a84c; border: 1px solid rgba(201,168,76,0.2); }
+  .ci-status-ready    { background: rgba(107,207,138,0.08); color: #6bcf8a; border: 1px solid rgba(107,207,138,0.2); }
+
   /* ── Pressing section in record detail modal ── */
   .pressing-section {
     margin: 20px 0;
@@ -2442,6 +2586,7 @@
       <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
       <button type="button" id="tasteProfilePageBtn" class="view-btn" aria-pressed="false">My Taste Profile</button>
       <button type="button" id="genreEvolutionPageBtn" class="view-btn" aria-pressed="false">My Taste Evolution</button>
+      <button type="button" id="collectionInsightsPageBtn" class="view-btn" aria-pressed="false">My Collection Insights</button>
       <button type="button" id="trophiesPageBtn" class="view-btn" aria-pressed="false">My Trophies</button>
       <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Listening Room</button>
       <button type="button" id="collectionValuePageBtn" class="view-btn" aria-pressed="false">My Collection Value</button>
@@ -2914,6 +3059,94 @@
           </form>
         </div>
 
+        <div class="profile-card settings-privacy-card" id="settingsInsightsCard">
+          <div class="profile-card-header">
+            <h2>Collection Insights</h2>
+          </div>
+          <p class="field-hint">
+            Turn individual visualizations on or off. We only show charts that have enough data to
+            be meaningful — these toggles let you hide ones you'd rather not see even if they qualify.
+          </p>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">Collecting Velocity</span>
+              <span class="privacy-toggle-desc">Records added over time</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Toggle Collecting Velocity">
+                <input type="checkbox" id="settingsInsightTimeline" checked />
+                <span class="privacy-switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">Label Loyalty</span>
+              <span class="privacy-toggle-desc">Breakdown of records by label</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Toggle Label Loyalty">
+                <input type="checkbox" id="settingsInsightLabel" checked />
+                <span class="privacy-switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">Condition Breakdown</span>
+              <span class="privacy-toggle-desc">By vinyl grade — coming soon</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Toggle Condition Breakdown">
+                <input type="checkbox" id="settingsInsightCondition" checked />
+                <span class="privacy-switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">Pressing Origins</span>
+              <span class="privacy-toggle-desc">By pressing country — coming soon</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Toggle Pressing Origins">
+                <input type="checkbox" id="settingsInsightGeo" checked />
+                <span class="privacy-switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">Collecting Calendar</span>
+              <span class="privacy-toggle-desc">Year-at-a-glance heatmap — coming soon</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Toggle Collecting Calendar">
+                <input type="checkbox" id="settingsInsightHeatmap" checked />
+                <span class="privacy-switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">Artist Connections</span>
+              <span class="privacy-toggle-desc">Network graph — coming soon</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Toggle Artist Connections">
+                <input type="checkbox" id="settingsInsightNetwork" checked />
+                <span class="privacy-switch-track"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div class="profile-card settings-privacy-card">
           <div class="profile-card-header">
             <h2>Privacy &amp; Sharing</h2>
@@ -3290,6 +3523,94 @@
       <div id="genreEvolutionEmpty" class="empty-hint" hidden>
         Once you have a few artists with 5 or more albums spanning different styles, their
         evolution will show up here.
+      </div>
+    </div>
+  </section>
+
+  <!-- ── My Collection Insights ── -->
+  <section id="collectionInsightsSection" hidden>
+    <div class="ci-page">
+      <div class="ci-header">
+        <h2>My Collection Insights</h2>
+        <p class="taste-profile-intro">
+          A few more ways to see your shelves. Some of these need specific details — pressing
+          condition, acquisition dates, labels — to look their best, so we only turn them on once
+          there's enough in your collection to make them worth looking at.
+        </p>
+      </div>
+
+      <!-- ── Acquisition Timeline (built) ── -->
+      <div class="ci-card" id="ciTimelineCard">
+        <div class="ci-card-header">
+          <div>
+            <h3 class="ci-card-title"><i class="ti ti-chart-histogram" aria-hidden="true"></i> Collecting Velocity</h3>
+            <p class="ci-card-sub">Records added over time — every binge and every quiet stretch.</p>
+          </div>
+          <div class="ci-card-controls">
+            <select id="ciTimelineGrouping" class="ci-select">
+              <option value="month">By month</option>
+              <option value="year" selected>By year</option>
+            </select>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap ci-chart-wrap">
+          <canvas id="ciTimelineChart"></canvas>
+        </div>
+        <div id="ciTimelineEmpty" class="empty-hint" hidden>
+          Add a few more records and your collecting timeline will appear here.
+        </div>
+      </div>
+
+      <!-- ── Label Loyalty (built) ── -->
+      <div class="ci-card" id="ciLabelCard">
+        <div class="ci-card-header">
+          <div>
+            <h3 class="ci-card-title"><i class="ti ti-disc" aria-hidden="true"></i> Label Loyalty</h3>
+            <p class="ci-card-sub">Which labels show up again and again on your shelves.</p>
+          </div>
+        </div>
+        <div class="ci-label-layout">
+          <div class="chart-canvas-wrap ci-chart-wrap ci-label-chart-wrap">
+            <canvas id="ciLabelChart"></canvas>
+          </div>
+          <div id="ciLabelLegend" class="ci-label-legend"></div>
+        </div>
+        <div id="ciLabelEmpty" class="empty-hint" hidden>
+          Add labels to a few more records (in the record detail view) to see your label breakdown.
+        </div>
+      </div>
+
+      <!-- ── Scaffolded / locked visualizations ── -->
+      <div class="ci-locked-grid">
+
+        <div class="ci-locked-card" id="ciConditionCard" data-viz="condition">
+          <div class="ci-locked-icon"><i class="ti ti-chart-donut" aria-hidden="true"></i></div>
+          <h4 class="ci-locked-title">Condition Breakdown</h4>
+          <p class="ci-locked-desc">A donut of your collection by vinyl grade — Mint, VG+, VG, and beyond.</p>
+          <div class="ci-locked-status" id="ciConditionStatus"></div>
+        </div>
+
+        <div class="ci-locked-card" id="ciGeoCard" data-viz="geography">
+          <div class="ci-locked-icon"><i class="ti ti-world" aria-hidden="true"></i></div>
+          <h4 class="ci-locked-title">Pressing Origins</h4>
+          <p class="ci-locked-desc">Where in the world your records were pressed, based on linked Discogs pressings.</p>
+          <div class="ci-locked-status" id="ciGeoStatus"></div>
+        </div>
+
+        <div class="ci-locked-card" id="ciHeatmapCard" data-viz="heatmap">
+          <div class="ci-locked-icon"><i class="ti ti-calendar-stats" aria-hidden="true"></i></div>
+          <h4 class="ci-locked-title">Collecting Calendar</h4>
+          <p class="ci-locked-desc">A year-at-a-glance heatmap of the days you added to your collection.</p>
+          <div class="ci-locked-status" id="ciHeatmapStatus"></div>
+        </div>
+
+        <div class="ci-locked-card" id="ciNetworkCard" data-viz="network">
+          <div class="ci-locked-icon"><i class="ti ti-affiliate" aria-hidden="true"></i></div>
+          <h4 class="ci-locked-title">Artist Connections</h4>
+          <p class="ci-locked-desc">A web linking artists who share genres, labels, and eras across your shelves.</p>
+          <div class="ci-locked-status" id="ciNetworkStatus"></div>
+        </div>
+
       </div>
     </div>
   </section>
