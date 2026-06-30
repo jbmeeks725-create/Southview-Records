@@ -9526,12 +9526,306 @@ function openRecordDetailModal(recordId, startTab = "details") {
   document.getElementById("recordDetailOverlay").hidden = false;
 
   renderRecordSpotifyControls(record);
+
+  // Populate pressing section
+  renderDetailPressingSection(record);
 }
 
 function closeRecordDetailModal() {
   document.getElementById("recordDetailOverlay").hidden = true;
   activeDetailRecordId = null;
 }
+
+// ── Pressing Picker ───────────────────────────────────────────────────────────
+
+let pressingPickerRecordId = null;
+let pressingPickerAllResults = [];
+
+function renderDetailPressingSection(record) {
+  const linked   = document.getElementById("detailPressingLinked");
+  const search   = document.getElementById("detailPressingSearch");
+  const badge    = document.getElementById("detailPressingId");
+  const linkText = document.getElementById("detailPressingLinkedText");
+  const link     = document.getElementById("detailPressingDiscogsLink");
+
+  if (record.discogs_release_id) {
+    linked.hidden = false;
+    search.hidden = true;
+    badge.hidden  = false;
+    badge.textContent = `#${record.discogs_release_id}`;
+    linkText.textContent = `Linked to Discogs release #${record.discogs_release_id}`;
+    link.href = `https://www.discogs.com/release/${record.discogs_release_id}`;
+  } else {
+    linked.hidden = true;
+    search.hidden = false;
+    badge.hidden  = true;
+  }
+}
+
+async function openPressingPicker(recordId) {
+  const record = allRecords.find(r => r.id === recordId);
+  if (!record) return;
+
+  pressingPickerRecordId = recordId;
+  pressingPickerAllResults = [];
+
+  // Reset modal state
+  document.getElementById("pressingPickerAlbumName").textContent =
+    `${record.artist} — ${record.album}`;
+  document.getElementById("pressingPickerSearch").value = "";
+  document.getElementById("pressingPickerResults").innerHTML = "";
+  document.getElementById("pressingPickerLoading").hidden = true;
+  document.getElementById("pressingPickerEmpty").hidden = true;
+  document.getElementById("pressingManualId").value = "";
+  document.getElementById("pressingManualIdFooter").value = "";
+
+  const discogsSearchUrl =
+    `https://www.discogs.com/search/?q=${encodeURIComponent(record.artist + " " + record.album)}&type=release`;
+  document.getElementById("pressingPickerDiscogsSearch").href = discogsSearchUrl;
+  document.getElementById("pressingPickerOpenDiscogs").href    = discogsSearchUrl;
+
+  document.getElementById("pressingPickerModal").hidden = false;
+
+  // Fetch editions from Discogs
+  await fetchPressingEditions(record);
+}
+
+async function fetchPressingEditions(record) {
+  const loading = document.getElementById("pressingPickerLoading");
+  const empty   = document.getElementById("pressingPickerEmpty");
+  const results = document.getElementById("pressingPickerResults");
+
+  loading.hidden = false;
+  empty.hidden   = true;
+  results.innerHTML = "";
+
+  try {
+    const res = await fetch(DISCOGS_LOOKUP_FUNCTION_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        artist: record.artist,
+        album:  record.album,
+        action: "editions",
+      }),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    pressingPickerAllResults = data.releases || data.results || [];
+    loading.hidden = true;
+
+    if (!pressingPickerAllResults.length) {
+      empty.hidden = false;
+      return;
+    }
+
+    renderPressingResults(pressingPickerAllResults);
+  } catch (e) {
+    console.error("Pressing fetch failed:", e);
+    loading.hidden = true;
+    empty.hidden   = false;
+  }
+}
+
+function renderPressingResults(releases) {
+  const container = document.getElementById("pressingPickerResults");
+  const search    = document.getElementById("pressingPickerSearch").value.toLowerCase();
+  container.innerHTML = "";
+
+  const record    = allRecords.find(r => r.id === pressingPickerRecordId);
+  const filtered  = search
+    ? releases.filter(r =>
+        r.country?.toLowerCase().includes(search) ||
+        r.label?.join?.(" ")?.toLowerCase()?.includes(search) ||
+        r.format?.join?.(" ")?.toLowerCase()?.includes(search) ||
+        String(r.year || "").includes(search) ||
+        String(r.id || "").includes(search)
+      )
+    : releases;
+
+  if (!filtered.length) {
+    container.innerHTML = '<p class="pressing-picker-empty" style="padding:16px 0">No editions match your filter.</p>';
+    return;
+  }
+
+  filtered.forEach(release => {
+    const isSelected = record?.discogs_release_id === release.id;
+    const card = document.createElement("div");
+    card.className = `pressing-result-card${isSelected ? " selected" : ""}`;
+
+    // Thumbnail
+    const thumb = release.thumb || release.cover_image;
+    if (thumb && !thumb.includes("spacer")) {
+      const img = document.createElement("img");
+      img.className = "pressing-result-thumb";
+      img.src = thumb;
+      img.alt = "";
+      img.loading = "lazy";
+      img.onerror = () => { img.replaceWith(makePressThumbPh()); };
+      card.appendChild(img);
+    } else {
+      card.appendChild(makePressThumbPh());
+    }
+
+    // Info
+    const info = document.createElement("div");
+    info.className = "pressing-result-info";
+
+    const title = document.createElement("div");
+    title.className = "pressing-result-title";
+    title.textContent = [release.title, release.year].filter(Boolean).join(" · ");
+    info.appendChild(title);
+
+    const meta = document.createElement("div");
+    meta.className = "pressing-result-meta";
+
+    [
+      release.country,
+      Array.isArray(release.label) ? release.label[0] : release.label,
+      Array.isArray(release.format) ? release.format.join(", ") : release.format,
+    ].filter(Boolean).forEach(text => {
+      const pill = document.createElement("span");
+      pill.className = "pressing-result-pill";
+      pill.textContent = text;
+      meta.appendChild(pill);
+    });
+
+    const idSpan = document.createElement("span");
+    idSpan.className = "pressing-result-id";
+    idSpan.textContent = `ID: ${release.id}`;
+    meta.appendChild(idSpan);
+
+    info.appendChild(meta);
+    card.appendChild(info);
+
+    // Select button
+    const selectBtn = document.createElement("button");
+    selectBtn.type = "button";
+    selectBtn.className = "pressing-result-select";
+    selectBtn.textContent = isSelected ? "Selected" : "Select";
+    selectBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      savePressingId(release.id);
+    });
+    card.appendChild(selectBtn);
+
+    card.addEventListener("click", () => savePressingId(release.id));
+    container.appendChild(card);
+  });
+}
+
+function makePressThumbPh() {
+  const ph = document.createElement("div");
+  ph.className = "pressing-result-thumb-placeholder";
+  ph.innerHTML = '<i class="ti ti-vinyl"></i>';
+  return ph;
+}
+
+async function savePressingId(releaseId) {
+  if (!pressingPickerRecordId || !releaseId) return;
+
+  const { error } = await supabaseClient
+    .from("records")
+    .update({ discogs_release_id: releaseId })
+    .eq("id", pressingPickerRecordId);
+
+  if (error) {
+    console.error("Failed to save pressing ID:", error);
+    return;
+  }
+
+  // Update in-memory
+  const idx = allRecords.findIndex(r => r.id === pressingPickerRecordId);
+  if (idx !== -1) allRecords[idx].discogs_release_id = releaseId;
+
+  // Close picker, update detail modal pressing section
+  document.getElementById("pressingPickerModal").hidden = true;
+  const record = allRecords.find(r => r.id === pressingPickerRecordId);
+  if (record) renderDetailPressingSection(record);
+
+  // If Collection Value page is open, refresh it
+  if (currentPage === "collectionValue") renderCollectionValue();
+
+  logEvent("pressing_id_linked", { release_id: releaseId });
+}
+
+async function clearPressingId(recordId) {
+  const { error } = await supabaseClient
+    .from("records")
+    .update({ discogs_release_id: null })
+    .eq("id", recordId);
+
+  if (error) { console.error("Failed to clear pressing ID:", error); return; }
+
+  const idx = allRecords.findIndex(r => r.id === recordId);
+  if (idx !== -1) allRecords[idx].discogs_release_id = null;
+
+  const record = allRecords.find(r => r.id === recordId);
+  if (record) renderDetailPressingSection(record);
+  if (currentPage === "collectionValue") renderCollectionValue();
+}
+
+function setupPressingPicker() {
+  // Close button
+  document.getElementById("pressingPickerCloseBtn")
+    ?.addEventListener("click", () => {
+      document.getElementById("pressingPickerModal").hidden = true;
+    });
+
+  // Close on backdrop click
+  document.getElementById("pressingPickerModal")
+    ?.addEventListener("click", (e) => {
+      if (e.target.id === "pressingPickerModal")
+        document.getElementById("pressingPickerModal").hidden = true;
+    });
+
+  // Open picker from record detail
+  document.getElementById("detailFindPressingBtn")
+    ?.addEventListener("click", () => {
+      if (activeDetailRecordId) openPressingPicker(activeDetailRecordId);
+    });
+
+  // Clear pressing from record detail
+  document.getElementById("detailPressingClearBtn")
+    ?.addEventListener("click", () => {
+      if (activeDetailRecordId) clearPressingId(activeDetailRecordId);
+    });
+
+  // Live filter within results
+  document.getElementById("pressingPickerSearch")
+    ?.addEventListener("input", () => {
+      renderPressingResults(pressingPickerAllResults);
+    });
+
+  // Refresh / re-fetch editions
+  document.getElementById("pressingPickerRefreshBtn")
+    ?.addEventListener("click", () => {
+      const record = allRecords.find(r => r.id === pressingPickerRecordId);
+      if (record) fetchPressingEditions(record);
+    });
+
+  // Manual ID save (empty state)
+  document.getElementById("pressingManualSaveBtn")
+    ?.addEventListener("click", () => {
+      const id = parseInt(document.getElementById("pressingManualId").value);
+      if (id) savePressingId(id);
+    });
+
+  // Manual ID save (footer)
+  document.getElementById("pressingManualSaveBtnFooter")
+    ?.addEventListener("click", () => {
+      const id = parseInt(document.getElementById("pressingManualIdFooter").value);
+      if (id) savePressingId(id);
+    });
+}
+
+// ── End Pressing Picker ───────────────────────────────────────────────────────
 
 function switchDetailTab(tab) {
   const detailsBtn = document.getElementById("detailTabDetailsBtn");
@@ -12938,6 +13232,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupFeedback();
   setupAdmin();
   setupCollectionValue();
+  setupPressingPicker();
   startHeaderNowPlayingPolling();
 });
 
@@ -13692,11 +13987,9 @@ async function cvClearOverride() {
   renderCollectionValue();
 }
 
-// Pressing finder — opens record's Discogs page to find the release ID
+// Pressing finder — opens the inline pressing picker modal
 function cvOpenPressingFinder(record) {
-  const query = encodeURIComponent(`${record.artist} ${record.album}`);
-  const url = `https://www.discogs.com/search/?q=${query}&type=release`;
-  window.open(url, "_blank", "noopener");
+  openPressingPicker(record.id);
 }
 
 // Wire up Collection Value events
