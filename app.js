@@ -13683,15 +13683,16 @@ let cvOverrideRecordId = null;
 
 // Get the effective value for a record
 function cvGetValue(record) {
+  // User override always wins regardless of pressing
   if (record.market_value_override != null) {
     const v = parseFloat(record.market_value_override);
     if (!isNaN(v)) return { value: v, type: "user", note: record.market_value_override_note };
   }
-  if (record.market_value_cached != null) {
+  // Only show cached prices if the exact pressing is identified
+  if (record.discogs_release_id && record.market_value_cached != null) {
     const v = parseFloat(record.market_value_cached);
-    if (!isNaN(v) && v > 0) return { value: v, type: record.market_value_type || "estimate" };
+    if (!isNaN(v) && v > 0) return { value: v, type: "exact" };
   }
-  if (cvValueCache[record.id]) return cvValueCache[record.id];
   return null;
 }
 
@@ -13733,13 +13734,13 @@ function renderCvStats() {
   const sorted = getSortedByValue();
   const top    = sorted[0]?._cv?.value ?? null;
 
-  document.getElementById("cvTotalAmount").textContent = cvFormatPrice(total) ?? "—";
-  document.getElementById("cvTotalSub").textContent    = `across ${valued.length} valued record${valued.length !== 1 ? "s" : ""}`;
+  document.getElementById("cvTotalAmount").textContent = cvFormatPrice(total) ?? "$0";
+  document.getElementById("cvTotalSub").textContent    = `across ${valued.length} linked pressing${valued.length !== 1 ? "s" : ""}`;
   document.getElementById("cvValuedCount").textContent = `${valued.length} / ${allRecords.length}`;
-  document.getElementById("cvValuedSub").textContent   = `${Math.round((valued.length / allRecords.length) * 100)}% of collection valued`;
+  document.getElementById("cvValuedSub").textContent   = `${Math.round((valued.length / allRecords.length) * 100)}% of collection with linked pressings`;
   document.getElementById("cvHighestValue").textContent = top ? cvFormatPrice(top) : "—";
   const topRecord = sorted[0];
-  document.getElementById("cvHighestSub").textContent  = topRecord?._cv ? `${topRecord.artist} — ${topRecord.album}` : "";
+  document.getElementById("cvHighestSub").textContent  = topRecord?._cv ? `${topRecord.artist} — ${topRecord.album}` : "Link pressings to see values";
 }
 
 function renderCvTop5(records) {
@@ -13906,8 +13907,14 @@ function renderCvTable(records) {
     } else {
       const amt = document.createElement("div");
       amt.className = "cv-value-amount unvalued";
-      amt.textContent = "Not yet valued";
+      amt.textContent = record.discogs_release_id ? "Fetching…" : "Link a pressing to value";
       valWrap.appendChild(amt);
+      if (!record.discogs_release_id) {
+        const hint = document.createElement("div");
+        hint.className = "cv-value-note";
+        hint.textContent = "Use 'Find exact pressing' to get an accurate price";
+        valWrap.appendChild(hint);
+      }
     }
     tdValue.appendChild(valWrap);
     tr.appendChild(tdValue);
@@ -14000,18 +14007,20 @@ async function cvFetchSinglePrice(record, btn, silent = false) {
 async function cvRefreshAllPrices() {
   const btn = document.getElementById("refreshAllValuesBtn");
 
-  // Only fetch records that have NO cached value yet and no override
-  // This makes it resumable — re-clicking picks up where it left off
+  // Only fetch records with a confirmed pressing ID — estimates are disabled
   const toRefresh = allRecords.filter(r =>
+    r.discogs_release_id &&
     r.market_value_override == null &&
     (r.market_value_cached == null || isNaN(parseFloat(r.market_value_cached)) || parseFloat(r.market_value_cached) <= 0)
   );
 
   if (!toRefresh.length) {
-    if (btn) btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> All prices up to date';
-    setTimeout(() => {
-      if (btn) btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Refresh all prices';
-    }, 3000);
+    if (btn) {
+      btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Link pressings to get values';
+      setTimeout(() => {
+        if (btn) btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Refresh all prices';
+      }, 4000);
+    }
     return;
   }
 
