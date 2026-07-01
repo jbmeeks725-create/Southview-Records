@@ -3024,20 +3024,22 @@
       <span class="mob-nav-label">Room</span>
     </button>
   </nav>
-    <nav id="pageNav" role="group" aria-label="Page">
-      <button type="button" id="homePageBtn" class="view-btn" aria-pressed="false">Home</button>
-      <button type="button" id="collectionPageBtn" class="view-btn" aria-pressed="false">My Collection</button>
-      <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
-      <button type="button" id="tasteProfilePageBtn" class="view-btn" aria-pressed="false">My Taste Profile</button>
-      <button type="button" id="genreEvolutionPageBtn" class="view-btn" aria-pressed="false">My Taste Evolution</button>
-      <button type="button" id="collectionInsightsPageBtn" class="view-btn" aria-pressed="false">My Collection Insights</button>
-      <button type="button" id="fellowCollectorsPageBtn" class="view-btn" aria-pressed="false">My Fellow Collectors</button>
-      <button type="button" id="activityFeedPageBtn" class="view-btn" aria-pressed="false">My Activity Feed</button>
-      <button type="button" id="trophiesPageBtn" class="view-btn" aria-pressed="false">My Trophies</button>
-      <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Listening Room</button>
-      <button type="button" id="collectionValuePageBtn" class="view-btn" aria-pressed="false">My Collection Value</button>
-    </nav>
-    <a href="/about.html" class="nav-about-link">About</a>
+    <div id="pageNavWrap" style="display:flex;align-items:center;width:100%;min-width:0;overflow:hidden;">
+      <nav id="pageNav" role="group" aria-label="Page" style="flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;">
+        <button type="button" id="homePageBtn" class="view-btn" aria-pressed="false">Home</button>
+        <button type="button" id="collectionPageBtn" class="view-btn" aria-pressed="false">My Collection</button>
+        <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
+        <button type="button" id="tasteProfilePageBtn" class="view-btn" aria-pressed="false">My Taste Profile</button>
+        <button type="button" id="genreEvolutionPageBtn" class="view-btn" aria-pressed="false">My Taste Evolution</button>
+        <button type="button" id="collectionInsightsPageBtn" class="view-btn" aria-pressed="false">My Collection Insights</button>
+        <button type="button" id="fellowCollectorsPageBtn" class="view-btn" aria-pressed="false">My Fellow Collectors</button>
+        <button type="button" id="activityFeedPageBtn" class="view-btn" aria-pressed="false">My Activity Feed</button>
+        <button type="button" id="trophiesPageBtn" class="view-btn" aria-pressed="false">My Trophies</button>
+        <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Listening Room</button>
+        <button type="button" id="collectionValuePageBtn" class="view-btn" aria-pressed="false">My Collection Value</button>
+      </nav>
+      <a href="/about.html" class="nav-about-link" style="flex-shrink:0;margin-left:8px;padding:8px 16px;font-family:Jost,sans-serif;font-size:13px;font-weight:600;color:#6b6470;text-decoration:none;white-space:nowrap;border-radius:6px;transition:color 0.15s,background 0.15s;" onmouseover="this.style.color='#c9a84c';this.style.background='rgba(201,168,76,0.07)'" onmouseout="this.style.color='#6b6470';this.style.background='transparent'">About</a>
+    </div>
   </section>
   <section id="status" hidden>
     <span id="statusMessage">Loading records…</span>
