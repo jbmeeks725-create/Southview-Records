@@ -10892,6 +10892,7 @@ async function handleChangePassword(event) {
 }
 
 async function onSignedIn(user) {
+  const isFirstLoad = !currentUser;
   currentUser = user;
 
   document.getElementById("accountSection").hidden = false;
@@ -10902,7 +10903,7 @@ async function onSignedIn(user) {
   refreshAccountButton();
   syncWishlistPublicToggle();
   await loadData();
-  setPage("home");
+  if (isFirstLoad) setPage("home");
   maybeShowOnboarding();
 }
 
