@@ -13952,30 +13952,32 @@ async function cvFetchSinglePrice(record, btn, silent = false) {
         headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
         body: JSON.stringify({ release_id: record.discogs_release_id, action: "price" }),
       });
-      if (res.ok) {
-        const d = await res.json();
-        priceData = { value: d.median_price ?? d.lowest_price, type: "exact" };
-      }
+      const d = await res.json();
+      console.log(`[CV] exact price for ${record.artist} - ${record.album}:`, d);
+      if (res.ok) priceData = { value: d.median_price ?? d.lowest_price, type: "exact" };
     } else {
       const res = await fetch(DISCOGS_LOOKUP_FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
         body: JSON.stringify({ artist: record.artist, album: record.album, action: "search_price" }),
       });
-      if (res.ok) {
-        const d = await res.json();
-        priceData = { value: d.median_price ?? d.average_price, type: "estimate" };
-      }
+      const d = await res.json();
+      console.log(`[CV] search price for ${record.artist} - ${record.album}:`, d);
+      if (res.ok) priceData = { value: d.median_price ?? d.average_price, type: "estimate" };
     }
 
+    console.log(`[CV] priceData:`, priceData);
+
     if (priceData?.value != null && !isNaN(priceData.value)) {
-      await supabaseClient.from("records").update({
+      const { error: dbErr } = await supabaseClient.from("records").update({
         market_value_cached: priceData.value,
         market_value_type: priceData.type,
         market_value_cached_at: new Date().toISOString(),
       }).eq("id", record.id);
 
-      // Update in-memory
+      if (dbErr) console.error(`[CV] DB save failed for ${record.id}:`, dbErr);
+      else console.log(`[CV] saved $${priceData.value} for ${record.artist} - ${record.album}`);
+
       const idx = allRecords.findIndex(r => r.id === record.id);
       if (idx !== -1) {
         allRecords[idx].market_value_cached = priceData.value;
@@ -13983,11 +13985,12 @@ async function cvFetchSinglePrice(record, btn, silent = false) {
         allRecords[idx].market_value_cached_at = new Date().toISOString();
       }
 
-      // Only re-render if called from a single refresh button, not bulk
       if (!silent) renderCollectionValue();
+    } else {
+      console.log(`[CV] no valid price found for ${record.artist} - ${record.album}`);
     }
   } catch (e) {
-    console.error("Price fetch failed:", e);
+    console.error(`[CV] fetch error for ${record.artist} - ${record.album}:`, e);
   } finally {
     btn?.classList.remove("fetching");
   }
