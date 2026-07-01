@@ -1684,6 +1684,179 @@
   }
   @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
+  /* ── Home: decade range stat — consistent font size ── */
+  #statDecadeSpan {
+    font-size: clamp(20px, 2.5vw, 32px) !important;
+    line-height: 1.1 !important;
+  }
+
+  /* ── Home: hero greeting above stats ── */
+  .home-hero {
+    padding: 28px 0 6px;
+  }
+  .home-hero-greeting {
+    font-family: Jost, sans-serif;
+    font-size: clamp(24px, 2.8vw, 36px);
+    font-weight: 700;
+    color: #e8e0d0;
+    line-height: 1.15;
+    margin-bottom: 5px;
+  }
+  .home-hero-greeting em { font-style: normal; color: #c9a84c; }
+  .home-hero-sub { font-size: 14px; color: #6b6470; }
+
+  /* ── Suggestions: stack Clear dismissed below button ── */
+  .wishlist-suggestions-actions {
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 6px !important;
+  }
+
+  /* ── Rating quick-fire modal ── */
+  .quickrate-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    padding: 24px;
+  }
+  .quickrate-box {
+    background: #13121a;
+    border: 1px solid #2a2830;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 520px;
+    overflow: hidden;
+  }
+  .quickrate-header {
+    padding: 20px 24px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .quickrate-title {
+    font-family: Jost, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #e8e0d0;
+  }
+  .quickrate-progress {
+    font-size: 12px;
+    color: #6b6470;
+  }
+  .quickrate-progress-bar-wrap {
+    height: 3px;
+    background: #1e1c24;
+    margin: 12px 0 0;
+  }
+  .quickrate-progress-bar {
+    height: 100%;
+    background: #c9a84c;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  .quickrate-card {
+    display: flex;
+    gap: 20px;
+    padding: 24px;
+    align-items: center;
+  }
+  .quickrate-cover {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #1e1c24;
+  }
+  .quickrate-cover-placeholder {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    background: #1e1c24;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3a3840;
+    font-size: 32px;
+    flex-shrink: 0;
+  }
+  .quickrate-info { flex: 1; min-width: 0; }
+  .quickrate-artist {
+    font-size: 12px;
+    color: #c9a84c;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .quickrate-album {
+    font-family: Jost, sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #e8e0d0;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .quickrate-meta { font-size: 12px; color: #6b6470; }
+  .quickrate-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 24px 24px;
+  }
+  .quickrate-rating-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .quickrate-rate-btn {
+    padding: 10px 6px;
+    border-radius: 8px;
+    border: 1px solid #2a2830;
+    background: #1e1c24;
+    color: #e8e0d0;
+    font-family: Jost, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .quickrate-rate-btn:hover { border-color: #c9a84c; color: #c9a84c; background: rgba(201,168,76,0.08); }
+  .quickrate-rate-btn.qr-love:hover  { border-color: #e07070; color: #e07070; background: rgba(224,112,112,0.08); }
+  .quickrate-rate-btn.qr-like:hover  { border-color: #6bcf8a; color: #6bcf8a; background: rgba(107,207,138,0.08); }
+  .quickrate-rate-btn.qr-neutral:hover { border-color: #b8b0a0; color: #b8b0a0; }
+  .quickrate-rate-btn.qr-dislike:hover { border-color: #e07070; color: #e07070; background: rgba(224,112,112,0.08); }
+  .quickrate-skip-btn {
+    width: 100%;
+    padding: 9px;
+    border-radius: 8px;
+    border: 1px solid #1e1c24;
+    background: transparent;
+    color: #6b6470;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .quickrate-skip-btn:hover { color: #b8b0a0; }
+  .quickrate-done {
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .quickrate-done-title {
+    font-family: Jost, sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #c9a84c;
+    margin-bottom: 8px;
+  }
+  .quickrate-done-sub { font-size: 13px; color: #6b6470; margin-bottom: 20px; }
+
   /* ── Album card: subtle gold frame ── */
   .record-card {
     border: 1px solid rgba(201,168,76,0.35) !important;
@@ -1993,6 +2166,43 @@
   /* Ensure the cover wrap stacks img and placeholder in the same space */
   .album-intel-cover-wrap {
     position: relative;
+  }
+
+  /* ── Page nav: scrollable so no tab gets clipped ── */
+  #pageNav {
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+  }
+  #pageNav::-webkit-scrollbar { display: none !important; }
+
+  /* Nav bar section: flex row so About pins to the far right */
+  #pageNav ~ .nav-about-link,
+  section:has(#pageNav) {
+    display: flex !important;
+    align-items: center !important;
+    overflow: hidden !important;
+  }
+
+  /* ── About nav link — right-justified outside the tab row ── */
+  .nav-about-link {
+    flex-shrink: 0;
+    font-family: Jost, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b6470;
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    white-space: nowrap;
+    transition: color 0.15s, background 0.15s;
+    letter-spacing: 0.02em;
+    align-self: center;
+  }
+  .nav-about-link:hover {
+    color: #c9a84c;
+    background: rgba(201,168,76,0.07);
   }
 
   /* ── Profile: force [hidden] to work — style.css may override with display:block ── */
@@ -2818,6 +3028,7 @@
       <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Listening Room</button>
       <button type="button" id="collectionValuePageBtn" class="view-btn" aria-pressed="false">My Collection Value</button>
     </nav>
+    <a href="/about.html" class="nav-about-link">About</a>
   </section>
   <section id="status" hidden>
     <span id="statusMessage">Loading records…</span>
@@ -2848,6 +3059,10 @@
   </section>
 
   <section id="homeSection">
+    <div id="homeHero" class="home-hero">
+      <h1 class="home-hero-greeting" id="homeHeroGreeting">Welcome back.</h1>
+      <p class="home-hero-sub" id="homeHeroSub"></p>
+    </div>
     <div class="home-grid">
       <div class="home-card home-stats">
         <h2>Your Collection at a Glance</h2>
@@ -3544,6 +3759,9 @@
           </select>
         </div>
         <button type="button" id="addRecordBtn" class="add-record-btn">+ Add Record</button>
+        <button type="button" id="quickrateBtn" class="btn-secondary" title="Quickly rate your unrated records">
+          <i class="ti ti-stars" aria-hidden="true"></i> Rate unrated
+        </button>
         <button type="button" id="importBtn" class="btn-secondary">Import from spreadsheet</button>
         <button type="button" id="shareCollectionBtn" class="btn-secondary">
           <i class="ti ti-share" aria-hidden="true"></i> Share
@@ -3579,7 +3797,7 @@
           <h3>By Genre</h3>
           <p id="genreChartHeadline" class="chart-headline"></p>
           <div class="chart-canvas-wrap"><canvas id="genreChart"></canvas></div>
-          <div id="genreChartMosaic" class="chart-cover-mosaic"></div>
+
         </div>
         <div class="chart-card">
           <h3>Top Artists</h3>
@@ -3619,8 +3837,8 @@
           <p class="field-hint">Based on the albums you've rated "Love" and "Like."</p>
         </div>
         <div class="wishlist-suggestions-actions">
-          <button type="button" id="clearDismissedSuggestionsBtn" class="btn-text">Clear dismissed</button>
           <button type="button" id="wishlistGetRecommendationsBtn" class="btn-primary wishlist-suggestions-btn">Get suggestions</button>
+          <button type="button" id="clearDismissedSuggestionsBtn" class="btn-text">Clear dismissed</button>
         </div>
       </div>
       <div id="wishlistRecommendationsStatus" class="form-status"></div>
@@ -5014,6 +5232,34 @@
       </div>
     </div>
   </section>
+  <!-- ── Quick Rate Modal ── -->
+  <div id="quickrateModal" class="quickrate-overlay" hidden>
+    <div class="quickrate-box">
+      <div class="quickrate-header">
+        <span class="quickrate-title">Rate Your Collection</span>
+        <span class="quickrate-progress" id="quickrateProgress">1 of 20</span>
+      </div>
+      <div class="quickrate-progress-bar-wrap">
+        <div class="quickrate-progress-bar" id="quickrateProgressBar" style="width:5%"></div>
+      </div>
+      <div id="quickrateCard" class="quickrate-card"></div>
+      <div id="quickrateDone" class="quickrate-done" hidden>
+        <div class="quickrate-done-title">All done!</div>
+        <div class="quickrate-done-sub" id="quickrateDoneSub">You rated 20 records. Come back any time to rate more.</div>
+        <button type="button" id="quickrateDoneBtn" class="btn-primary">Close</button>
+      </div>
+      <div id="quickrateButtons" class="quickrate-buttons">
+        <div class="quickrate-rating-row">
+          <button type="button" class="quickrate-rate-btn qr-love" data-rating="love">❤️ Love</button>
+          <button type="button" class="quickrate-rate-btn qr-like" data-rating="like">👍 Like</button>
+          <button type="button" class="quickrate-rate-btn qr-neutral" data-rating="neutral">😐 Neutral</button>
+          <button type="button" class="quickrate-rate-btn qr-dislike" data-rating="dislike">👎 Dislike</button>
+        </div>
+        <button type="button" class="quickrate-skip-btn" id="quickrateNotListened">Haven't listened yet — skip</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Pressing Picker Modal ── -->
   <div id="pressingPickerModal" class="modal-overlay" hidden>
     <div class="modal-box pressing-picker-box">

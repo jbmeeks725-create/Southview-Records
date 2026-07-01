@@ -1233,6 +1233,17 @@ async function grabSpotlightDescription(record, wrap, btn) {
         saveSpotlightDescription(record, fullText, wrap, pasteBtn);
       });
       wrap.appendChild(pasteBtn);
+
+      const dismissBtn = document.createElement("button");
+      dismissBtn.type = "button";
+      dismissBtn.className = "btn-secondary";
+      dismissBtn.textContent = "Dismiss";
+      dismissBtn.addEventListener("click", () => {
+        wrap.innerHTML = "";
+        btn.disabled = false;
+        btn.textContent = "Grab description from Wikipedia";
+      });
+      wrap.appendChild(dismissBtn);
       return;
     }
 
@@ -1407,6 +1418,7 @@ function renderWishlistHighlights() {
 
 function renderHome() {
   renderStats();
+  renderHomeHero();
   renderSpotlight();
   renderRecentlyAdded();
   renderWishlistHighlights();
@@ -5029,12 +5041,31 @@ function renderTasteProfileGenreDetail(axis) {
     viewBtn.className = "btn-secondary";
     viewBtn.textContent = `View all ${axis.name} records`;
     viewBtn.addEventListener("click", () => {
+      if (axis.name === "Unspecified") {
+        // Unspecified has no genre ID — clear the filter and filter in render
+        document.getElementById("genreFilter").value = "";
+        populateSubgenreFilterOptions();
+        setPage("collection");
+        // After navigation, apply a custom filter for unspecified records
+        setTimeout(() => {
+          const g = genres.find(g => g.name === axis.name);
+          if (g) {
+            document.getElementById("genreFilter").value = String(g.id);
+          } else {
+            // Set a sentinel so render() knows to show unspecified
+            document.getElementById("genreFilter").value = "__unspecified__";
+          }
+          render();
+        }, 50);
+        return;
+      }
       const matchedGenre = genres.find((g) => g.name === axis.name);
       if (matchedGenre) {
         document.getElementById("genreFilter").value = String(matchedGenre.id);
         populateSubgenreFilterOptions();
       }
       setPage("collection");
+      setTimeout(() => render(), 50);
     });
     wrap.appendChild(viewBtn);
   }
@@ -6163,6 +6194,11 @@ function renderArtistChartCovers(artistData) {
   const meta = artistChart.getDatasetMeta(0);
   if (!meta || !meta.data) return;
 
+  // Pin covers to the top of the chart area, centered on each bar's x position
+  // This avoids overlapping with tall bars
+  const chartArea = artistChart.chartArea;
+  const topY = chartArea ? chartArea.top + 4 : 4;
+
   artistData.forEach(([artistName], i) => {
     const bar = meta.data[i];
     if (!bar) return;
@@ -6174,7 +6210,10 @@ function renderArtistChartCovers(artistData) {
     img.src = record.cover_url;
     img.alt = `${artistName} cover`;
     img.className = "chart-bar-cover-img";
+    // Centre the thumbnail on the bar's x midpoint, pinned to the top of the chart
     img.style.left = `${bar.x}px`;
+    img.style.top  = `${topY}px`;
+    img.style.position = "absolute";
     wrap.appendChild(img);
   });
 }
@@ -6188,7 +6227,6 @@ function renderCharts() {
 
   // --- By Genre ---
   document.getElementById("genreChartHeadline").textContent = buildGenreChartHeadline(genreData);
-  buildChartCoverMosaic("genreChartMosaic", genreData[0]?.[0] || null);
 
   genreChart = upsertBarChart(
     genreChart,
@@ -10864,6 +10902,7 @@ async function onSignedIn(user) {
   refreshAccountButton();
   syncWishlistPublicToggle();
   await loadData();
+  setPage("home");
   maybeShowOnboarding();
 }
 
@@ -13271,6 +13310,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupCollectionInsights();
   setupFellowCollectors();
   setupPressingPicker();
+  setupQuickrate();
   startHeaderNowPlayingPolling();
 });
 
@@ -14947,3 +14987,159 @@ function setupFellowCollectors() {
 }
 
 // ── End Social Graph ──────────────────────────────────────────────────────────
+
+
+// ── Home hero greeting ────────────────────────────────────────────────────────
+function renderHomeHero() {
+  const greetingEl = document.getElementById("homeHeroGreeting");
+  const subEl      = document.getElementById("homeHeroSub");
+  if (!greetingEl) return;
+
+  const name = currentProfile?.preferred_name
+    ? currentProfile.preferred_name.split(" ")[0]
+    : null;
+
+  const hour = new Date().getHours();
+  const timeGreet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
+  greetingEl.innerHTML = name
+    ? `${timeGreet}, <em>${name}</em>.`
+    : `${timeGreet}.`;
+
+  if (subEl) {
+    const unrated = allRecords.filter(r => !r.rating).length;
+    const total   = allRecords.length;
+    if (total > 0 && unrated > 0) {
+      subEl.textContent = `${total} records in your collection — ${unrated} still unrated.`;
+    } else if (total > 0) {
+      subEl.textContent = `${total} records and counting.`;
+    } else {
+      subEl.textContent = "Your collection is waiting.";
+    }
+  }
+}
+
+// ── Quick Rate ────────────────────────────────────────────────────────────────
+
+const QUICKRATE_BATCH = 20;
+let quickrateQueue = [];
+let quickrateIndex = 0;
+let quickrateRated = 0;
+
+function openQuickrate() {
+  const unrated = allRecords
+    .filter(r => !r.rating)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, QUICKRATE_BATCH);
+
+  if (!unrated.length) {
+    alert("All your records have a rating — nothing left to rate!");
+    return;
+  }
+
+  quickrateQueue  = unrated;
+  quickrateIndex  = 0;
+  quickrateRated  = 0;
+
+  document.getElementById("quickrateDone").hidden    = true;
+  document.getElementById("quickrateButtons").hidden = false;
+  document.getElementById("quickrateModal").hidden   = false;
+  renderQuickrateCard();
+  logEvent("quickrate_started", { count: unrated.length });
+}
+
+function renderQuickrateCard() {
+  const total   = quickrateQueue.length;
+  const current = quickrateIndex + 1;
+  const record  = quickrateQueue[quickrateIndex];
+
+  document.getElementById("quickrateProgress").textContent = `${current} of ${total}`;
+  document.getElementById("quickrateProgressBar").style.width = `${(current / total) * 100}%`;
+
+  const card = document.getElementById("quickrateCard");
+  card.innerHTML = "";
+
+  // Cover
+  if (record.cover_url) {
+    const img = document.createElement("img");
+    img.className = "quickrate-cover";
+    img.src = record.cover_url;
+    img.alt = record.album;
+    card.appendChild(img);
+  } else {
+    const ph = document.createElement("div");
+    ph.className = "quickrate-cover-placeholder";
+    ph.innerHTML = '<i class="ti ti-vinyl"></i>';
+    card.appendChild(ph);
+  }
+
+  // Info
+  const info = document.createElement("div");
+  info.className = "quickrate-info";
+  info.innerHTML = `
+    <div class="quickrate-artist">${record.artist}</div>
+    <div class="quickrate-album">${record.album}</div>
+    <div class="quickrate-meta">${[record.year, record.genre_name].filter(Boolean).join(" · ")}</div>
+  `;
+  card.appendChild(info);
+}
+
+async function submitQuickrate(rating) {
+  const record = quickrateQueue[quickrateIndex];
+  if (!record) return;
+
+  if (rating) {
+    // Save rating
+    await supabaseClient.from("records").update({ rating }).eq("id", record.id);
+    const idx = allRecords.findIndex(r => r.id === record.id);
+    if (idx !== -1) allRecords[idx].rating = rating;
+    quickrateRated++;
+    logEvent("quickrate_rated", { rating });
+  }
+  // "Haven't listened" just skips without saving
+
+  quickrateIndex++;
+  if (quickrateIndex >= quickrateQueue.length) {
+    finishQuickrate();
+  } else {
+    renderQuickrateCard();
+  }
+}
+
+function finishQuickrate() {
+  document.getElementById("quickrateButtons").hidden = true;
+  document.getElementById("quickrateCard").innerHTML = "";
+  document.getElementById("quickrateDone").hidden    = false;
+  document.getElementById("quickrateDoneSub").textContent =
+    `You rated ${quickrateRated} record${quickrateRated !== 1 ? "s" : ""}. Come back any time to rate more.`;
+  // Refresh home hero sub with new unrated count
+  renderHomeHero();
+}
+
+function setupQuickrate() {
+  document.getElementById("quickrateBtn")
+    ?.addEventListener("click", openQuickrate);
+
+  document.getElementById("quickrateDoneBtn")
+    ?.addEventListener("click", () => {
+      document.getElementById("quickrateModal").hidden = true;
+      renderHomeHero();
+    });
+
+  document.getElementById("quickrateNotListened")
+    ?.addEventListener("click", () => submitQuickrate(null));
+
+  document.querySelectorAll(".quickrate-rate-btn").forEach(btn => {
+    btn.addEventListener("click", () => submitQuickrate(btn.dataset.rating));
+  });
+
+  // Close on backdrop
+  document.getElementById("quickrateModal")
+    ?.addEventListener("click", (e) => {
+      if (e.target.id === "quickrateModal") {
+        document.getElementById("quickrateModal").hidden = true;
+      }
+    });
+}
+
+// ── End Quick Rate ────────────────────────────────────────────────────────────
