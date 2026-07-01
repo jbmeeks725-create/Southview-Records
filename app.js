@@ -13684,10 +13684,12 @@ let cvOverrideRecordId = null;
 // Get the effective value for a record
 function cvGetValue(record) {
   if (record.market_value_override != null) {
-    return { value: parseFloat(record.market_value_override), type: "user", note: record.market_value_override_note };
+    const v = parseFloat(record.market_value_override);
+    if (!isNaN(v)) return { value: v, type: "user", note: record.market_value_override_note };
   }
   if (record.market_value_cached != null) {
-    return { value: parseFloat(record.market_value_cached), type: record.market_value_type || "estimate" };
+    const v = parseFloat(record.market_value_cached);
+    if (!isNaN(v) && v > 0) return { value: v, type: record.market_value_type || "estimate" };
   }
   if (cvValueCache[record.id]) return cvValueCache[record.id];
   return null;
@@ -13993,21 +13995,50 @@ async function cvFetchSinglePrice(record, btn) {
   }
 }
 
-// Refresh all prices (rate-limited)
+// Refresh all prices (rate-limited, resumable)
 async function cvRefreshAllPrices() {
   const btn = document.getElementById("refreshAllValuesBtn");
-  if (btn) { btn.disabled = true; btn.textContent = "Refreshing…"; }
 
-  // Only refresh records without an override, in batches of 5
-  const toRefresh = allRecords.filter(r => r.market_value_override == null);
-  const BATCH = 5;
+  // Only fetch records that have NO cached value yet and no override
+  // This makes it resumable — re-clicking picks up where it left off
+  const toRefresh = allRecords.filter(r =>
+    r.market_value_override == null &&
+    (r.market_value_cached == null || isNaN(parseFloat(r.market_value_cached)) || parseFloat(r.market_value_cached) <= 0)
+  );
+
+  if (!toRefresh.length) {
+    if (btn) btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> All prices up to date';
+    setTimeout(() => {
+      if (btn) btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Refresh all prices';
+    }, 3000);
+    return;
+  }
+
+  if (btn) { btn.disabled = true; }
+
+  const BATCH = 3; // smaller batches to respect Discogs rate limits
+  let done = 0;
+
   for (let i = 0; i < toRefresh.length; i += BATCH) {
     const batch = toRefresh.slice(i, i + BATCH);
     await Promise.all(batch.map(r => cvFetchSinglePrice(r, null)));
-    if (i + BATCH < toRefresh.length) await new Promise(res => setTimeout(res, 1200)); // respect rate limits
+    done += batch.length;
+
+    // Update button text with live progress
+    if (btn) {
+      btn.innerHTML = `<i class="ti ti-refresh" aria-hidden="true"></i> Fetching… ${done} / ${toRefresh.length}`;
+    }
+
+    // Respect Discogs rate limit — 60 requests/minute = 1 per second minimum
+    if (i + BATCH < toRefresh.length) {
+      await new Promise(res => setTimeout(res, 1500));
+    }
   }
 
-  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Refresh all prices'; }
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Refresh all prices';
+  }
   renderCollectionValue();
   logEvent("collection_value_refreshed_all", { count: toRefresh.length });
 }
