@@ -1723,6 +1723,21 @@
     z-index: 9000;
     padding: 24px;
   }
+  .quickrate-overlay[hidden] {
+    display: none !important;
+  }
+  #quickrateDone[hidden],
+  #quickrateButtons[hidden],
+  #quickrateCard:empty {
+    display: none !important;
+  }
+  .quickrate-card {
+    display: flex;
+    gap: 20px;
+    padding: 24px;
+    align-items: center;
+    min-height: 148px;
+  }
   .quickrate-box {
     background: #13121a;
     border: 1px solid #2a2830;
@@ -1757,12 +1772,6 @@
     background: #c9a84c;
     border-radius: 2px;
     transition: width 0.3s ease;
-  }
-  .quickrate-card {
-    display: flex;
-    gap: 20px;
-    padding: 24px;
-    align-items: center;
   }
   .quickrate-cover {
     width: 100px;

@@ -15027,6 +15027,8 @@ let quickrateIndex = 0;
 let quickrateRated = 0;
 
 function openQuickrate() {
+  if (!currentUser || !allRecords.length) return;
+
   const unrated = allRecords
     .filter(r => !r.rating)
     .sort(() => Math.random() - 0.5)
