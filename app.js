@@ -6440,6 +6440,7 @@ function setPage(page) {
   }
 
   if (isFellowCollectors) {
+    fcActiveTab = "following";
     renderFellowCollectors();
     return;
   }
@@ -14573,6 +14574,58 @@ async function renderFellowCollectors() {
 
   renderFcGrid("fcFollowingGrid", fcFollowingList, "following");
   renderFcGrid("fcFollowersGrid", fcFollowersList, "followers");
+
+  // Enforce correct tab state on every render
+  setFcTab(fcActiveTab);
+
+  // Load the discover section
+  renderFcDiscover();
+}
+
+async function renderFcDiscover() {
+  const section = document.getElementById("fcDiscoverSection");
+  const grid    = document.getElementById("fcDiscoverGrid");
+  const loading = document.getElementById("fcDiscoverLoading");
+  if (!section || !grid) return;
+
+  loading.hidden = false;
+  grid.innerHTML = "";
+
+  try {
+    // Fetch all public profiles except the current user
+    const { data: profiles, error } = await supabaseClient
+      .from("profiles")
+      .select("user_id, username, preferred_name, avatar_url")
+      .eq("collection_public", true)
+      .neq("user_id", currentUser?.id || "")
+      .order("username", { ascending: true })
+      .limit(50);
+
+    loading.hidden = true;
+
+    if (error || !profiles?.length) {
+      grid.innerHTML = `<div class="fellow-collectors-empty"><i class="ti ti-world" aria-hidden="true"></i><p>No public collectors yet.</p><p class="field-hint">Be the first to make your collection public and show up here.</p></div>`;
+      return;
+    }
+
+    // Filter out people already being followed to highlight new discoveries
+    const followingIds = new Set(fcFollowingList.map(p => p.user_id));
+    const unfollowed = profiles.filter(p => !followingIds.has(p.user_id));
+    const following  = profiles.filter(p => followingIds.has(p.user_id));
+
+    // Show unfollowed first, then already-following
+    [...unfollowed, ...following].forEach(p => {
+      grid.appendChild(buildFcCollectorCard(p));
+    });
+
+    // Update count badge
+    const countEl = document.getElementById("fcDiscoverCount");
+    if (countEl) countEl.textContent = profiles.length || "";
+
+  } catch (e) {
+    loading.hidden = true;
+    console.error("Discover fetch failed:", e);
+  }
 }
 
 function renderFcGrid(gridId, list, context) {
