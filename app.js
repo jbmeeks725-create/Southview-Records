@@ -13941,13 +13941,12 @@ function renderCvTable(records) {
 }
 
 // Fetch price for a single record
-async function cvFetchSinglePrice(record, btn) {
+async function cvFetchSinglePrice(record, btn, silent = false) {
   btn?.classList.add("fetching");
 
   try {
     let priceData;
     if (record.discogs_release_id) {
-      // Exact pressing lookup
       const res = await fetch(DISCOGS_LOOKUP_FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
@@ -13958,7 +13957,6 @@ async function cvFetchSinglePrice(record, btn) {
         priceData = { value: d.median_price ?? d.lowest_price, type: "exact" };
       }
     } else {
-      // Estimated average — search by artist + album
       const res = await fetch(DISCOGS_LOOKUP_FUNCTION_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
@@ -13970,8 +13968,7 @@ async function cvFetchSinglePrice(record, btn) {
       }
     }
 
-    if (priceData?.value != null) {
-      // Save to DB
+    if (priceData?.value != null && !isNaN(priceData.value)) {
       await supabaseClient.from("records").update({
         market_value_cached: priceData.value,
         market_value_type: priceData.type,
@@ -13986,7 +13983,8 @@ async function cvFetchSinglePrice(record, btn) {
         allRecords[idx].market_value_cached_at = new Date().toISOString();
       }
 
-      renderCollectionValue();
+      // Only re-render if called from a single refresh button, not bulk
+      if (!silent) renderCollectionValue();
     }
   } catch (e) {
     console.error("Price fetch failed:", e);
@@ -14016,23 +14014,35 @@ async function cvRefreshAllPrices() {
 
   if (btn) { btn.disabled = true; }
 
-  const BATCH = 3; // smaller batches to respect Discogs rate limits
+  const BATCH = 3;
   let done = 0;
 
   for (let i = 0; i < toRefresh.length; i += BATCH) {
     const batch = toRefresh.slice(i, i + BATCH);
-    await Promise.all(batch.map(r => cvFetchSinglePrice(r, null)));
+    await Promise.all(batch.map(r => cvFetchSinglePrice(r, null, true))); // silent — no mid-batch re-renders
     done += batch.length;
 
-    // Update button text with live progress
     if (btn) {
       btn.innerHTML = `<i class="ti ti-refresh" aria-hidden="true"></i> Fetching… ${done} / ${toRefresh.length}`;
     }
 
-    // Respect Discogs rate limit — 60 requests/minute = 1 per second minimum
     if (i + BATCH < toRefresh.length) {
       await new Promise(res => setTimeout(res, 1500));
     }
+  }
+
+  // Reload the value fields from DB so we're guaranteed to display what was saved
+  const ids = allRecords.map(r => r.id);
+  const { data: fresh } = await supabaseClient
+    .from("records")
+    .select("id, market_value_cached, market_value_type, market_value_cached_at, market_value_override, market_value_override_note, pinned_for_value")
+    .in("id", ids);
+
+  if (fresh) {
+    fresh.forEach(row => {
+      const idx = allRecords.findIndex(r => r.id === row.id);
+      if (idx !== -1) Object.assign(allRecords[idx], row);
+    });
   }
 
   if (btn) {
