@@ -10153,6 +10153,13 @@ async function loadData() {
         created_at,
         genres ( name ),
         subgenres ( name )
+      `
+      )
+      .order("artist", { ascending: true })
+      .limit(1000);
+    if (recordsError) throw recordsError;
+
+    allRecords =
       recordsData?.map((r) => ({
         ...r,
         genre_name: r.genres?.name ?? "",
@@ -14096,145 +14103,6 @@ function setupCollectionValue() {
 }
 
 // ── End My Collection Value ───────────────────────────────────────────────────
-// ── Account Deletion ────────────────────────────────────────────────────────
-//
-// Called by the Delete Account UI in index.html.
-// Exposed on window so the inline mobile script can reach it.
-//
-// Flow:
-//   1. Get the current session access token
-//   2. Call the delete-account Edge Function (which deletes all data + auth account)
-//   3. Sign out locally and redirect to home
-//
-// The Edge Function uses the service role key server-side — it never touches
-// the client. We only send the user's own JWT to prove identity.
-
-const DELETE_ACCOUNT_FUNCTION_URL =
-  "https://wdgiskawukblqgapkmig.supabase.co/functions/v1/delete-account";
-
-window.spinvinylDeleteAccount = async function () {
-  // Get the current session so we can send the access token
-  const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-
-  if (sessionError || !session) {
-    throw new Error("You must be signed in to delete your account.");
-  }
-
-  const response = await fetch(DELETE_ACCOUNT_FUNCTION_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${session.access_token}`,
-      "apikey": SUPABASE_ANON_KEY,
-    },
-  });
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.error || `Deletion failed (${response.status})`);
-  }
-
-  // Data and auth account are gone — sign out locally and reset UI
-  // supabaseClient.auth.signOut() will 401 since the account no longer exists,
-  // so we call onSignedOut() directly to clean up the UI
-  try {
-    await supabaseClient.auth.signOut();
-  } catch {
-    // Expected — account is already deleted server-side
-  }
-
-  onSignedOut();
-
-  // Show a brief confirmation before the auth overlay appears
-  const deleteStatus = document.getElementById("deleteAccountStatus");
-  if (deleteStatus) {
-    deleteStatus.textContent = "Your account has been deleted.";
-    deleteStatus.style.color = "#70c070";
-  }
-};
-// ── End Account Deletion ─────────────────────────────────────────────────────
-
-
-// ── Analytics ────────────────────────────────────────────────────────────────
-const POSTHOG_KEY  = "phc_yzp4WhVRDXSMWMpho4hnjh3g8yoNr9psKHJm2LcgBviJ";
-const POSTHOG_HOST = "https://us.posthog.com";
-
-async function logEvent(eventName, properties = {}) {
-  if (!currentUser) return;
-  const payload = {
-    event_name: eventName, user_id: currentUser.id,
-    properties: { ...properties, collection_size: allRecords?.length ?? 0, wishlist_size: wishlist?.length ?? 0, platform: /iphone|ipad|ipod|android/i.test(navigator.userAgent) ? "mobile" : "desktop", url: window.location.pathname + window.location.hash },
-    created_at: new Date().toISOString(),
-  };
-  try { await supabaseClient.from("events").insert(payload); } catch {}
-  try { if (typeof window.posthog !== "undefined" && POSTHOG_KEY !== "PASTE_YOUR_POSTHOG_KEY_HERE") window.posthog.capture(eventName, payload.properties); } catch {}
-}
-
-function identifyUserForAnalytics(user, profile) {
-  try { if (typeof window.posthog !== "undefined") window.posthog.identify(user.id, { email: user.email, username: profile?.username ?? null, collection_size: allRecords?.length ?? 0 }); } catch {}
-}
-
-const _originalSetPage = setPage;
-window.setPage = function(page) { _originalSetPage(page); logEvent("page_viewed", { page }); };
-
-window._initPostHog = function() {
-  if (POSTHOG_KEY === "PASTE_YOUR_POSTHOG_KEY_HERE") return;
-  try { window.posthog.init(POSTHOG_KEY, { api_host: POSTHOG_HOST, capture_pageview: false, capture_pageleave: true, session_recording: { maskAllInputs: true, maskInputOptions: { password: true, email: true } } }); } catch {}
-};
-// ── End Analytics ─────────────────────────────────────────────────────────────
-
-
-// ── New User Testing Mode ────────────────────────────────────────────────────
-let testModeActive = false;
-function isTestMode() { return testModeActive; }
-function enterTestMode() {
-  if (!isOwner() || testModeActive) return;
-  testModeActive = true;
-  window._testMode_savedRecords = allRecords.slice();
-  window._testMode_savedWishlist = wishlist.slice();
-  window._testMode_savedProfile = currentProfile ? { ...currentProfile } : null;
-  allRecords = []; wishlist = [];
-  currentProfile = { ...(currentProfile || {}), onboarding_done: false, preferred_name: null, username: "new_user_preview", avatar_url: null, favorite_genres: [], favorite_artists: [], favorite_albums: [], favorite_albums_meta: {}, pinned_trophies: [], wishlist_public: false, collection_public: false };
-  if (!supabaseClient._testModeProxied) {
-    const _orig = supabaseClient.from.bind(supabaseClient);
-    supabaseClient.from = function(table) {
-      const b = _orig(table);
-      if (!testModeActive) return b;
-      const noop = () => Promise.resolve({ data: null, error: null, status: 200 });
-      return { ...b, insert: () => ({ select: () => Promise.resolve({ data: [], error: null }) }), upsert: () => ({ select: () => Promise.resolve({ data: [], error: null }) }), update: () => ({ eq: () => ({ select: noop, then: noop }), select: noop, then: noop }), delete: () => ({ eq: noop, match: noop, then: noop }) };
-    };
-    supabaseClient._testModeProxied = true;
-  }
-  showTestModeBanner(true); localStorage.removeItem("spin-onboarding-done");
-  maybeShowOnboarding(); render(); renderHome();
-}
-function exitTestMode() {
-  if (!testModeActive) return; testModeActive = false;
-  allRecords = window._testMode_savedRecords || []; wishlist = window._testMode_savedWishlist || []; currentProfile = window._testMode_savedProfile || currentProfile;
-  delete window._testMode_savedRecords; delete window._testMode_savedWishlist; delete window._testMode_savedProfile; delete supabaseClient._testModeProxied;
-  const ob = document.getElementById("onboardingScreen"); if (ob) ob.hidden = true;
-  localStorage.setItem("spin-onboarding-done", "true"); showTestModeBanner(false); window.location.hash = ""; render(); renderHome();
-}
-function showTestModeBanner(show) {
-  let b = document.getElementById("testModeBanner");
-  if (!b) {
-    b = document.createElement("div"); b.id = "testModeBanner";
-    b.innerHTML = `<span>🧪</span><span style="flex:1"><strong>New User Testing Mode</strong> — writes blocked, data masked as empty</span><button id="testModeExitBtn" style="background:#c9a84c;color:#0d0d11;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif">Exit Test Mode</button>`;
-    b.style.cssText = "position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;z-index:9999;background:#2a1a00;border-bottom:2px solid #c9a84c;padding:10px 16px;display:flex;align-items:center;gap:10px;font-family:Inter,sans-serif;font-size:13px;color:#e8e0d0;box-shadow:0 2px 12px rgba(0,0,0,.5)";
-    document.body.appendChild(b); b.querySelector("#testModeExitBtn").addEventListener("click", exitTestMode);
-    const h = document.querySelector("header"); if (h) { h._tmPad = h.style.paddingTop; h.style.paddingTop = `calc(${getComputedStyle(h).paddingTop} + 44px)`; }
-  }
-  b.hidden = !show;
-  if (!show) { const h = document.querySelector("header"); if (h?._tmPad !== undefined) h.style.paddingTop = h._tmPad; }
-}
-(function setupTestMode() {
-  if (!isOwner()) return;
-  function check() { if (window.location.hash === "#testmode") enterTestMode(); else if (testModeActive) exitTestMode(); }
-  window.addEventListener("hashchange", check);
-  window.addEventListener("load", () => { if (window.location.hash === "#testmode") setTimeout(enterTestMode, 500); });
-})();
-// ── End Testing Mode ─────────────────────────────────────────────────────────
 
 
 // ── My Collection Insights ───────────────────────────────────────────────────
