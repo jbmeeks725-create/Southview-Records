@@ -693,25 +693,77 @@ function buildMiniCover(coverUrl, alt) {
 }
 
 function renderStats() {
+  // ── My Collection & Wishlist ──
   document.getElementById("statTotalRecords").textContent = allRecords.length;
+  document.getElementById("statWishlistCount").textContent = wishlist.length;
 
+  // ── My Tastes ──
   const genreNames = new Set(allRecords.map((r) => r.genre_name).filter(Boolean));
   document.getElementById("statTotalGenres").textContent = genreNames.size;
+
+  const labelNames = new Set(allRecords.map((r) => r.label?.trim()).filter(Boolean));
+  document.getElementById("statTotalLabels").textContent = labelNames.size;
 
   const years = allRecords.map((r) => r.year).filter((y) => !!y);
   if (years.length > 0) {
     const minDecade = Math.floor(Math.min(...years) / 10) * 10;
     const maxDecade = Math.floor(Math.max(...years) / 10) * 10;
-    if (minDecade === maxDecade) {
-      document.getElementById("statDecadeSpan").textContent = `${minDecade}s`;
-    } else {
-      document.getElementById("statDecadeSpan").textContent = `${minDecade}s\u2013${maxDecade}s`;
-    }
+    document.getElementById("statDecadeSpan").textContent = minDecade === maxDecade
+      ? `${minDecade}s`
+      : `${minDecade}s\u2013${maxDecade}s`;
   } else {
     document.getElementById("statDecadeSpan").textContent = "\u2014";
   }
 
-  document.getElementById("statWishlistCount").textContent = wishlist.length;
+  // ── My Achievements: trophies ──
+  const trophyEl = document.getElementById("statTrophyCount");
+  if (trophyEl) {
+    const earned = (window.ALL_TROPHIES || []).filter(t => t.earned).length;
+    trophyEl.textContent = earned || "—";
+  }
+
+  // ── My Achievements: median collection value (exact pressings only) ──
+  const medianEl = document.getElementById("statMedianValue");
+  if (medianEl) {
+    const values = allRecords
+      .map(r => {
+        if (r.market_value_override != null) return parseFloat(r.market_value_override);
+        if (r.discogs_release_id && r.market_value_cached != null) return parseFloat(r.market_value_cached);
+        return null;
+      })
+      .filter(v => v !== null && !isNaN(v) && v > 0)
+      .sort((a, b) => a - b);
+
+    if (values.length) {
+      const mid = Math.floor(values.length / 2);
+      const median = values.length % 2 !== 0
+        ? values[mid]
+        : (values[mid - 1] + values[mid]) / 2;
+      medianEl.textContent = new Intl.NumberFormat("en-US", {
+        style: "currency", currency: "USD",
+        minimumFractionDigits: 0, maximumFractionDigits: 0,
+      }).format(median);
+    } else {
+      medianEl.textContent = "—";
+    }
+  }
+
+  // ── My Community: following / followers (async, non-blocking) ──
+  const followingEl = document.getElementById("statFollowingCount");
+  const followersEl = document.getElementById("statFollowersCount");
+  if (followingEl && followersEl && currentUser) {
+    supabaseClient
+      .from("follows")
+      .select("id", { count: "exact", head: true })
+      .eq("follower_id", currentUser.id)
+      .then(({ count }) => { if (followingEl) followingEl.textContent = count ?? "—"; });
+
+    supabaseClient
+      .from("follows")
+      .select("id", { count: "exact", head: true })
+      .eq("following_id", currentUser.id)
+      .then(({ count }) => { if (followersEl) followersEl.textContent = count ?? "—"; });
+  }
 }
 
 function getSpotlightPool() {
@@ -6324,8 +6376,7 @@ function setPage(page) {
   const trophiesBtn = document.getElementById("trophiesPageBtn");
   const collectionValueBtn = document.getElementById("collectionValuePageBtn");
   const collectionInsightsBtn = document.getElementById("collectionInsightsPageBtn");
-  const fellowCollectorsBtn = document.getElementById("fellowCollectorsPageBtn");
-  const activityFeedBtn = document.getElementById("activityFeedPageBtn");
+  const communityBtn = document.getElementById("communityPageBtn");
 
   const homeSection = document.getElementById("homeSection");
   const profileSection = document.getElementById("profileSection");
@@ -6342,8 +6393,7 @@ function setPage(page) {
   const pageNav = document.getElementById("pageNav");
   const collectionValueSection = document.getElementById("collectionValueSection");
   const collectionInsightsSection = document.getElementById("collectionInsightsSection");
-  const fellowCollectorsSection = document.getElementById("fellowCollectorsSection");
-  const activityFeedSection = document.getElementById("activityFeedSection");
+  const communitySection = document.getElementById("communitySection");
 
   const isHome = page === "home";
   const isCollection = page === "collection";
@@ -6357,8 +6407,7 @@ function setPage(page) {
   const isAdmin = page === "admin";
   const isCollectionValue = page === "collectionValue";
   const isCollectionInsights = page === "collectionInsights";
-  const isFellowCollectors = page === "fellowCollectors";
-  const isActivityFeed = page === "activityFeed";
+  const isCommunity = page === "community";
 
   [
     [homeBtn, isHome],
@@ -6370,8 +6419,7 @@ function setPage(page) {
     [trophiesBtn, isTrophies],
     [collectionValueBtn, isCollectionValue],
     [collectionInsightsBtn, isCollectionInsights],
-    [fellowCollectorsBtn, isFellowCollectors],
-    [activityFeedBtn, isActivityFeed],
+    [communityBtn, isCommunity],
   ].forEach(([btn, active]) => {
     if (!btn) return;
     btn.classList.toggle("active", active);
@@ -6392,11 +6440,10 @@ function setPage(page) {
   wishlistSection.hidden = !isWishlist;
   if (collectionValueSection) collectionValueSection.hidden = !isCollectionValue;
   if (collectionInsightsSection) collectionInsightsSection.hidden = !isCollectionInsights;
-  if (fellowCollectorsSection) fellowCollectorsSection.hidden = !isFellowCollectors;
-  if (activityFeedSection) activityFeedSection.hidden = !isActivityFeed;
+  if (communitySection) communitySection.hidden = !isCommunity;
   const adminSection = document.getElementById("adminSection");
   if (adminSection) adminSection.hidden = !isAdmin;
-  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isCollectionValue || isCollectionInsights || isFellowCollectors || isActivityFeed;
+  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isCollectionValue || isCollectionInsights || isCommunity;
   pageNav.hidden = isProfile || isSettings || isAdmin;
 
   if (isProfile) {
@@ -6439,14 +6486,8 @@ function setPage(page) {
     return;
   }
 
-  if (isFellowCollectors) {
-    fcActiveTab = "following";
-    renderFellowCollectors();
-    return;
-  }
-
-  if (isActivityFeed) {
-    renderActivityFeed();
+  if (isCommunity) {
+    renderCommunity();
     return;
   }
 
@@ -10304,17 +10345,27 @@ function setupEvents() {
     });
   }
 
-  const statRecordsBox = document.getElementById("statRecordsBox");
-  const statGenresBox = document.getElementById("statGenresBox");
-  const statDecadeBox = document.getElementById("statDecadeBox");
+  const statRecordsBox  = document.getElementById("statRecordsBox");
+  const statGenresBox   = document.getElementById("statGenresBox");
+  const statDecadeBox   = document.getElementById("statDecadeBox");
   const statWishlistBox = document.getElementById("statWishlistBox");
+  const statLabelsBox   = document.getElementById("statLabelsBox");
+  const statTrophiesBox = document.getElementById("statTrophiesBox");
+  const statFollowingBox = document.getElementById("statFollowingBox");
+  const statFollowersBox = document.getElementById("statFollowersBox");
 
-  statRecordsBox.addEventListener("click", () => setPage("collection"));
-  statGenresBox.addEventListener("click", () => goToChart("genreChart"));
-  statDecadeBox.addEventListener("click", () => goToChart("decadeChart"));
-  statWishlistBox.addEventListener("click", () => setPage("wishlist"));
+  statRecordsBox?.addEventListener("click", () => setPage("collection"));
+  statGenresBox?.addEventListener("click", () => goToChart("genreChart"));
+  statDecadeBox?.addEventListener("click", () => goToChart("decadeChart"));
+  statWishlistBox?.addEventListener("click", () => setPage("wishlist"));
+  statLabelsBox?.addEventListener("click", () => setPage("collectionInsights"));
+  statTrophiesBox?.addEventListener("click", () => setPage("trophies"));
+  statFollowingBox?.addEventListener("click", () => setPage("community"));
+  statFollowersBox?.addEventListener("click", () => setPage("community"));
 
-  [statRecordsBox, statGenresBox, statDecadeBox, statWishlistBox].forEach(makeKeyboardClickable);
+  [statRecordsBox, statGenresBox, statDecadeBox, statWishlistBox,
+   statLabelsBox, statTrophiesBox, statFollowingBox, statFollowersBox]
+    .filter(Boolean).forEach(makeKeyboardClickable);
 
   document
     .getElementById("homePageBtn")
@@ -14743,7 +14794,7 @@ async function refreshFcFollowButton(btn, targetUserId) {
     btn.disabled = false;
     refreshFcFollowButton(btn, targetUserId);
     // Refresh the page data so counts / lists stay accurate
-    if (currentPage === "fellowCollectors") renderFellowCollectors();
+    if (currentPage === "community") renderFellowCollectors();
   };
 }
 
@@ -14950,12 +15001,55 @@ async function setupSharedCollectionFollowButton(profileUserId) {
 
 // ── Setup / wiring ────────────────────────────────────────────────────────────
 
-function setupFellowCollectors() {
-  document.getElementById("fellowCollectorsPageBtn")
-    ?.addEventListener("click", () => setPage("fellowCollectors"));
+// ── Community page (merged Fellow Collectors + Activity Feed) ─────────────────
 
-  document.getElementById("activityFeedPageBtn")
-    ?.addEventListener("click", () => setPage("activityFeed"));
+let communityActiveTab = "collectors"; // "collectors" | "feed"
+
+function renderCommunity() {
+  setCommunityTab(communityActiveTab);
+  if (communityActiveTab === "collectors") {
+    fcActiveTab = "following";
+    renderFellowCollectors();
+  } else {
+    renderActivityFeed();
+  }
+}
+
+function setCommunityTab(tab) {
+  communityActiveTab = tab;
+  const collectorsBtn = document.getElementById("communityTabCollectors");
+  const feedBtn       = document.getElementById("communityTabFeed");
+  const collectorsPanel = document.getElementById("communityCollectorsPanel");
+  const feedPanel       = document.getElementById("communityFeedPanel");
+
+  if (collectorsBtn) {
+    collectorsBtn.classList.toggle("active", tab === "collectors");
+    collectorsBtn.setAttribute("aria-selected", String(tab === "collectors"));
+  }
+  if (feedBtn) {
+    feedBtn.classList.toggle("active", tab === "feed");
+    feedBtn.setAttribute("aria-selected", String(tab === "feed"));
+  }
+  if (collectorsPanel) collectorsPanel.hidden = tab !== "collectors";
+  if (feedPanel)       feedPanel.hidden       = tab !== "feed";
+}
+
+function setupFellowCollectors() {
+  document.getElementById("communityPageBtn")
+    ?.addEventListener("click", () => setPage("community"));
+
+  document.getElementById("communityTabCollectors")
+    ?.addEventListener("click", () => {
+      setCommunityTab("collectors");
+      fcActiveTab = "following";
+      renderFellowCollectors();
+    });
+
+  document.getElementById("communityTabFeed")
+    ?.addEventListener("click", () => {
+      setCommunityTab("feed");
+      renderActivityFeed();
+    });
 
   setupFcSearch();
   setupFcTabs();

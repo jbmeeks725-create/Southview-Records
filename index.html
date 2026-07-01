@@ -1687,6 +1687,51 @@
   }
   @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
+  /* ── Home: stat buckets ── */
+  .stat-buckets {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #1e1c24;
+  }
+  .stat-bucket {
+    padding: 18px 20px;
+    border-right: 1px solid #1e1c24;
+    background: #0d0d11;
+  }
+  .stat-bucket:last-child { border-right: none; }
+  .stat-bucket-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #3a3840;
+    margin-bottom: 14px;
+  }
+  .stat-bucket .stat-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .stat-bucket .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  @media (max-width: 900px) {
+    .stat-buckets { grid-template-columns: repeat(2, 1fr); }
+    .stat-bucket:nth-child(2) { border-right: none; }
+    .stat-bucket:nth-child(1),
+    .stat-bucket:nth-child(2) { border-bottom: 1px solid #1e1c24; }
+  }
+  @media (max-width: 500px) {
+    .stat-buckets { grid-template-columns: 1fr; }
+    .stat-bucket { border-right: none; border-bottom: 1px solid #1e1c24; }
+    .stat-bucket:last-child { border-bottom: none; }
+  }
+
   /* ── Home: decade range stat — consistent font size ── */
   #statDecadeSpan {
     font-size: clamp(20px, 2.5vw, 32px) !important;
@@ -3046,14 +3091,13 @@
         <button type="button" id="homePageBtn" class="view-btn" aria-pressed="false">Home</button>
         <button type="button" id="collectionPageBtn" class="view-btn" aria-pressed="false">My Collection</button>
         <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
+        <button type="button" id="collectionValuePageBtn" class="view-btn" aria-pressed="false">My Collection Value</button>
         <button type="button" id="tasteProfilePageBtn" class="view-btn" aria-pressed="false">My Taste Profile</button>
         <button type="button" id="genreEvolutionPageBtn" class="view-btn" aria-pressed="false">My Taste Evolution</button>
         <button type="button" id="collectionInsightsPageBtn" class="view-btn" aria-pressed="false">My Collection Insights</button>
-        <button type="button" id="fellowCollectorsPageBtn" class="view-btn" aria-pressed="false">My Fellow Collectors</button>
-        <button type="button" id="activityFeedPageBtn" class="view-btn" aria-pressed="false">My Activity Feed</button>
-        <button type="button" id="trophiesPageBtn" class="view-btn" aria-pressed="false">My Trophies</button>
         <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Listening Room</button>
-        <button type="button" id="collectionValuePageBtn" class="view-btn" aria-pressed="false">My Collection Value</button>
+        <button type="button" id="trophiesPageBtn" class="view-btn" aria-pressed="false">My Trophies</button>
+        <button type="button" id="communityPageBtn" class="view-btn" aria-pressed="false">My Community</button>
       </nav>
   </section>
   <section id="status" hidden>
@@ -3091,24 +3135,68 @@
     </div>
     <div class="home-grid">
       <div class="home-card home-stats">
-        <h2>Your Collection at a Glance</h2>
-        <div class="stat-row">
-          <div class="stat" id="statRecordsBox" tabindex="0" role="button" aria-label="View collection">
-            <span class="stat-value" id="statTotalRecords">—</span>
-            <span class="stat-label">Records</span>
+        <div class="stat-buckets">
+
+          <div class="stat-bucket">
+            <div class="stat-bucket-label">My Collection &amp; Wishlist</div>
+            <div class="stat-row">
+              <div class="stat" id="statRecordsBox" tabindex="0" role="button" aria-label="View collection">
+                <span class="stat-value" id="statTotalRecords">—</span>
+                <span class="stat-label">Records I Have</span>
+              </div>
+              <div class="stat" id="statWishlistBox" tabindex="0" role="button" aria-label="View wishlist">
+                <span class="stat-value" id="statWishlistCount">—</span>
+                <span class="stat-label">Records I Want</span>
+              </div>
+            </div>
           </div>
-          <div class="stat" id="statGenresBox" tabindex="0" role="button" aria-label="View genre chart">
-            <span class="stat-value" id="statTotalGenres">—</span>
-            <span class="stat-label">Genres</span>
+
+          <div class="stat-bucket">
+            <div class="stat-bucket-label">My Tastes</div>
+            <div class="stat-row">
+              <div class="stat" id="statGenresBox" tabindex="0" role="button" aria-label="View genre chart">
+                <span class="stat-value" id="statTotalGenres">—</span>
+                <span class="stat-label">Genres</span>
+              </div>
+              <div class="stat" id="statLabelsBox" tabindex="0" role="button" aria-label="View label loyalty">
+                <span class="stat-value" id="statTotalLabels">—</span>
+                <span class="stat-label">Labels</span>
+              </div>
+              <div class="stat" id="statDecadeBox" tabindex="0" role="button" aria-label="View decade chart">
+                <span class="stat-value stat-value-text" id="statDecadeSpan">—</span>
+                <span class="stat-label">Decade Range</span>
+              </div>
+            </div>
           </div>
-          <div class="stat" id="statDecadeBox" tabindex="0" role="button" aria-label="View decade chart">
-            <span class="stat-value stat-value-text" id="statDecadeSpan">—</span>
-            <span class="stat-label">Decade range</span>
+
+          <div class="stat-bucket">
+            <div class="stat-bucket-label">My Achievements</div>
+            <div class="stat-row">
+              <div class="stat" id="statTrophiesBox" tabindex="0" role="button" aria-label="View trophies">
+                <span class="stat-value" id="statTrophyCount">—</span>
+                <span class="stat-label">Trophies</span>
+              </div>
+              <div class="stat" id="statValueBox">
+                <span class="stat-value stat-value-text" id="statMedianValue">—</span>
+                <span class="stat-label">Median Record Value</span>
+              </div>
+            </div>
           </div>
-          <div class="stat" id="statWishlistBox" tabindex="0" role="button" aria-label="View wishlist">
-            <span class="stat-value" id="statWishlistCount">—</span>
-            <span class="stat-label">Wishlist</span>
+
+          <div class="stat-bucket">
+            <div class="stat-bucket-label">My Community</div>
+            <div class="stat-row">
+              <div class="stat" id="statFollowingBox" tabindex="0" role="button" aria-label="View community">
+                <span class="stat-value" id="statFollowingCount">—</span>
+                <span class="stat-label">I'm Following</span>
+              </div>
+              <div class="stat" id="statFollowersBox" tabindex="0" role="button" aria-label="View community">
+                <span class="stat-value" id="statFollowersCount">—</span>
+                <span class="stat-label">Following Me</span>
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
 
@@ -4086,89 +4174,90 @@
     </div>
   </section>
 
-  <!-- My Fellow Collectors -->
-  <section id="fellowCollectorsSection" hidden>
+  <!-- My Community -->
+  <section id="communitySection" hidden>
     <div class="fellow-collectors-page">
 
       <div class="fellow-collectors-header">
         <div>
-          <h2>My Fellow Collectors</h2>
-          <p class="field-hint">Follow collectors whose taste you admire. See what they're adding in your Activity Feed.</p>
+          <h2>My Community</h2>
+          <p class="field-hint">Connect with collectors whose taste you admire.</p>
         </div>
       </div>
 
-      <!-- Search / Discover -->
-      <div class="fc-search-row">
-        <div class="fc-search-input-wrap">
-          <i class="ti ti-search" aria-hidden="true"></i>
-          <input type="text" id="fcSearchInput" placeholder="Search by username…" autocomplete="off" />
-        </div>
-      </div>
-      <div id="fcSearchResults" class="fellow-collectors-grid" hidden></div>
-
-      <!-- Tabs -->
-      <div class="fc-tabs" role="tablist">
-        <button type="button" id="fcTabFollowing" class="fc-tab active" role="tab" aria-selected="true">Following <span id="fcFollowingCount" class="fc-tab-count"></span></button>
-        <button type="button" id="fcTabFollowers" class="fc-tab" role="tab" aria-selected="false">Followers <span id="fcFollowersCount" class="fc-tab-count"></span></button>
+      <!-- Top-level community tabs -->
+      <div class="fc-tabs" role="tablist" style="margin-bottom:24px;">
+        <button type="button" id="communityTabCollectors" class="fc-tab active" role="tab" aria-selected="true">Collectors</button>
+        <button type="button" id="communityTabFeed" class="fc-tab" role="tab" aria-selected="false">Activity Feed</button>
       </div>
 
-      <div id="fcFollowingPanel" class="fellow-collectors-block">
-        <div id="fcFollowingGrid" class="fellow-collectors-grid">
-          <div class="fellow-collectors-empty">
-            <i class="ti ti-users" aria-hidden="true"></i>
-            <p>You're not following anyone yet.</p>
-            <p class="field-hint">Search above to find fellow collectors, or follow someone from their shared collection page.</p>
+      <!-- ── Collectors panel ── -->
+      <div id="communityCollectorsPanel">
+
+        <!-- Search -->
+        <div class="fc-search-row">
+          <div class="fc-search-input-wrap">
+            <i class="ti ti-search" aria-hidden="true"></i>
+            <input type="text" id="fcSearchInput" placeholder="Search by username…" autocomplete="off" />
           </div>
         </div>
-      </div>
+        <div id="fcSearchResults" class="fellow-collectors-grid" hidden></div>
 
-      <div id="fcFollowersPanel" class="fellow-collectors-block" hidden>
-        <div id="fcFollowersGrid" class="fellow-collectors-grid">
-          <div class="fellow-collectors-empty">
-            <i class="ti ti-user-heart" aria-hidden="true"></i>
-            <p>No one is following you yet.</p>
-            <p class="field-hint">Share your collection link and trophies to start building your following.</p>
+        <!-- Following / Followers sub-tabs -->
+        <div class="fc-tabs" role="tablist">
+          <button type="button" id="fcTabFollowing" class="fc-tab active" role="tab" aria-selected="true">Following <span id="fcFollowingCount" class="fc-tab-count"></span></button>
+          <button type="button" id="fcTabFollowers" class="fc-tab" role="tab" aria-selected="false">Followers <span id="fcFollowersCount" class="fc-tab-count"></span></button>
+        </div>
+
+        <div id="fcFollowingPanel" class="fellow-collectors-block">
+          <div id="fcFollowingGrid" class="fellow-collectors-grid">
+            <div class="fellow-collectors-empty">
+              <i class="ti ti-users" aria-hidden="true"></i>
+              <p>You're not following anyone yet.</p>
+              <p class="field-hint">Search above to find fellow collectors, or follow someone from their shared collection page.</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Discover: all public collectors on Spin Vinyl -->
-      <div id="fcDiscoverSection" class="fellow-collectors-block" style="margin-top:32px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <h3 class="fellow-collectors-block-title" style="margin:0;">
-            <i class="ti ti-compass" aria-hidden="true"></i>
-            Collectors on Spin Vinyl
-            <span id="fcDiscoverCount" class="fc-tab-count" style="font-family:Inter,sans-serif;"></span>
-          </h3>
+        <div id="fcFollowersPanel" class="fellow-collectors-block" hidden>
+          <div id="fcFollowersGrid" class="fellow-collectors-grid">
+            <div class="fellow-collectors-empty">
+              <i class="ti ti-user-heart" aria-hidden="true"></i>
+              <p>No one is following you yet.</p>
+              <p class="field-hint">Share your collection link and trophies to start building your following.</p>
+            </div>
+          </div>
         </div>
-        <p class="field-hint" style="margin-bottom:16px;">Everyone who's made their collection public. Follow anyone whose taste looks interesting.</p>
-        <div id="fcDiscoverLoading" class="fellow-collectors-empty" hidden>
-          <div class="spinner"></div>
-          <p class="field-hint">Loading collectors…</p>
+
+        <!-- Discover -->
+        <div id="fcDiscoverSection" class="fellow-collectors-block" style="margin-top:32px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+            <h3 class="fellow-collectors-block-title" style="margin:0;">
+              <i class="ti ti-compass" aria-hidden="true"></i>
+              Collectors on Spin Vinyl
+              <span id="fcDiscoverCount" class="fc-tab-count" style="font-family:Inter,sans-serif;"></span>
+            </h3>
+          </div>
+          <p class="field-hint" style="margin-bottom:16px;">Everyone who's made their collection public. Follow anyone whose taste looks interesting.</p>
+          <div id="fcDiscoverLoading" class="fellow-collectors-empty" hidden>
+            <div class="spinner"></div>
+            <p class="field-hint">Loading collectors…</p>
+          </div>
+          <div id="fcDiscoverGrid" class="fellow-collectors-grid"></div>
         </div>
-        <div id="fcDiscoverGrid" class="fellow-collectors-grid"></div>
+
       </div>
 
-    </div>
-  </section>
-
-  <!-- My Activity Feed -->
-  <section id="activityFeedSection" hidden>
-    <div class="fellow-collectors-page">
-      <div class="fellow-collectors-header">
-        <div>
-          <h2>My Activity Feed</h2>
-          <p class="field-hint">New records from the collectors you follow.</p>
+      <!-- ── Activity Feed panel ── -->
+      <div id="communityFeedPanel" hidden>
+        <div id="activityFeedList" class="activity-feed-list"></div>
+        <div id="activityFeedEmpty" class="fellow-collectors-empty" hidden>
+          <i class="ti ti-disc" aria-hidden="true"></i>
+          <p>No activity yet.</p>
+          <p class="field-hint" id="activityFeedEmptyHint">Follow a few collectors to see what they're adding here.</p>
         </div>
       </div>
 
-      <div id="activityFeedList" class="activity-feed-list"></div>
-
-      <div id="activityFeedEmpty" class="fellow-collectors-empty" hidden>
-        <i class="ti ti-disc" aria-hidden="true"></i>
-        <p>No activity yet.</p>
-        <p class="field-hint" id="activityFeedEmptyHint">Follow a few collectors to see what they're adding here.</p>
-      </div>
     </div>
   </section>
 
