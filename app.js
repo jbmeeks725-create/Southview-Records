@@ -6398,8 +6398,6 @@ function setPage(page) {
   if (adminSection) adminSection.hidden = !isAdmin;
   statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isCollectionValue || isCollectionInsights || isFellowCollectors || isActivityFeed;
   pageNav.hidden = isProfile || isSettings || isAdmin;
-  const pageNavWrap = document.getElementById("pageNavWrap");
-  if (pageNavWrap) pageNavWrap.hidden = isProfile || isSettings || isAdmin;
 
   if (isProfile) {
     renderProfile();
