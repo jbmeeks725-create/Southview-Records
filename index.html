@@ -1696,6 +1696,16 @@
   }
   @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
+  /* ── Starter collection grid — horizontal ── */
+  .starter-collection-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    gap: 12px !important;
+  }
+  .starter-collection {
+    width: 100% !important;
+  }
+
   /* ── Universal page header — consistent across all tabs ── */
   .page-header {
     padding: 28px 0 24px 24px;

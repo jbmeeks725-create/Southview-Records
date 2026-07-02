@@ -17,34 +17,34 @@ const IDENTIFY_COVER_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/fu
 
 const STARTER_RECORDS = [
   // Jazz
-  { artist: "Miles Davis", album: "Kind of Blue", year: 1959, genre: "Jazz", cover: "https://coverartarchive.org/release-group/8e8a594f-2175-38c7-a871-abb68ec363e7/front-250" },
-  { artist: "John Coltrane", album: "A Love Supreme", year: 1964, genre: "Jazz", cover: "https://coverartarchive.org/release-group/77cf47ba-58cd-3f3d-a5f9-79bf89860421/front-250" },
-  { artist: "Dave Brubeck", album: "Time Out", year: 1959, genre: "Jazz", cover: "https://coverartarchive.org/release-group/f9b4e0d6-0c4e-3adb-a94a-c9e8e8f0b9f3/front-250" },
-  { artist: "Art Blakey", album: "Moanin'", year: 1958, genre: "Jazz", cover: null },
+  { artist: "Miles Davis",      album: "Kind of Blue",                        year: 1959, genre: "Jazz",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Miles_Davis_-_Kind_of_Blue.jpg/300px-Miles_Davis_-_Kind_of_Blue.jpg" },
+  { artist: "John Coltrane",    album: "A Love Supreme",                      year: 1964, genre: "Jazz",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/John_Coltrane_-_A_Love_Supreme.jpg/300px-John_Coltrane_-_A_Love_Supreme.jpg" },
+  { artist: "Dave Brubeck",     album: "Time Out",                            year: 1959, genre: "Jazz",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/TimeOut.jpg/300px-TimeOut.jpg" },
+  { artist: "Art Blakey",       album: "Moanin'",                             year: 1958, genre: "Jazz",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Moaninalbum.jpg/300px-Moaninalbum.jpg" },
   // Rock
-  { artist: "Led Zeppelin", album: "Led Zeppelin IV", year: 1971, genre: "Rock", cover: "https://coverartarchive.org/release-group/2e61da88-39e9-3473-81d2-c964cb394952/front-250" },
-  { artist: "Fleetwood Mac", album: "Rumours", year: 1977, genre: "Rock", cover: "https://coverartarchive.org/release-group/416bb5e5-c7d1-3977-8fd7-7c9daf6c2be6/front-250" },
-  { artist: "The Beatles", album: "Abbey Road", year: 1969, genre: "Rock", cover: "https://coverartarchive.org/release-group/4162e65c-6a1b-3c5e-9b7b-d3e2c3b4e8f2/front-250" },
-  { artist: "Pink Floyd", album: "The Dark Side of the Moon", year: 1973, genre: "Rock", cover: null },
+  { artist: "Led Zeppelin",     album: "Led Zeppelin IV",                     year: 1971, genre: "Rock",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Led_Zeppelin_-_Led_Zeppelin_IV.jpg/300px-Led_Zeppelin_-_Led_Zeppelin_IV.jpg" },
+  { artist: "Fleetwood Mac",    album: "Rumours",                             year: 1977, genre: "Rock",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Fleetwood_Mac_-_Rumours.jpg/300px-Fleetwood_Mac_-_Rumours.jpg" },
+  { artist: "The Beatles",      album: "Abbey Road",                          year: 1969, genre: "Rock",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Beatles_-_Abbey_Road.jpg/300px-Beatles_-_Abbey_Road.jpg" },
+  { artist: "Pink Floyd",       album: "The Dark Side of the Moon",           year: 1973, genre: "Rock",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Dark_Side_of_the_Moon.png/300px-Dark_Side_of_the_Moon.png" },
   // Blues
-  { artist: "Robert Johnson", album: "King of the Delta Blues Singers", year: 1961, genre: "Blues", cover: null },
-  { artist: "Muddy Waters", album: "Hard Again", year: 1977, genre: "Blues", cover: null },
+  { artist: "Robert Johnson",   album: "King of the Delta Blues Singers",     year: 1961, genre: "Blues",      cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Robert_Johnson_-_King_of_the_Delta_Blues_Singers.jpg/300px-Robert_Johnson_-_King_of_the_Delta_Blues_Singers.jpg" },
+  { artist: "Muddy Waters",     album: "Hard Again",                          year: 1977, genre: "Blues",      cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/MuddyWatersHardAgain.jpg/300px-MuddyWatersHardAgain.jpg" },
   // Soul / R&B
-  { artist: "Marvin Gaye", album: "What's Going On", year: 1971, genre: "Soul", cover: "https://coverartarchive.org/release-group/d6f9c677-3c89-3a51-a924-d3e2a4b5c7f1/front-250" },
-  { artist: "Stevie Wonder", album: "Songs in the Key of Life", year: 1976, genre: "Soul", cover: null },
-  { artist: "Aretha Franklin", album: "I Never Loved a Man the Way I Love You", year: 1967, genre: "Soul", cover: null },
+  { artist: "Marvin Gaye",      album: "What's Going On",                     year: 1971, genre: "Soul",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/MarvinGayeWhatsGoingOnalbumcover.jpg/300px-MarvinGayeWhatsGoingOnalbumcover.jpg" },
+  { artist: "Stevie Wonder",    album: "Songs in the Key of Life",            year: 1976, genre: "Soul",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Stevie_Wonder_-_Songs_in_the_Key_of_Life.jpg/300px-Stevie_Wonder_-_Songs_in_the_Key_of_Life.jpg" },
+  { artist: "Aretha Franklin",  album: "I Never Loved a Man the Way I Love You", year: 1967, genre: "Soul",   cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/ArethaFranklinINeverLovedAManTheWayILoveYou.jpg/300px-ArethaFranklinINeverLovedAManTheWayILoveYou.jpg" },
   // Classical
-  { artist: "Glenn Gould", album: "Goldberg Variations", year: 1955, genre: "Classical", cover: null },
-  // Electronic / Experimental
-  { artist: "Kraftwerk", album: "Autobahn", year: 1974, genre: "Electronic", cover: null },
-  { artist: "Brian Eno", album: "Ambient 1: Music for Airports", year: 1978, genre: "Ambient", cover: null },
+  { artist: "Glenn Gould",      album: "Goldberg Variations",                 year: 1955, genre: "Classical",  cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/GoldbergVariations_Gould.jpg/300px-GoldbergVariations_Gould.jpg" },
+  // Electronic
+  { artist: "Kraftwerk",        album: "Autobahn",                            year: 1974, genre: "Electronic", cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Kraftwerk_-_Autobahn.jpg/300px-Kraftwerk_-_Autobahn.jpg" },
+  { artist: "Brian Eno",        album: "Ambient 1: Music for Airports",       year: 1978, genre: "Ambient",    cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Music_for_Airports.jpg/300px-Music_for_Airports.jpg" },
   // Latin
-  { artist: "João Gilberto", album: "Getz/Gilberto", year: 1964, genre: "Bossa Nova", cover: null },
+  { artist: "João Gilberto",    album: "Getz/Gilberto",                       year: 1964, genre: "Bossa Nova", cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Getz-gilberto.jpg/300px-Getz-gilberto.jpg" },
   // Reggae
-  { artist: "Bob Marley", album: "Catch a Fire", year: 1973, genre: "Reggae", cover: null },
+  { artist: "Bob Marley",       album: "Catch a Fire",                        year: 1973, genre: "Reggae",     cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Catch_a_fire_cd.jpg/300px-Catch_a_fire_cd.jpg" },
   // Country / Folk
-  { artist: "Johnny Cash", album: "At Folsom Prison", year: 1968, genre: "Country", cover: null },
-  { artist: "Joni Mitchell", album: "Blue", year: 1971, genre: "Folk", cover: null },
+  { artist: "Johnny Cash",      album: "At Folsom Prison",                    year: 1968, genre: "Country",    cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Johnny_Cash_At_Folsom_Prison.jpg/300px-Johnny_Cash_At_Folsom_Prison.jpg" },
+  { artist: "Joni Mitchell",    album: "Blue",                                year: 1971, genre: "Folk",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Joni_Mitchell_-_Blue.jpg/300px-Joni_Mitchell_-_Blue.jpg" },
 ];
 
 async function renderStarterCollection() {
@@ -10844,13 +10844,24 @@ async function handleAuthSubmit(event) {
       if (error) throw error;
 
       if (data.session) {
-        // Email confirmation not required - signed in immediately
-        statusEl.textContent = "Account created!";
+        // Email confirmation is disabled in Supabase — signed in immediately
+        statusEl.textContent = "Account created! Welcome to Spin Vinyl.";
         statusEl.className = "form-status form-status-success";
       } else {
-        statusEl.textContent = "Check your email to confirm your account, then sign in.";
-        statusEl.className = "form-status form-status-success";
-        setAuthMode("signin");
+        // Email confirmation required — show a prominent message
+        const authForm = document.getElementById("authForm");
+        if (authForm) {
+          authForm.hidden = true;
+        }
+        statusEl.innerHTML = `
+          <div style="text-align:center;padding:20px 0;">
+            <div style="font-size:32px;margin-bottom:12px;">📬</div>
+            <div style="font-family:Jost,sans-serif;font-size:18px;font-weight:700;color:#e8e0d0;margin-bottom:8px;">Check your email</div>
+            <div style="font-size:13px;color:#8a8290;line-height:1.6;">We sent a confirmation link to<br><strong style="color:#c9a84c;">${email}</strong><br><br>Click the link in that email to activate your account, then come back here to sign in.</div>
+            <button type="button" onclick="document.getElementById('authForm').hidden=false;document.getElementById('authStatus').textContent='';setAuthMode('signin');" style="margin-top:20px;background:transparent;border:1px solid #2a2830;color:#8a8290;border-radius:8px;padding:8px 20px;font-family:Inter,sans-serif;font-size:13px;cursor:pointer;">Back to sign in</button>
+          </div>
+        `;
+        statusEl.className = "form-status";
       }
     } else {
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -12921,22 +12932,14 @@ function maybeShowOnboarding() {
   const screen = document.getElementById("onboardingScreen");
   if (!screen) return;
 
-  // Check profile flag first (persists across devices/browsers)
+  // Profile flag is the authoritative source — set after onboarding completes
   if (currentProfile?.onboarding_done) {
     screen.hidden = true;
     return;
   }
 
-  // Fall back to localStorage
-  if (localStorage.getItem("spin-onboarding-done") === "true") {
-    screen.hidden = true;
-    saveProfileFields({ onboarding_done: true }).catch(() => {});
-    return;
-  }
-
-  // If they already have data, they've been here before
+  // If they already have data, skip onboarding (returning user on new device)
   if (allRecords.length > 0 || wishlist.length > 0) {
-    localStorage.setItem("spin-onboarding-done", "true");
     saveProfileFields({ onboarding_done: true }).catch(() => {});
     screen.hidden = true;
     return;
