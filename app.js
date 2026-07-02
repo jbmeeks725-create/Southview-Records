@@ -6366,6 +6366,15 @@ function render() {
   renderActiveFilters();
 
   setStatus(`Showing ${filtered.length} of ${allRecords.length} records`);
+
+  // Collection stats bar on the section header
+  const statsBar = document.getElementById("collectionStatsBar");
+  if (statsBar) {
+    const unrated = allRecords.filter(r => !r.rating).length;
+    statsBar.textContent = unrated > 0
+      ? `${unrated} still unrated`
+      : "All records rated ✓";
+  }
 }
 
 function setPage(page) {
@@ -15090,11 +15099,8 @@ function renderHomeHero() {
     : `${timeGreet}.`;
 
   if (subEl) {
-    const unrated = allRecords.filter(r => !r.rating).length;
-    const total   = allRecords.length;
-    if (total > 0 && unrated > 0) {
-      subEl.textContent = `${total} records in your collection — ${unrated} still unrated.`;
-    } else if (total > 0) {
+    const total = allRecords.length;
+    if (total > 0) {
       subEl.textContent = `${total} records and counting.`;
     } else {
       subEl.textContent = "Your collection is waiting.";
