@@ -1691,45 +1691,90 @@
   .stat-buckets {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0;
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid #1e1c24;
+    gap: 12px;
   }
   .stat-bucket {
-    padding: 18px 20px;
-    border-right: 1px solid #1e1c24;
     background: #0d0d11;
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
   }
-  .stat-bucket:last-child { border-right: none; }
+  .stat-bucket::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(201,168,76,0.6), rgba(201,168,76,0.1));
+    border-radius: 12px 12px 0 0;
+  }
   .stat-bucket-label {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #3a3840;
-    margin-bottom: 14px;
+    color: rgba(201,168,76,0.5);
+    margin-bottom: 12px;
   }
   .stat-bucket .stat-row {
     display: flex;
-    gap: 16px;
+    gap: 8px;
     flex-wrap: wrap;
   }
-  .stat-bucket .stat {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+
+  /* Individual stat card within a bucket */
+  .home-stat-card {
+    flex: 1;
+    min-width: 70px;
+    background: rgba(201,168,76,0.04);
+    border: 1px solid rgba(201,168,76,0.12);
+    border-radius: 8px;
+    padding: 12px 10px 10px;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
   }
-  @media (max-width: 900px) {
+  .home-stat-card:hover {
+    background: rgba(201,168,76,0.09);
+    border-color: rgba(201,168,76,0.3);
+    transform: translateY(-1px);
+  }
+  .home-stat-icon {
+    font-size: 20px;
+    color: rgba(201,168,76,0.5);
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+  .home-stat-card .stat-value {
+    font-family: Jost, sans-serif;
+    font-size: clamp(18px, 2vw, 26px);
+    font-weight: 700;
+    color: #c9a84c;
+    line-height: 1;
+  }
+  .home-stat-card .stat-value-text {
+    font-size: clamp(13px, 1.4vw, 17px) !important;
+  }
+  .home-stat-card .stat-label {
+    font-size: 10px;
+    color: #6b6470;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+  }
+  @media (max-width: 1100px) {
     .stat-buckets { grid-template-columns: repeat(2, 1fr); }
-    .stat-bucket:nth-child(2) { border-right: none; }
-    .stat-bucket:nth-child(1),
-    .stat-bucket:nth-child(2) { border-bottom: 1px solid #1e1c24; }
   }
-  @media (max-width: 500px) {
+  @media (max-width: 600px) {
+    .stat-buckets { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-bucket { padding: 12px; }
+  }
+  @media (max-width: 400px) {
     .stat-buckets { grid-template-columns: 1fr; }
-    .stat-bucket { border-right: none; border-bottom: 1px solid #1e1c24; }
-    .stat-bucket:last-child { border-bottom: none; }
   }
 
   /* ── Home: decade range stat — consistent font size ── */
@@ -3140,11 +3185,13 @@
           <div class="stat-bucket">
             <div class="stat-bucket-label">My Collection &amp; Wishlist</div>
             <div class="stat-row">
-              <div class="stat" id="statRecordsBox" tabindex="0" role="button" aria-label="View collection">
+              <div class="stat home-stat-card" id="statRecordsBox" tabindex="0" role="button" aria-label="View collection">
+                <i class="ti ti-vinyl home-stat-icon" aria-hidden="true"></i>
                 <span class="stat-value" id="statTotalRecords">—</span>
                 <span class="stat-label">Records I Have</span>
               </div>
-              <div class="stat" id="statWishlistBox" tabindex="0" role="button" aria-label="View wishlist">
+              <div class="stat home-stat-card" id="statWishlistBox" tabindex="0" role="button" aria-label="View wishlist">
+                <i class="ti ti-heart home-stat-icon" aria-hidden="true"></i>
                 <span class="stat-value" id="statWishlistCount">—</span>
                 <span class="stat-label">Records I Want</span>
               </div>
@@ -3154,15 +3201,18 @@
           <div class="stat-bucket">
             <div class="stat-bucket-label">My Tastes</div>
             <div class="stat-row">
-              <div class="stat" id="statGenresBox" tabindex="0" role="button" aria-label="View genre chart">
+              <div class="stat home-stat-card" id="statGenresBox" tabindex="0" role="button" aria-label="View genre chart">
+                <i class="ti ti-music home-stat-icon" aria-hidden="true"></i>
                 <span class="stat-value" id="statTotalGenres">—</span>
                 <span class="stat-label">Genres</span>
               </div>
-              <div class="stat" id="statLabelsBox" tabindex="0" role="button" aria-label="View label loyalty">
+              <div class="stat home-stat-card" id="statLabelsBox" tabindex="0" role="button" aria-label="View label loyalty">
+                <i class="ti ti-disc home-stat-icon" aria-hidden="true"></i>
                 <span class="stat-value" id="statTotalLabels">—</span>
                 <span class="stat-label">Labels</span>
               </div>
-              <div class="stat" id="statDecadeBox" tabindex="0" role="button" aria-label="View decade chart">
+              <div class="stat home-stat-card" id="statDecadeBox" tabindex="0" role="button" aria-label="View decade chart">
+                <i class="ti ti-calendar home-stat-icon" aria-hidden="true"></i>
                 <span class="stat-value stat-value-text" id="statDecadeSpan">—</span>
                 <span class="stat-label">Decade Range</span>
               </div>
@@ -3172,11 +3222,13 @@
           <div class="stat-bucket">
             <div class="stat-bucket-label">My Achievements</div>
             <div class="stat-row">
-              <div class="stat" id="statTrophiesBox" tabindex="0" role="button" aria-label="View trophies">
+              <div class="stat home-stat-card" id="statTrophiesBox" tabindex="0" role="button" aria-label="View trophies">
+                <i class="ti ti-trophy home-stat-icon" aria-hidden="true"></i>
                 <span class="stat-value" id="statTrophyCount">—</span>
                 <span class="stat-label">Trophies</span>
               </div>
-              <div class="stat" id="statValueBox">
+              <div class="stat home-stat-card" id="statValueBox">
+                <i class="ti ti-currency-dollar home-stat-icon" aria-hidden="true"></i>
                 <span class="stat-value stat-value-text" id="statMedianValue">—</span>
                 <span class="stat-label">Median Record Value</span>
               </div>
@@ -3186,11 +3238,13 @@
           <div class="stat-bucket">
             <div class="stat-bucket-label">My Community</div>
             <div class="stat-row">
-              <div class="stat" id="statFollowingBox" tabindex="0" role="button" aria-label="View community">
+              <div class="stat home-stat-card" id="statFollowingBox" tabindex="0" role="button" aria-label="View community">
+                <i class="ti ti-users home-stat-icon" aria-hidden="true"></i>
                 <span class="stat-value" id="statFollowingCount">—</span>
                 <span class="stat-label">I'm Following</span>
               </div>
-              <div class="stat" id="statFollowersBox" tabindex="0" role="button" aria-label="View community">
+              <div class="stat home-stat-card" id="statFollowersBox" tabindex="0" role="button" aria-label="View community">
+                <i class="ti ti-user home-stat-icon" aria-hidden="true"></i>
                 <span class="stat-value" id="statFollowersCount">—</span>
                 <span class="stat-label">Following Me</span>
               </div>
@@ -5279,9 +5333,14 @@
         <h1 class="collection-value-title">My Collection Value</h1>
         <p class="collection-value-byline">The value of your collection is in the joy the music brings… but sometimes it's nice to know the market price as well.</p>
       </div>
-      <button type="button" id="refreshAllValuesBtn" class="btn-secondary collection-value-refresh-btn">
-        <i class="ti ti-refresh" aria-hidden="true"></i> Refresh all prices
-      </button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <button type="button" id="refreshMissingValuesBtn" class="btn-secondary collection-value-refresh-btn">
+          <i class="ti ti-refresh" aria-hidden="true"></i> Fetch missing prices
+        </button>
+        <button type="button" id="refreshAllValuesBtn" class="btn-secondary collection-value-refresh-btn">
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Re-fetch all prices
+        </button>
+      </div>
     </div>
 
     <!-- Portfolio total -->

@@ -14054,39 +14054,47 @@ async function cvFetchSinglePrice(record, btn, silent = false) {
   }
 }
 
-// Refresh all prices (rate-limited, resumable)
-async function cvRefreshAllPrices() {
-  const btn = document.getElementById("refreshAllValuesBtn");
+async function cvRefreshPrices({ missingOnly = true } = {}) {
+  const missingBtn = document.getElementById("refreshMissingValuesBtn");
+  const allBtn     = document.getElementById("refreshAllValuesBtn");
+  const activeBtn  = missingOnly ? missingBtn : allBtn;
 
-  // Only fetch records with a confirmed pressing ID — estimates are disabled
-  const toRefresh = allRecords.filter(r =>
-    r.discogs_release_id &&
-    r.market_value_override == null &&
-    (r.market_value_cached == null || isNaN(parseFloat(r.market_value_cached)) || parseFloat(r.market_value_cached) <= 0)
-  );
+  const toRefresh = allRecords.filter(r => {
+    if (!r.discogs_release_id) return false;
+    if (r.market_value_override != null) return false;
+    if (missingOnly) {
+      // Only records with no valid cached price
+      const v = parseFloat(r.market_value_cached);
+      return r.market_value_cached == null || isNaN(v) || v <= 0;
+    }
+    return true; // re-fetch everything with a pressing ID
+  });
 
   if (!toRefresh.length) {
-    if (btn) {
-      btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Link pressings to get values';
+    if (activeBtn) {
+      activeBtn.innerHTML = missingOnly
+        ? '<i class="ti ti-check" aria-hidden="true"></i> All linked pressings valued'
+        : '<i class="ti ti-check" aria-hidden="true"></i> No linked pressings found';
       setTimeout(() => {
-        if (btn) btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Refresh all prices';
-      }, 4000);
+        if (missingBtn) missingBtn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Fetch missing prices';
+        if (allBtn)     allBtn.innerHTML     = '<i class="ti ti-refresh-alert" aria-hidden="true"></i> Re-fetch all prices';
+      }, 3000);
     }
     return;
   }
 
-  if (btn) { btn.disabled = true; }
+  if (activeBtn) activeBtn.disabled = true;
 
   const BATCH = 3;
   let done = 0;
 
   for (let i = 0; i < toRefresh.length; i += BATCH) {
     const batch = toRefresh.slice(i, i + BATCH);
-    await Promise.all(batch.map(r => cvFetchSinglePrice(r, null, true))); // silent — no mid-batch re-renders
+    await Promise.all(batch.map(r => cvFetchSinglePrice(r, null, true)));
     done += batch.length;
 
-    if (btn) {
-      btn.innerHTML = `<i class="ti ti-refresh" aria-hidden="true"></i> Fetching… ${done} / ${toRefresh.length}`;
+    if (activeBtn) {
+      activeBtn.innerHTML = `<i class="ti ti-refresh" aria-hidden="true"></i> Fetching… ${done} / ${toRefresh.length}`;
     }
 
     if (i + BATCH < toRefresh.length) {
@@ -14094,7 +14102,7 @@ async function cvRefreshAllPrices() {
     }
   }
 
-  // Reload the value fields from DB so we're guaranteed to display what was saved
+  // Reload from DB to guarantee display matches what was saved
   const ids = allRecords.map(r => r.id);
   const { data: fresh } = await supabaseClient
     .from("records")
@@ -14108,12 +14116,11 @@ async function cvRefreshAllPrices() {
     });
   }
 
-  if (btn) {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Refresh all prices';
-  }
+  if (missingBtn) { missingBtn.disabled = false; missingBtn.innerHTML = '<i class="ti ti-refresh" aria-hidden="true"></i> Fetch missing prices'; }
+  if (allBtn)     { allBtn.disabled = false;     allBtn.innerHTML     = '<i class="ti ti-refresh-alert" aria-hidden="true"></i> Re-fetch all prices'; }
+
   renderCollectionValue();
-  logEvent("collection_value_refreshed_all", { count: toRefresh.length });
+  logEvent("collection_value_refreshed_all", { count: toRefresh.length, missingOnly });
 }
 
 // Pin/unpin a record to Top 5
@@ -14188,8 +14195,11 @@ function setupCollectionValue() {
   document.getElementById("collectionValuePageBtn")
     ?.addEventListener("click", () => setPage("collectionValue"));
 
+  document.getElementById("refreshMissingValuesBtn")
+    ?.addEventListener("click", () => cvRefreshPrices({ missingOnly: true }));
+
   document.getElementById("refreshAllValuesBtn")
-    ?.addEventListener("click", cvRefreshAllPrices);
+    ?.addEventListener("click", () => cvRefreshPrices({ missingOnly: false }));
 
   document.getElementById("cvOverrideCloseBtn")
     ?.addEventListener("click", () => { document.getElementById("cvOverrideModal").hidden = true; });
