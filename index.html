@@ -1328,7 +1328,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 20px;
-    padding: 32px 0 24px;
+    padding: 28px 0 24px 24px;
     flex-wrap: wrap;
   }
   .collection-value-title {
@@ -1686,6 +1686,27 @@
     font-size: 14px;
   }
   @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+  /* ── Universal page header — consistent across all tabs ── */
+  .page-header {
+    padding: 28px 0 24px 24px;
+    max-width: 680px;
+  }
+  .page-header-title {
+    font-family: Jost, sans-serif !important;
+    font-size: 28px !important;
+    font-weight: 700 !important;
+    color: #e8e0d0 !important;
+    margin-bottom: 8px !important;
+    line-height: 1.15 !important;
+  }
+  .page-header-sub {
+    font-size: 14px !important;
+    color: #6b6470 !important;
+    line-height: 1.6 !important;
+    font-style: normal !important;
+    font-weight: 400 !important;
+  }
 
   /* ── Home: stat buckets ── */
   .stat-buckets {
@@ -4081,9 +4102,9 @@
   <section id="roomSection" hidden>
     <div class="room-page">
       <div class="room-page-header">
-        <div class="room-page-header-text">
-          <h2>My Listening Room</h2>
-          <p class="room-page-tagline">Nothing beats your own records — but take a seat, browse your collection, and enjoy a home away from home.</p>
+        <div class="page-header" style="padding-left:0">
+          <h2 class="page-header-title">My Listening Room</h2>
+          <p class="page-header-sub">Nothing beats your own records — but take a seat, browse your collection, and enjoy a home away from home.</p>
         </div>
         <div class="room-page-header-actions">
           <button type="button" id="arrangeWallBtn" class="btn-secondary">Arrange wall</button>
@@ -4105,11 +4126,10 @@
     <div class="taste-profile-page">
       <div class="taste-profile-layout">
         <div class="taste-profile-header">
-          <h2>My Taste Profile</h2>
-          <p class="taste-profile-intro">
-            Every genre in your collection pulls this shape in its own direction. The bigger
-            the reach toward an edge, the more that sound defines your shelves.
-          </p>
+          <div class="page-header" style="padding-left:0">
+            <h2 class="page-header-title">My Taste Profile</h2>
+            <p class="page-header-sub">Every genre in your collection pulls this shape in its own direction. The bigger the reach toward an edge, the more that sound defines your shelves.</p>
+          </div>
           <p class="field-hint">Hover a point for a quick snapshot, or click it for the full breakdown.</p>
           <div id="tasteProfileLegend" class="taste-profile-legend"></div>
         </div>
@@ -4128,12 +4148,10 @@
   <section id="genreEvolutionSection" hidden>
     <div class="genre-evolution-page">
       <div class="genre-evolution-header">
-        <h2>My Taste Evolution</h2>
-        <p class="taste-profile-intro">
-          How an artist's sound moved across styles over the years, based on the albums you
-          own. Each line follows one artist's catalog in release-year order, tracking the
-          subgenre of each release (falling back to genre when a subgenre isn't set).
-        </p>
+        <div class="page-header" style="padding-left:0">
+          <h2 class="page-header-title">My Taste Evolution</h2>
+          <p class="page-header-sub">How an artist's sound moved across styles over the years, based on the albums you own. Each line follows one artist's catalog in release-year order, tracking the subgenre of each release (falling back to genre when a subgenre isn't set).</p>
+        </div>
         <div class="genre-evolution-controls">
           <label for="genreEvolutionArtistSelect">Focus on an artist</label>
           <select id="genreEvolutionArtistSelect">
@@ -4161,12 +4179,10 @@
   <section id="collectionInsightsSection" hidden>
     <div class="ci-page">
       <div class="ci-header">
-        <h2>My Collection Insights</h2>
-        <p class="taste-profile-intro">
-          A few more ways to see your shelves. Some of these need specific details — pressing
-          condition, acquisition dates, labels — to look their best, so we only turn them on once
-          there's enough in your collection to make them worth looking at.
-        </p>
+        <div class="page-header" style="padding-left:0">
+          <h2 class="page-header-title">My Collection Insights</h2>
+          <p class="page-header-sub">A few more ways to see your shelves. Some of these need specific details to look their best, so we only turn them on once there's enough in your collection to make them worth looking at.</p>
+        </div>
       </div>
 
       <!-- ── Acquisition Timeline (built) ── -->
@@ -4250,9 +4266,9 @@
     <div class="fellow-collectors-page">
 
       <div class="fellow-collectors-header">
-        <div>
-          <h2>My Community</h2>
-          <p class="field-hint">Connect with collectors whose taste you admire.</p>
+        <div class="page-header" style="padding-left:0">
+          <h2 class="page-header-title">My Community</h2>
+          <p class="page-header-sub">Connect with collectors whose taste you admire.</p>
         </div>
       </div>
 
@@ -4336,9 +4352,9 @@
   <section id="trophiesSection" hidden>
     <div class="trophies-page">
       <div class="trophies-header">
-        <div>
-          <h2>My Trophies</h2>
-          <p class="field-hint">Earned from your collection. Each one reflects something real about your taste.</p>
+        <div class="page-header" style="padding-left:0">
+          <h2 class="page-header-title">My Trophies</h2>
+          <p class="page-header-sub">Earned from your collection. Each one reflects something real about your taste.</p>
         </div>
         <div class="trophies-header-right">
           <div class="trophies-summary" id="trophiesSummary"></div>
@@ -5346,9 +5362,9 @@
   <!-- ── Collection Value ── -->
   <section id="collectionValueSection" hidden>
     <div class="collection-value-header">
-      <div>
-        <h1 class="collection-value-title">My Collection Value</h1>
-        <p class="collection-value-byline">The value of your collection is in the joy the music brings… but sometimes it's nice to know the market price as well.</p>
+      <div class="page-header">
+        <h1 class="page-header-title">My Collection Value</h1>
+        <p class="page-header-sub">The value of your collection is in the joy the music brings… but sometimes it's nice to know the market price as well.</p>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
         <button type="button" id="refreshMissingValuesBtn" class="btn-secondary collection-value-refresh-btn">
