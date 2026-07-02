@@ -13387,6 +13387,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   startHeaderNowPlayingPolling();
 });
 
+// ── Back/forward cache fix ───────────────────────────────────────────────────
+// When a user visits /about.html or any external page and hits Back,
+// the browser restores this page from bfcache — a frozen DOM snapshot
+// where JS event listeners are dead. Force a reload to re-initialise.
+window.addEventListener("pageshow", (e) => {
+  if (e.persisted) window.location.reload();
+});
+
 
 // ── Analytics & Event Tracking ───────────────────────────────────────────────
 //
