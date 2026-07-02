@@ -10803,11 +10803,11 @@ async function handleSocialLogin(provider) {
   statusEl.textContent = "";
   statusEl.className = "form-status";
 
-  const { error } = await supabaseClient.auth.signInWithOAuth({
+  const { data, error } = await supabaseClient.auth.signInWithOAuth({
     provider,
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      skipBrowserRedirect: false,
+      skipBrowserRedirect: true, // don't redirect current tab
     },
   });
 
@@ -10817,6 +10817,12 @@ async function handleSocialLogin(provider) {
         ? `${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-in isn't enabled yet.`
         : error.message;
     statusEl.className = "form-status form-status-error";
+    return;
+  }
+
+  // Open the OAuth flow in a new tab — leaves the splash page untouched
+  if (data?.url) {
+    window.open(data.url, "_blank", "noopener");
   }
 }
 
