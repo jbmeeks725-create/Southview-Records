@@ -728,7 +728,8 @@ function renderStats() {
   }
 
   // ── My Achievements: median collection value (exact pressings only) ──
-  const medianEl = document.getElementById("statMedianValue");
+  const medianEl  = document.getElementById("statMedianValue");
+  const medianSub = document.getElementById("statMedianSub");
   if (medianEl) {
     const values = allRecords
       .map(r => {
@@ -748,8 +749,10 @@ function renderStats() {
         style: "currency", currency: "USD",
         minimumFractionDigits: 0, maximumFractionDigits: 0,
       }).format(median);
+      if (medianSub) medianSub.textContent = `(${values.length} album${values.length !== 1 ? "s" : ""} matched)`;
     } else {
       medianEl.textContent = "—";
+      if (medianSub) medianSub.textContent = "";
     }
   }
 
