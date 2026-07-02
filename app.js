@@ -15209,6 +15209,9 @@ function setupQuickrate() {
   document.getElementById("quickrateBtn")
     ?.addEventListener("click", openQuickrate);
 
+  document.getElementById("quickrateBtnWishlist")
+    ?.addEventListener("click", openQuickrate);
+
   document.getElementById("quickrateDoneBtn")
     ?.addEventListener("click", () => {
       document.getElementById("quickrateModal").hidden = true;
