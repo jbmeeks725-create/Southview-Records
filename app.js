@@ -737,22 +737,18 @@ function renderStats() {
         if (r.discogs_release_id && r.market_value_cached != null) return parseFloat(r.market_value_cached);
         return null;
       })
-      .filter(v => v !== null && !isNaN(v) && v > 0)
-      .sort((a, b) => a - b);
+      .filter(v => v !== null && !isNaN(v) && v > 0);
 
     if (values.length) {
-      const mid = Math.floor(values.length / 2);
-      const median = values.length % 2 !== 0
-        ? values[mid]
-        : (values[mid - 1] + values[mid]) / 2;
+      const total = values.reduce((sum, v) => sum + v, 0);
       medianEl.textContent = new Intl.NumberFormat("en-US", {
         style: "currency", currency: "USD",
         minimumFractionDigits: 0, maximumFractionDigits: 0,
-      }).format(median);
-      if (medianSub) medianSub.textContent = `(${values.length} album${values.length !== 1 ? "s" : ""} matched)`;
+      }).format(total);
+      if (medianSub) medianSub.textContent = `(${values.length} / ${allRecords.length} records valued)`;
     } else {
       medianEl.textContent = "—";
-      if (medianSub) medianSub.textContent = "";
+      if (medianSub) medianSub.textContent = "Link pressings to value";
     }
   }
 
