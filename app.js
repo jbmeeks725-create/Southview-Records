@@ -718,8 +718,13 @@ function renderStats() {
   // ── My Achievements: trophies ──
   const trophyEl = document.getElementById("statTrophyCount");
   if (trophyEl) {
-    const earned = (window.ALL_TROPHIES || []).filter(t => t.earned).length;
-    trophyEl.textContent = earned || "—";
+    try {
+      const trophies = computeTrophies();
+      const earned = trophies.filter(t => t.earned).length;
+      trophyEl.textContent = `${earned} / ${trophies.length}`;
+    } catch (e) {
+      trophyEl.textContent = "—";
+    }
   }
 
   // ── My Achievements: median collection value (exact pressings only) ──
