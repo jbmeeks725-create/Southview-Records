@@ -10807,6 +10807,7 @@ async function handleSocialLogin(provider) {
     provider,
     options: {
       redirectTo: window.location.origin + window.location.pathname,
+      skipBrowserRedirect: false,
     },
   });
 
@@ -10817,8 +10818,6 @@ async function handleSocialLogin(provider) {
         : error.message;
     statusEl.className = "form-status form-status-error";
   }
-  // On success, Supabase redirects to the OAuth provider automatically —
-  // no further action needed here; onAuthStateChange handles the return.
 }
 
 async function handleAuthSubmit(event) {

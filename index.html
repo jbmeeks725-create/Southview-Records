@@ -4,6 +4,15 @@
   <meta charset="utf-8" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
+
+  <!-- Prevent bfcache from freezing the page — critical for OAuth redirect flows -->
+  <script>
+    window.addEventListener("pageshow", function(e) {
+      if (e.persisted) window.location.reload();
+    });
+    // Also mark this page as not eligible for bfcache
+    window.addEventListener("unload", function() {});
+  </script>
   <meta http-equiv="Expires" content="0" />
   <title>Spin Vinyl — The Digital Home for Your Vinyl Collection</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
