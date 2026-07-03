@@ -10827,11 +10827,15 @@ async function handleSocialLogin(provider) {
   statusEl.textContent = "";
   statusEl.className = "form-status";
 
-  const { data, error } = await supabaseClient.auth.signInWithOAuth({
+  // Let Supabase redirect the current tab/window to the provider, then back
+  // to this page. The previous skipBrowserRedirect + window.open() pattern
+  // was unreliable on mobile Safari, which blocks window.open() calls that
+  // aren't a direct synchronous result of the tap (this one fires after an
+  // await, so it was getting popup-blocked).
+  const { error } = await supabaseClient.auth.signInWithOAuth({
     provider,
     options: {
       redirectTo: window.location.origin + window.location.pathname,
-      skipBrowserRedirect: true, // don't redirect current tab
     },
   });
 
@@ -10841,13 +10845,9 @@ async function handleSocialLogin(provider) {
         ? `${provider.charAt(0).toUpperCase() + provider.slice(1)} sign-in isn't enabled yet.`
         : error.message;
     statusEl.className = "form-status form-status-error";
-    return;
   }
-
-  // Open the OAuth flow in a new tab — leaves the splash page untouched
-  if (data?.url) {
-    window.open(data.url, "_blank", "noopener");
-  }
+  // No further action needed on success — the browser is navigating away
+  // to the provider now.
 }
 
 async function handleAuthSubmit(event) {
@@ -10867,10 +10867,11 @@ async function handleAuthSubmit(event) {
       const { data, error } = await supabaseClient.auth.signUp({ email, password });
       if (error) throw error;
 
-      if (data.session) {
+      if (data.session && data.user) {
         // Email confirmation is disabled in Supabase — signed in immediately
         statusEl.textContent = "Account created! Welcome to Spin Vinyl.";
         statusEl.className = "form-status form-status-success";
+        await onSignedIn(data.user);
       } else {
         // Email confirmation required — show a prominent message
         const authForm = document.getElementById("authForm");

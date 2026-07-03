@@ -5341,6 +5341,18 @@
 
   <!-- Supabase JS (client-side) -->
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+  <!-- Temporary mobile debug console — only loads with ?debug=1 in the URL.
+       Remove this block once the mobile login issue is resolved. -->
+  <script>
+    if (new URLSearchParams(window.location.search).get("debug") === "1") {
+      const erudaScript = document.createElement("script");
+      erudaScript.src = "https://cdn.jsdelivr.net/npm/eruda";
+      erudaScript.onload = () => window.eruda && window.eruda.init();
+      document.head.appendChild(erudaScript);
+    }
+  </script>
+
   <script src="app.js"></script>
 
   <!-- ── Mobile FAB (Wishlist) ── -->
