@@ -132,6 +132,7 @@
 
       /* Center column: full width, properly centered */
       #authOverlay .landing-center {
+        box-sizing: border-box !important;
         width: 100% !important;
         max-width: 100% !important;
         padding: calc(env(safe-area-inset-top, 0px) + 48px) 28px calc(env(safe-area-inset-bottom, 0px) + 40px) !important;
@@ -141,6 +142,14 @@
         text-align: center !important;
         gap: 0 !important;
         position: relative !important;
+      }
+
+      /* Without border-box, the 28px side padding above adds to (rather than
+         eats into) the 100% width, pushing the form's right edge past the
+         viewport. overflow-x:hidden on the overlay then clips that overflow,
+         which visually reads as the whole form being shoved flush-left. */
+      #authOverlay .landing-center * {
+        box-sizing: border-box !important;
       }
 
       /* Decorative gold arc behind logo */
@@ -308,6 +317,9 @@
 
     /* ── 0. Header: push below iPhone notch / Dynamic Island ── */
     header {
+      box-sizing: border-box !important;
+      width: 100% !important;
+      max-width: 100% !important;
       padding-top: env(safe-area-inset-top, 0px) !important;
     }
 
@@ -366,7 +378,26 @@
       padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
     }
 
-    /* ── 4. Compact the suggestions card to a single inline strip ── */
+    /* ── 5. Taste Profile radar chart: without an explicit height on
+       mobile, the canvas (maintainAspectRatio:false) inherits whatever
+       height style.css's desktop layout gives its wrapper — leaving a
+       tiny cramped chart up top and a large dead gap underneath. ── */
+    .taste-profile-radar-card {
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .taste-profile-canvas-wrap {
+      position: relative !important;
+      width: 100% !important;
+      height: min(88vw, 380px) !important;
+      max-height: 380px !important;
+      box-sizing: border-box !important;
+    }
+    .taste-profile-canvas-wrap canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+    /* ── 6. Compact the suggestions card to a single inline strip ── */
     .wishlist-suggestions-card {
       padding: 10px 12px !important;
     }
@@ -473,6 +504,48 @@
     }
     #mobileCollectionFilterSheet.visible {
       display: flex;
+    }
+    /* Grouped nav sheet (Collection / Taste / More) — same pattern */
+    #mobNavGroupSheet {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 920;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    #mobNavGroupSheet.visible {
+      display: flex;
+    }
+    .mob-navsheet-option {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-top: 1px solid #2a2830;
+      padding: 16px 4px;
+      font-family: Inter, sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: #e8e0d0;
+      text-align: left;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mob-navsheet-option:first-child {
+      border-top: none;
+    }
+    .mob-navsheet-option i {
+      font-size: 19px;
+      color: #c9a84c;
+      width: 22px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .mob-navsheet-option.active {
+      color: #c9a84c;
     }
     .mob-sheet-backdrop {
       position: absolute;
@@ -2123,7 +2196,8 @@
     body.modal-open #mobileBottomNav,
     body.modal-open #mobileFab,
     body.modal-open #mobileFabBackdrop,
-    body.modal-open #mobileFabOptions {
+    body.modal-open #mobileFabOptions,
+    body.modal-open #mobNavGroupSheet {
       display: none !important;
     }
   }
@@ -2136,6 +2210,7 @@
     #mobileFilterSheet,
     #mobileCollectionFilterSheet,
     #mobileCollectionFilterBtn,
+    #mobNavGroupSheet,
     #mobileWishlistFilterBtn { display: none !important; }
   }
   /* ── PWA Install Banner ── */
@@ -3180,21 +3255,21 @@
       <i class="ti ti-home mob-nav-icon"></i>
       <span class="mob-nav-label">Home</span>
     </button>
-    <button type="button" class="mob-nav-item" id="mobNavCollection" aria-label="My Collection">
+    <button type="button" class="mob-nav-item" id="mobNavCollection" aria-label="Collection group: My Collection, Wishlist, Collection Value" aria-haspopup="true">
       <i class="ti ti-disc mob-nav-icon"></i>
       <span class="mob-nav-label">Collection</span>
     </button>
-    <button type="button" class="mob-nav-item" id="mobNavWishlist" aria-label="My Wishlist">
-      <i class="ti ti-heart mob-nav-icon"></i>
-      <span class="mob-nav-label">Wishlist</span>
-    </button>
-    <button type="button" class="mob-nav-item" id="mobNavTaste" aria-label="My Taste Profile">
+    <button type="button" class="mob-nav-item" id="mobNavTaste" aria-label="Taste group: Taste Profile, Taste Evolution, Collection Insights" aria-haspopup="true">
       <i class="ti ti-chart-radar mob-nav-icon"></i>
       <span class="mob-nav-label">Taste</span>
     </button>
     <button type="button" class="mob-nav-item" id="mobNavRoom" aria-label="My Listening Room">
       <i class="ti ti-armchair mob-nav-icon"></i>
       <span class="mob-nav-label">Room</span>
+    </button>
+    <button type="button" class="mob-nav-item" id="mobNavMore" aria-label="More: Trophies, Community" aria-haspopup="true">
+      <i class="ti ti-dots-circle-horizontal mob-nav-icon"></i>
+      <span class="mob-nav-label">More</span>
     </button>
   </nav>
     <nav id="pageNav" role="group" aria-label="Page">
@@ -5646,18 +5721,60 @@
     </div>
   </div>
 
+  <!-- ── Grouped nav bottom sheet (Collection / Taste / More) — content filled in by JS ── -->
+  <div id="mobNavGroupSheet" role="dialog" aria-modal="true" aria-label="Choose a page">
+    <div class="mob-sheet-backdrop" id="mobNavGroupSheetBackdrop"></div>
+    <div class="mob-sheet-body">
+      <div class="mob-sheet-handle"></div>
+      <div class="mob-sheet-title" id="mobNavGroupSheetTitle"></div>
+      <div id="mobNavGroupSheetOptions"></div>
+    </div>
+  </div>
+
   <!-- ── Mobile UX JavaScript ── -->
   <script>
   (function () {
 
-    // ── Nav map: mobile button ID → desktop button ID ──
-    const NAV_MAP = {
-      mobNavHome:       'homePageBtn',
-      mobNavCollection: 'collectionPageBtn',
-      mobNavWishlist:   'wishlistPageBtn',
-      mobNavTaste:      'tasteProfilePageBtn',
-      mobNavRoom:       'roomPageBtn',
+    // ── Single-page nav buttons: mobile button ID → desktop button ID ──
+    const NAV_SINGLE = {
+      mobNavHome: 'homePageBtn',
+      mobNavRoom: 'roomPageBtn',
     };
+
+    // ── Grouped nav buttons: each opens a bottom sheet listing its pages ──
+    const NAV_GROUPS = {
+      mobNavCollection: {
+        title: 'Collection',
+        items: [
+          { desktopId: 'collectionPageBtn', icon: 'ti-disc', label: 'My Collection' },
+          { desktopId: 'wishlistPageBtn', icon: 'ti-heart', label: 'My Wishlist' },
+          { desktopId: 'collectionValuePageBtn', icon: 'ti-currency-dollar', label: 'My Collection Value' },
+        ],
+      },
+      mobNavTaste: {
+        title: 'Taste',
+        items: [
+          { desktopId: 'tasteProfilePageBtn', icon: 'ti-chart-radar', label: 'My Taste Profile' },
+          { desktopId: 'genreEvolutionPageBtn', icon: 'ti-timeline', label: 'My Taste Evolution' },
+          { desktopId: 'collectionInsightsPageBtn', icon: 'ti-chart-bar', label: 'My Collection Insights' },
+        ],
+      },
+      mobNavMore: {
+        title: 'More',
+        items: [
+          { desktopId: 'trophiesPageBtn', icon: 'ti-trophy', label: 'My Trophies' },
+          { desktopId: 'communityPageBtn', icon: 'ti-users', label: 'My Community' },
+        ],
+      },
+    };
+
+    // ── Reverse lookup: desktop button ID → mobile nav button ID (for
+    // mirroring active state and detecting the wishlist page specifically) ──
+    const DESKTOP_TO_MOB = {};
+    Object.entries(NAV_SINGLE).forEach(([mobId, desktopId]) => { DESKTOP_TO_MOB[desktopId] = mobId; });
+    Object.entries(NAV_GROUPS).forEach(([mobId, group]) => {
+      group.items.forEach((item) => { DESKTOP_TO_MOB[item.desktopId] = mobId; });
+    });
 
     // ── Show bottom nav immediately on mobile ──
     // CSS media query handles desktop hiding; we just need to ensure
@@ -5672,7 +5789,11 @@
     window.addEventListener('resize', initBottomNav);
 
     // ── Active tab state ──
-    function setActiveTab(activeId) {
+    // activeId = mobile nav button to highlight (may represent a group)
+    // activeDesktopId = the actual desktop page id, used for page-specific
+    // UI like the wishlist FAB, which needs to know it's really Wishlist
+    // and not just "somewhere in the Collection group"
+    function setActiveTab(activeId, activeDesktopId) {
       document.querySelectorAll('.mob-nav-item').forEach(btn => {
         btn.classList.remove('active');
         const pip = btn.querySelector('.mob-nav-pip');
@@ -5685,23 +5806,74 @@
         pip.className = 'mob-nav-pip';
         activeBtn.appendChild(pip);
       }
-      // Show FAB only on wishlist tab
-      document.body.classList.toggle('wishlist-active', activeId === 'mobNavWishlist');
+      // Show FAB only when the actual active page is Wishlist
+      const isWishlist = activeDesktopId === 'wishlistPageBtn';
+      document.body.classList.toggle('wishlist-active', isWishlist);
       const fab = document.getElementById('mobileFab');
       if (fab) {
-        fab.style.display = (activeId === 'mobNavWishlist' && window.innerWidth <= 768) ? 'flex' : 'none';
+        fab.style.display = (isWishlist && window.innerWidth <= 768) ? 'flex' : 'none';
       }
     }
 
-    // ── Wire bottom nav → desktop buttons ──
-    Object.entries(NAV_MAP).forEach(([mobId, desktopId]) => {
+    // ── Wire single-page bottom nav buttons → desktop buttons ──
+    Object.entries(NAV_SINGLE).forEach(([mobId, desktopId]) => {
       const mobBtn = document.getElementById(mobId);
       if (!mobBtn) return;
       mobBtn.addEventListener('click', () => {
         const desktopBtn = document.getElementById(desktopId);
         if (desktopBtn) desktopBtn.click();
-        setActiveTab(mobId);
+        setActiveTab(mobId, desktopId);
         closeFab();
+        closeNavGroupSheet();
+      });
+    });
+
+    // ── Grouped nav bottom sheet ──
+    const navGroupSheet        = document.getElementById('mobNavGroupSheet');
+    const navGroupSheetBackdrop = document.getElementById('mobNavGroupSheetBackdrop');
+    const navGroupSheetTitle   = document.getElementById('mobNavGroupSheetTitle');
+    const navGroupSheetOptions = document.getElementById('mobNavGroupSheetOptions');
+
+    function renderNavGroupSheet(mobId) {
+      const group = NAV_GROUPS[mobId];
+      if (!group || !navGroupSheetOptions) return;
+      navGroupSheetTitle.textContent = group.title;
+      navGroupSheetOptions.innerHTML = '';
+      group.items.forEach((item) => {
+        const desktopBtn = document.getElementById(item.desktopId);
+        const isActive = desktopBtn?.getAttribute('aria-pressed') === 'true';
+        const optBtn = document.createElement('button');
+        optBtn.type = 'button';
+        optBtn.className = 'mob-navsheet-option' + (isActive ? ' active' : '');
+        optBtn.innerHTML = `<i class="ti ${item.icon}"></i><span>${item.label}</span>`;
+        optBtn.addEventListener('click', () => {
+          if (desktopBtn) desktopBtn.click();
+          setActiveTab(mobId, item.desktopId);
+          closeNavGroupSheet();
+        });
+        navGroupSheetOptions.appendChild(optBtn);
+      });
+    }
+
+    function openNavGroupSheet(mobId) {
+      if (!navGroupSheet) return;
+      renderNavGroupSheet(mobId);
+      navGroupSheet.classList.add('visible');
+    }
+
+    function closeNavGroupSheet() {
+      if (!navGroupSheet) return;
+      navGroupSheet.classList.remove('visible');
+    }
+
+    navGroupSheetBackdrop?.addEventListener('click', closeNavGroupSheet);
+
+    Object.keys(NAV_GROUPS).forEach((mobId) => {
+      const mobBtn = document.getElementById(mobId);
+      if (!mobBtn) return;
+      mobBtn.addEventListener('click', () => {
+        closeFab();
+        openNavGroupSheet(mobId);
       });
     });
 
@@ -5711,8 +5883,8 @@
       const observer = new MutationObserver(() => {
         const active = desktopNav.querySelector('.view-btn[aria-pressed="true"]');
         if (!active) return;
-        const mobId = Object.keys(NAV_MAP).find(k => NAV_MAP[k] === active.id);
-        if (mobId) setActiveTab(mobId);
+        const mobId = DESKTOP_TO_MOB[active.id];
+        if (mobId) setActiveTab(mobId, active.id);
       });
       observer.observe(desktopNav, { attributes: true, subtree: true, attributeFilter: ['aria-pressed'] });
     }
