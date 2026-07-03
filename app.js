@@ -715,17 +715,57 @@ function buildMiniCover(coverUrl, alt) {
   return buildCoverFigure(coverUrl, alt, "mini-cover-wrap");
 }
 
+function animateStatValue(el, endValue, { duration = 700, formatter = (v) => String(Math.round(v)) } = {}) {
+  if (!el) return;
+  if (!Number.isFinite(endValue)) { el.textContent = String(endValue); return; }
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    el.textContent = formatter(endValue);
+    return;
+  }
+  const startTime = performance.now();
+  function tick(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    el.textContent = formatter(endValue * eased);
+    if (t < 1) requestAnimationFrame(tick);
+    else el.textContent = formatter(endValue);
+  }
+  requestAnimationFrame(tick);
+}
+
+// A zero here is a dead end, not real information — turn it into a nudge
+// to actually do something, per usual empty-state treatment: an invitation
+// to act rather than just a sad number.
+function applyCommunityStat(valueEl, count, defaultLabel, emptyInviteLabel) {
+  if (!valueEl) return;
+  const card = valueEl.closest(".stat");
+  const labelEl = card?.querySelector(".stat-label");
+  if (count === 0) {
+    valueEl.textContent = "";
+    valueEl.classList.add("stat-value-invite");
+    valueEl.innerHTML = '<i class="ti ti-user-plus" aria-hidden="true"></i>';
+    if (labelEl) labelEl.textContent = emptyInviteLabel;
+    if (card) card.classList.add("stat-empty-invite");
+  } else {
+    valueEl.classList.remove("stat-value-invite");
+    if (card) card.classList.remove("stat-empty-invite");
+    if (labelEl) labelEl.textContent = defaultLabel;
+    animateStatValue(valueEl, count ?? 0);
+    if (count == null) valueEl.textContent = "—";
+  }
+}
+
 function renderStats() {
   // ── My Collection & Wishlist ──
-  document.getElementById("statTotalRecords").textContent = allRecords.length;
-  document.getElementById("statWishlistCount").textContent = wishlist.length;
+  animateStatValue(document.getElementById("statTotalRecords"), allRecords.length);
+  animateStatValue(document.getElementById("statWishlistCount"), wishlist.length);
 
   // ── My Tastes ──
   const genreNames = new Set(allRecords.map((r) => r.genre_name).filter(Boolean));
-  document.getElementById("statTotalGenres").textContent = genreNames.size;
+  animateStatValue(document.getElementById("statTotalGenres"), genreNames.size);
 
   const labelNames = new Set(allRecords.map((r) => r.label?.trim()).filter(Boolean));
-  document.getElementById("statTotalLabels").textContent = labelNames.size;
+  animateStatValue(document.getElementById("statTotalLabels"), labelNames.size);
 
   const years = allRecords.map((r) => r.year).filter((y) => !!y);
   if (years.length > 0) {
@@ -744,7 +784,7 @@ function renderStats() {
     try {
       const trophies = computeTrophies();
       const earned = trophies.filter(t => t.earned).length;
-      trophyEl.textContent = `${earned} / ${trophies.length}`;
+      animateStatValue(trophyEl, earned, { formatter: (v) => `${Math.round(v)} / ${trophies.length}` });
     } catch (e) {
       trophyEl.textContent = "—";
     }
@@ -764,10 +804,11 @@ function renderStats() {
 
     if (values.length) {
       const total = values.reduce((sum, v) => sum + v, 0);
-      medianEl.textContent = new Intl.NumberFormat("en-US", {
+      const currencyFmt = new Intl.NumberFormat("en-US", {
         style: "currency", currency: "USD",
         minimumFractionDigits: 0, maximumFractionDigits: 0,
-      }).format(total);
+      });
+      animateStatValue(medianEl, total, { formatter: (v) => currencyFmt.format(v) });
       if (medianSub) medianSub.textContent = `(${values.length} / ${allRecords.length} records valued)`;
     } else {
       medianEl.textContent = "—";
@@ -783,13 +824,13 @@ function renderStats() {
       .from("follows")
       .select("id", { count: "exact", head: true })
       .eq("follower_id", currentUser.id)
-      .then(({ count }) => { if (followingEl) followingEl.textContent = count ?? "—"; });
+      .then(({ count }) => applyCommunityStat(followingEl, count, "I'm Following", "Find people to follow"));
 
     supabaseClient
       .from("follows")
       .select("id", { count: "exact", head: true })
       .eq("following_id", currentUser.id)
-      .then(({ count }) => { if (followersEl) followersEl.textContent = count ?? "—"; });
+      .then(({ count }) => applyCommunityStat(followersEl, count, "Following Me", "Share to get noticed"));
   }
 }
 
@@ -880,6 +921,45 @@ function buildSpotlightStoryPanel(record) {
   return panel;
 }
 
+// Ambient background wash pulled from the Spotlight cover's dominant color.
+// Uses a separate offscreen probe image (not the visible <img>) so that if
+// the host doesn't send CORS headers and the canvas read fails, we just
+// silently skip the effect rather than risk breaking the visible cover.
+function applySpotlightAmbient(coverUrl) {
+  const bg = document.getElementById("spotlightAmbientBg");
+  if (!bg) return;
+  if (!coverUrl) {
+    bg.style.opacity = "0";
+    return;
+  }
+  const probe = new Image();
+  probe.crossOrigin = "anonymous";
+  probe.onload = () => {
+    try {
+      const size = 16;
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(probe, 0, 0, size, size);
+      const data = ctx.getImageData(0, 0, size, size).data;
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 128) continue;
+        r += data[i]; g += data[i + 1]; b += data[i + 2]; count++;
+      }
+      if (!count) return;
+      r = Math.round(r / count); g = Math.round(g / count); b = Math.round(b / count);
+      bg.style.background = `radial-gradient(ellipse 900px 500px at 12% 10%, rgba(${r},${g},${b},0.14), transparent 60%)`;
+      bg.style.opacity = "1";
+    } catch (e) {
+      // Cross-origin cover without CORS headers — skip the ambient wash silently
+    }
+  };
+  probe.onerror = () => {};
+  probe.src = coverUrl;
+}
+
 function renderSpotlight() {
   const content = document.getElementById("spotlightContent");
   const songWrap = document.getElementById("spotlightSongWrap");
@@ -913,6 +993,7 @@ function renderSpotlight() {
   }
 
   const record = pool.find((r) => r.id === spotlightRecordId);
+  applySpotlightAmbient(record.cover_url);
 
   const coverWrap = buildCoverFigure(record.cover_url, `${record.album} cover`, "spotlight-cover-wrap");
 
@@ -1501,6 +1582,47 @@ function renderHome() {
   renderSpotlight();
   renderRecentlyAdded();
   renderWishlistHighlights();
+  startSpotlightAutoRotate();
+}
+
+// ── Spotlight auto-rotation: cycles ambiently through a few recently
+// added records with a cross-fade, so the home page doesn't sit static.
+// Pauses on hover, and skips entirely once the Home page is off-screen. ──
+let spotlightAutoTimer = null;
+
+function getSpotlightRotationPool() {
+  const recent = [...allRecords].sort((a, b) => b.id - a.id).slice(0, 5);
+  const eligible = recent.filter((r) => r.rating !== "dislike");
+  return (eligible.length > 1 ? eligible : recent).map((r) => r.id);
+}
+
+function stopSpotlightAutoRotate() {
+  if (spotlightAutoTimer) clearInterval(spotlightAutoTimer);
+  spotlightAutoTimer = null;
+}
+
+function startSpotlightAutoRotate() {
+  stopSpotlightAutoRotate();
+  spotlightAutoTimer = setInterval(() => {
+    const homeSection = document.getElementById("homeSection");
+    const content = document.getElementById("spotlightContent");
+    if (!homeSection || homeSection.hidden || !content) return;
+    if (content.matches(":hover")) return; // don't yank the rug while someone's reading
+
+    const pool = getSpotlightRotationPool();
+    if (pool.length < 2) return;
+
+    content.classList.add("spotlight-fading");
+    setTimeout(() => {
+      let nextId = pool[Math.floor(Math.random() * pool.length)];
+      if (nextId === spotlightRecordId) {
+        nextId = pool.find((id) => id !== spotlightRecordId) ?? nextId;
+      }
+      spotlightRecordId = nextId;
+      renderSpotlight();
+      content.classList.remove("spotlight-fading");
+    }, 260);
+  }, 9000);
 }
 
 // ------------ Profile data ------------
@@ -10446,6 +10568,7 @@ function setupEvents() {
     .addEventListener("click", () => {
       spotlightRecordId = null;
       renderSpotlight();
+      startSpotlightAutoRotate();
     });
 
   // Wishlist: Suggested For You (moved from home page)
