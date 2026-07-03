@@ -5,7 +5,7 @@
 //   • CDN assets (Chart.js, Tabler icons, etc.) → Stale While Revalidate
 //   • Everything else → Network First with offline fallback
 
-const CACHE_VERSION = 'spinvinyl-v4';
+const CACHE_VERSION = 'spinvinyl-v5';
 const SHELL_CACHE   = `${CACHE_VERSION}-shell`;
 const CDN_CACHE     = `${CACHE_VERSION}-cdn`;
 
@@ -98,9 +98,17 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // App shell and local assets: cache-first
+  // App shell: network-first for JS and HTML (critical files must always be fresh)
+  // Cache-first only for static assets like images and CSS
   if (url.origin === self.location.origin) {
-    event.respondWith(cacheFirstWithFallback(request));
+    const isCode = url.pathname === '/' || 
+                   url.pathname.endsWith('.html') || 
+                   url.pathname.endsWith('.js');
+    if (isCode) {
+      event.respondWith(networkFirst(request));
+    } else {
+      event.respondWith(cacheFirstWithFallback(request));
+    }
     return;
   }
 
