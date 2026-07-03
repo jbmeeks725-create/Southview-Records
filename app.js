@@ -12947,9 +12947,11 @@ function setupAuth() {
   supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session?.user) {
       onSignedIn(session.user);
-    } else {
+    } else if (event === "SIGNED_OUT") {
       onSignedOut();
     }
+    // Ignore TOKEN_REFRESHED, INITIAL_SESSION etc. with null session
+    // — these are transient states that don't mean the user is logged out
   });
 }
 
