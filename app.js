@@ -10888,13 +10888,17 @@ async function handleAuthSubmit(event) {
         statusEl.className = "form-status";
       }
     } else {
+      console.log("[AUTH] calling signInWithPassword...");
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      console.log("[AUTH] signInWithPassword result — error:", error, "user:", data?.user?.email, "session:", !!data?.session);
       if (error) throw error;
       statusEl.textContent = "";
-      // Call onSignedIn directly from the result — never wait for onAuthStateChange
-      // onAuthStateChange is unreliable on iOS Safari after signInWithPassword
       if (data?.user) {
+        console.log("[AUTH] calling onSignedIn directly...");
         await onSignedIn(data.user);
+        console.log("[AUTH] onSignedIn completed");
+      } else {
+        console.log("[AUTH] no user in result — this should not happen");
       }
     }
   } catch (err) {
@@ -11015,20 +11019,27 @@ async function onSignedIn(user) {
 
   document.getElementById("accountSection").hidden = false;
   showAuthOverlay(false);
+  console.log("[AUTH] auth overlay hidden");
 
-  // If already loaded (e.g. onAuthStateChange fired before our explicit call), skip heavy reload
   if (!isFirstLoad && allRecords.length > 0) {
+    console.log("[AUTH] already loaded, skipping to setPage home");
     setPage("home");
     return;
   }
 
+  console.log("[AUTH] calling loadProfile...");
   resetSessionUiState();
   await loadProfile();
+  console.log("[AUTH] loadProfile done, profile:", currentProfile?.username);
   refreshAccountButton();
   syncWishlistPublicToggle();
+  console.log("[AUTH] calling loadData...");
   await loadData();
+  console.log("[AUTH] loadData done, records:", allRecords.length);
   if (isFirstLoad) setPage("home");
+  console.log("[AUTH] calling maybeShowOnboarding...");
   maybeShowOnboarding();
+  console.log("[AUTH] onSignedIn complete");
 }
 
 function onSignedOut() {
