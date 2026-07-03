@@ -11051,6 +11051,7 @@ function onSignedOut() {
   document.getElementById("accountAvatarImg").src = "icon-512.png";
   document.getElementById("authForm").reset();
   setAuthMode("signin");
+  showLandingCta();
   document.getElementById("onboardingScreen").hidden = true;
   resetSessionUiState();
   allRecords = [];
@@ -12866,8 +12867,27 @@ function setupSpotify() {
 }
 
 
+function showLandingAuthForm(mode) {
+  document.getElementById("landingCtaButtons").hidden = true;
+  document.getElementById("landingAuthForms").hidden = false;
+  setAuthMode(mode);
+  document.getElementById("authEmail")?.focus();
+}
+
+function showLandingCta() {
+  document.getElementById("landingAuthForms").hidden = true;
+  document.getElementById("landingCtaButtons").hidden = false;
+}
+
 function setupAuth() {
   document.getElementById("authForm").addEventListener("submit", handleAuthSubmit);
+
+  // CTA buttons on the public landing view — the form is hidden until one
+  // of these is tapped, so a logged-out visitor sees real page content
+  // (purpose + features) before any sign-in wall.
+  document.getElementById("landingSignInBtn")?.addEventListener("click", () => showLandingAuthForm("signin"));
+  document.getElementById("landingSignUpBtn")?.addEventListener("click", () => showLandingAuthForm("signup"));
+  document.getElementById("landingAuthBackBtn")?.addEventListener("click", showLandingCta);
 
   // Social OAuth buttons
   document.getElementById("authGoogleBtn").addEventListener("click", () =>

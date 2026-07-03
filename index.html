@@ -101,6 +101,101 @@
 
   <!-- ── Mobile UX overrides (max-width: 768px) — desktop untouched ── -->
   <style>
+
+  /* ── Public landing content (all screen sizes) ──
+     Visible to every visitor, logged in or not — no auth wall. Added so the
+     home page explains the app's purpose to Google's OAuth verification
+     reviewer (and to real first-time visitors) instead of showing only a
+     login form. ── */
+  .landing-purpose {
+    max-width: 560px;
+    margin: 0 auto 28px;
+    text-align: center;
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.65);
+  }
+  .landing-features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto 32px;
+  }
+  .landing-feature {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 18px 16px;
+    text-align: center;
+  }
+  .landing-feature i {
+    font-size: 22px;
+    color: #c9a84c;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .landing-feature h3 {
+    font-family: Jost, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8e0d0;
+    margin: 0 0 6px;
+  }
+  .landing-feature p {
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.5);
+    margin: 0;
+  }
+  .landing-cta-buttons {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+  }
+  .landing-cta-buttons .landing-btn {
+    flex: 1;
+  }
+  .landing-auth-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0 0 16px;
+    margin: 0 auto 4px;
+  }
+  .landing-auth-back:hover { color: rgba(255,255,255,0.8); }
+
+  /* style.css may give #landingAuthForms/#landingCtaButtons a display value
+     for layout purposes; make sure the [hidden] attribute always wins so
+     the CTA/form toggle actually hides the inactive one (see the identical
+     issue previously found on #authOverlay itself). */
+  #landingAuthForms[hidden],
+  #landingCtaButtons[hidden] {
+    display: none !important;
+  }
+
+  @media (max-width: 640px) {
+    .landing-features {
+      grid-template-columns: 1fr;
+      max-width: 100%;
+    }
+  }
+
+  </style>
+
+  <!-- ── Mobile UX overrides (max-width: 768px) — desktop untouched ── -->
+  <style>
   @media (max-width: 768px) {
 
     /* ── Mobile landing page: premium native feel ── */
@@ -261,6 +356,11 @@
         gap: 10px !important;
         width: 100% !important;
         margin-top: 8px !important;
+      }
+      .landing-cta-buttons {
+        flex-direction: column !important;
+        gap: 10px !important;
+        max-width: 100% !important;
       }
       .landing-btn {
         width: 100% !important;
@@ -2763,7 +2863,42 @@
         Optimised for mobile
       </span>
 
-      <div id="landingAuthForms">
+      <!-- Public content — visible to everyone, no account required.
+           Discogs is the spreadsheet; Spin Vinyl is the living room. -->
+      <p class="landing-purpose">
+        Spin Vinyl is a home for your vinyl collection — catalog every record you own, track what you're hunting for, and enjoy a virtual Listening Room synced to Spotify. Import your existing Discogs collection in under a minute, or add records one at a time.
+      </p>
+
+      <div class="landing-features">
+        <div class="landing-feature">
+          <i class="ti ti-disc" aria-hidden="true"></i>
+          <h3>Catalog your collection</h3>
+          <p>Cover art, ratings, genre breakdown, and estimated collection value — all in one place.</p>
+        </div>
+        <div class="landing-feature">
+          <i class="ti ti-armchair" aria-hidden="true"></i>
+          <h3>Your own Listening Room</h3>
+          <p>Hang your favorite album art on the wall and play straight from your Spotify library.</p>
+        </div>
+        <div class="landing-feature">
+          <i class="ti ti-share" aria-hidden="true"></i>
+          <h3>Share what you own</h3>
+          <p>Public links to your collection, wishlist, and trophies — no login required to view.</p>
+        </div>
+      </div>
+
+      <!-- CTA buttons — always visible. The auth form itself only appears
+           once one of these is tapped, so an unauthenticated visitor sees
+           real content about the app before any sign-in wall. -->
+      <div id="landingCtaButtons" class="landing-cta-buttons">
+        <button type="button" id="landingSignInBtn" class="landing-btn landing-btn-primary">Sign In</button>
+        <button type="button" id="landingSignUpBtn" class="landing-btn landing-btn-secondary">Create Account</button>
+      </div>
+
+      <div id="landingAuthForms" hidden>
+        <button type="button" id="landingAuthBackBtn" class="landing-auth-back" aria-label="Back">
+          <i class="ti ti-arrow-left" aria-hidden="true"></i> Back
+        </button>
         <form id="authForm" class="landing-form">
           <div class="form-row">
             <label for="authEmail">Email</label>
