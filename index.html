@@ -121,6 +121,15 @@
         overflow-x: hidden !important;
       }
 
+      /* Must win over the rule above once JS sets overlay.hidden = true —
+         otherwise a successful sign-in on mobile leaves the auth screen
+         visibly stuck on top of the app even though the DOM state is
+         correct. The [hidden] attribute selector gives this higher
+         specificity than #authOverlay.landing-screen alone. */
+      #authOverlay.landing-screen[hidden] {
+        display: none !important;
+      }
+
       /* Center column: full width, properly centered */
       #authOverlay .landing-center {
         width: 100% !important;
