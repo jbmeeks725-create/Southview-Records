@@ -7,10 +7,13 @@
 
   <!-- Prevent bfcache from freezing the page — critical for OAuth redirect flows -->
   <script>
+    // Strip trailing ? left by Supabase OAuth cleanup
+    if (window.location.search === "?" || window.location.href.endsWith("?")) {
+      history.replaceState(null, "", window.location.pathname + window.location.hash);
+    }
     window.addEventListener("pageshow", function(e) {
       if (e.persisted) window.location.reload();
     });
-    // Also mark this page as not eligible for bfcache
     window.addEventListener("unload", function() {});
   </script>
   <meta http-equiv="Expires" content="0" />
