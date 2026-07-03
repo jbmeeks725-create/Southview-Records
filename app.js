@@ -870,7 +870,7 @@ function formatAcquiredDate(dateStr) {
   if (!dateStr) return null;
   const d = new Date(dateStr + "T00:00:00");
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "long" });
 }
 
 function buildSpotlightStoryPanel(record) {
@@ -7855,7 +7855,8 @@ async function handleAddRecordSubmit(event) {
   const subgenreInput = document.getElementById("fieldSubgenre").value.trim();
   const vinylGrade = document.getElementById("fieldVinylGrade").value.trim() || null;
   const sleeveGrade = document.getElementById("fieldSleeveGrade").value.trim() || null;
-  const acquiredDateField = document.getElementById("fieldAcquiredDate").value || null;
+  const acquiredMonthField = document.getElementById("fieldAcquiredDate").value || null;
+  const acquiredDateField = acquiredMonthField ? `${acquiredMonthField}-01` : null;
   const pressingCountry = document.getElementById("fieldPressingCountry").value.trim() || null;
   const description = document.getElementById("fieldDescription").value.trim() || null;
   const notes = document.getElementById("fieldNotes").value.trim() || null;
@@ -9314,7 +9315,7 @@ async function moveWishlistItemToCollection(wishlistId) {
       // Wishlist items don't have a real acquisition date — the day it
       // moves to the collection (i.e. today) is the best available signal
       // of when it was actually acquired.
-      acquired_date: new Date().toISOString().slice(0, 10),
+      acquired_date: `${new Date().toISOString().slice(0, 7)}-01`,
     };
 
     const { data, error } = await supabaseClient
@@ -9796,7 +9797,7 @@ function openRecordDetailModal(recordId, startTab = "details") {
   document.getElementById("detailDescription").value = record.description || "";
   document.getElementById("detailNotes").value = record.notes || "";
 
-  document.getElementById("storyAcquiredDate").value = record.acquired_date || "";
+  document.getElementById("storyAcquiredDate").value = record.acquired_date ? record.acquired_date.slice(0, 7) : "";
   document.getElementById("storyAcquiredLocation").value = record.acquired_location || "";
   document.getElementById("storyListeningNotes").value = record.listening_notes || "";
   document.getElementById("storyPersonalStory").value = record.personal_story || "";
@@ -10165,7 +10166,8 @@ async function handleRecordStorySubmit(event) {
   const statusEl = document.getElementById("recordStoryStatus");
   const saveBtn = document.getElementById("saveRecordStoryBtn");
 
-  const acquiredDate = document.getElementById("storyAcquiredDate").value || null;
+  const acquiredMonth = document.getElementById("storyAcquiredDate").value || null;
+  const acquiredDate = acquiredMonth ? `${acquiredMonth}-01` : null;
   const acquiredLocation = document.getElementById("storyAcquiredLocation").value.trim() || null;
   const listeningNotes = document.getElementById("storyListeningNotes").value.trim() || null;
   const personalStory = document.getElementById("storyPersonalStory").value.trim() || null;
@@ -14902,11 +14904,13 @@ function renderCiGeography(quality) {
 }
 
 // ── 5. Collecting Calendar (heatmap) ────────────────────────────────────────
+const CI_MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
 function renderCiHeatmap(quality) {
   const card = document.getElementById("ciHeatmapCard");
   const grid = document.getElementById("ciHeatmapGrid");
+  const legend = document.getElementById("ciHeatmapLegend");
   const empty = document.getElementById("ciHeatmapEmpty");
-  const yearSelect = document.getElementById("ciHeatmapYear");
   if (!card) return;
 
   if (!isInsightEnabled("heatmap")) { card.hidden = true; return; }
@@ -14914,64 +14918,78 @@ function renderCiHeatmap(quality) {
 
   if (quality.level === "locked") {
     grid.hidden = true;
-    yearSelect.hidden = true;
+    legend.hidden = true;
     empty.hidden = false;
-    empty.textContent = "Add a few more records with dates to unlock this.";
+    empty.textContent = "Add a few more records with a month acquired to unlock this.";
     return;
   }
 
-  const dayCounts = {};
+  // key = "YYYY-MM"
+  const monthCounts = {};
   const years = new Set();
   allRecords.forEach((r) => {
     const raw = getRecordDate(r);
     if (!raw) return;
     const d = new Date(raw);
     if (isNaN(d)) return;
-    dayCounts[d.toISOString().slice(0, 10)] = (dayCounts[d.toISOString().slice(0, 10)] || 0) + 1;
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+    monthCounts[key] = (monthCounts[key] || 0) + 1;
     years.add(d.getUTCFullYear());
   });
 
   const sortedYears = [...years].sort((a, b) => b - a);
   if (!sortedYears.length) {
     grid.hidden = true;
-    yearSelect.hidden = true;
+    legend.hidden = true;
     empty.hidden = false;
-    empty.textContent = "Add a few more records with dates to unlock this.";
+    empty.textContent = "Add a few more records with a month acquired to unlock this.";
     return;
   }
 
   grid.hidden = false;
-  yearSelect.hidden = false;
+  legend.hidden = false;
   empty.hidden = true;
 
-  const desired = sortedYears.map(String);
-  if ([...yearSelect.options].map((o) => o.value).join(",") !== desired.join(",")) {
-    const prev = yearSelect.value;
-    yearSelect.innerHTML = desired.map((y) => `<option value="${y}">${y}</option>`).join("");
-    yearSelect.value = desired.includes(prev) ? prev : desired[0];
-  }
-  const selectedYear = Number(yearSelect.value);
-  const maxCount = Math.max(1, ...Object.values(dayCounts));
+  const maxCount = Math.max(1, ...Object.values(monthCounts));
+  const levelFor = (count) => (count === 0 ? 0 : count === 1 ? 1 : count <= Math.ceil(maxCount * 0.4) ? 2 : count <= Math.ceil(maxCount * 0.7) ? 3 : 4);
 
   grid.innerHTML = "";
-  const start = new Date(Date.UTC(selectedYear, 0, 1));
-  const end = new Date(Date.UTC(selectedYear, 11, 31));
-  const startPad = start.getUTCDay();
-  for (let i = 0; i < startPad; i++) {
-    const cell = document.createElement("div");
-    cell.className = "ci-heatmap-cell ci-heatmap-empty";
-    grid.appendChild(cell);
-  }
-  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
-    const key = d.toISOString().slice(0, 10);
-    const count = dayCounts[key] || 0;
-    const level = count === 0 ? 0 : count === 1 ? 1 : count <= 3 ? 2 : count <= 5 ? 3 : 4;
-    const cell = document.createElement("div");
-    cell.className = "ci-heatmap-cell";
-    cell.dataset.level = String(level);
-    cell.title = `${new Date(key).toLocaleDateString()}: ${count} record${count === 1 ? "" : "s"}`;
-    grid.appendChild(cell);
-  }
+
+  const headerRow = document.createElement("div");
+  headerRow.className = "ci-heatmap-header-row";
+  headerRow.innerHTML = "<span></span>" + CI_MONTH_ABBR.map((m) => `<span>${m}</span>`).join("");
+  grid.appendChild(headerRow);
+
+  sortedYears.forEach((year) => {
+    const row = document.createElement("div");
+    row.className = "ci-heatmap-year-row";
+
+    const yearLabel = document.createElement("div");
+    yearLabel.className = "ci-heatmap-year-label";
+    yearLabel.textContent = year;
+    row.appendChild(yearLabel);
+
+    for (let m = 0; m < 12; m++) {
+      const key = `${year}-${String(m + 1).padStart(2, "0")}`;
+      const count = monthCounts[key] || 0;
+      const cell = document.createElement("div");
+      cell.className = "ci-heatmap-cell";
+      cell.dataset.level = String(levelFor(count));
+      cell.title = `${CI_MONTH_ABBR[m]} ${year}: ${count} record${count === 1 ? "" : "s"}`;
+      row.appendChild(cell);
+    }
+    grid.appendChild(row);
+  });
+
+  legend.innerHTML = `
+    Less
+    <span class="ci-heatmap-cell" data-level="0"></span>
+    <span class="ci-heatmap-cell" data-level="1"></span>
+    <span class="ci-heatmap-cell" data-level="2"></span>
+    <span class="ci-heatmap-cell" data-level="3"></span>
+    <span class="ci-heatmap-cell" data-level="4"></span>
+    More
+  `;
 }
 
 // ── 6. Artist Connections (force-directed network graph) ───────────────────
@@ -15092,12 +15110,6 @@ function setupCollectionInsights() {
     ?.addEventListener("change", () => {
       const quality = assessInsightsDataQuality();
       renderCiTimeline(quality.timeline);
-    });
-
-  document.getElementById("ciHeatmapYear")
-    ?.addEventListener("change", () => {
-      const quality = assessInsightsDataQuality();
-      renderCiHeatmap(quality.heatmap);
     });
 
   const toggleMap = {
