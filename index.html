@@ -109,12 +109,20 @@
      login form. ── */
   .landing-purpose {
     max-width: 560px;
-    margin: 0 auto 28px;
+    margin: 0 auto 12px;
     text-align: center;
     font-family: Inter, sans-serif;
     font-size: 14px;
     line-height: 1.6;
     color: rgba(255,255,255,0.65);
+  }
+  .landing-purpose:last-of-type {
+    margin-bottom: 26px;
+  }
+  /* Take a Tour: balanced spacing regardless of screen size */
+  #authOverlay .landing-center .landing-tour-btn {
+    display: block;
+    margin: 0 auto 30px !important;
   }
   .landing-features {
     display: grid;
@@ -480,7 +488,6 @@
 
       /* Tour button */
       .landing-tour-btn {
-        margin-top: 20px !important;
         width: 100% !important;
         height: 48px !important;
         border-radius: 14px !important;
@@ -2954,7 +2961,10 @@
       <!-- Public content — visible to everyone, no account required.
            Discogs is the spreadsheet; Spin Vinyl is the living room. -->
       <p class="landing-purpose">
-        There's truly no place like home, but you can't always bring your records with you — especially in the middle of a record store when you want to check your collection or add something to your wishlist. Spin Vinyl gives you a simple and convenient way to track your growing collection from the palm of your hand, and to see your own distinct Collection DNA profile. Import your existing Discogs collection in under a minute, or add records one at a time, to unlock your unique Spin.
+        There's truly no place like home, but you can't always bring your records with you. Spin Vinyl gives you a simple and convenient way to track your growing collection from the palm of your hand, and to see your own distinct Collection DNA profile.
+      </p>
+      <p class="landing-purpose">
+        Import your existing Discogs collection in under a minute, or add records one at a time, to unlock your unique Spin.
       </p>
 
       <button type="button" id="takeTourBtn" class="landing-tour-btn">Take a Tour</button>
