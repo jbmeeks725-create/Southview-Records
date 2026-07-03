@@ -38,6 +38,103 @@ const STARTER_RECORDS = [
   { artist: "Joni Mitchell",    album: "Blue",                                    year: 1971, genre: "Folk",       color: "#0d1a2a" },
 ];
 
+async function renderStarterCollection() {
+  const grid = document.getElementById("starterCollectionGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  STARTER_RECORDS.forEach((record) => {
+    const card = document.createElement("div");
+    card.className = "starter-card";
+    card.style.cssText = "position:relative;border-radius:10px;overflow:hidden;background:#13121a;border:1px solid rgba(201,168,76,0.2);cursor:pointer;transition:transform 0.15s,border-color 0.15s;";
+
+    // Cover area
+    const cover = document.createElement("div");
+    cover.style.cssText = `width:100%;aspect-ratio:1;background:${record.color || "#1a1a24"};display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;`;
+    cover.innerHTML = `<i class="ti ti-vinyl" style="font-size:36px;color:rgba(201,168,76,0.25);"></i>`;
+    card.appendChild(cover);
+
+    // Fetch cover via MusicBrainz
+    fetchMusicBrainzCover(record.artist, record.album).then(url => {
+      if (url) {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = record.album;
+        img.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;";
+        img.onerror = () => img.remove();
+        cover.appendChild(img);
+      }
+    }).catch(() => {});
+
+    // Heart button
+    const heartBtn = document.createElement("button");
+    heartBtn.type = "button";
+    heartBtn.style.cssText = "position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(13,13,17,0.8);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#e8e0d0;font-size:15px;z-index:2;";
+    heartBtn.innerHTML = `<i class="ti ti-heart"></i>`;
+    card.appendChild(heartBtn);
+
+    // Info
+    const info = document.createElement("div");
+    info.style.cssText = "padding:10px 12px 12px;";
+    info.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:#e8e0d0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${record.album}</div>
+      <div style="font-size:12px;color:#8a8290;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${record.artist}</div>
+      <span style="font-size:10px;font-weight:600;background:rgba(201,168,76,0.12);color:#c9a84c;border-radius:4px;padding:2px 7px;">${record.genre}</span>
+    `;
+    card.appendChild(info);
+
+    // Click handler — add to wishlist with visual feedback
+    const addToWishlist = async () => {
+      if (card.dataset.added) return;
+      card.dataset.added = "true";
+
+      // Visual feedback
+      heartBtn.innerHTML = `<i class="ti ti-heart-filled" style="color:#e07070;"></i>`;
+      card.style.opacity = "0.5";
+      card.style.transform = "scale(0.97)";
+
+      try {
+        await supabaseClient.from("wishlist").insert({
+          user_id: currentUser.id,
+          artist: record.artist,
+          album: record.album,
+          year: record.year,
+          genre: record.genre,
+        });
+
+        // Reload wishlist in memory
+        const { data } = await supabaseClient
+          .from("wishlist")
+          .select("*")
+          .eq("user_id", currentUser.id)
+          .order("created_at", { ascending: false });
+        if (data) wishlist = data;
+
+        // Fade out card after short delay
+        setTimeout(() => {
+          card.style.transition = "opacity 0.4s,transform 0.4s";
+          card.style.opacity = "0";
+          card.style.transform = "scale(0.9)";
+          setTimeout(() => { card.style.display = "none"; }, 400);
+        }, 600);
+      } catch (e) {
+        console.error("Failed to add to wishlist:", e);
+        card.dataset.added = "";
+        heartBtn.innerHTML = `<i class="ti ti-heart"></i>`;
+        card.style.opacity = "1";
+        card.style.transform = "";
+      }
+    };
+
+    card.addEventListener("click", addToWishlist);
+    heartBtn.addEventListener("click", (e) => { e.stopPropagation(); addToWishlist(); });
+
+    card.addEventListener("mouseenter", () => { if (!card.dataset.added) card.style.transform = "translateY(-3px)"; card.style.borderColor = "rgba(201,168,76,0.5)"; });
+    card.addEventListener("mouseleave", () => { if (!card.dataset.added) card.style.transform = ""; card.style.borderColor = "rgba(201,168,76,0.2)"; });
+
+    grid.appendChild(card);
+  });
+}
 // Fetch cover art from MusicBrainz for starter collection cards
 async function fetchMusicBrainzCover(artist, album) {
   try {
@@ -50,106 +147,11 @@ async function fetchMusicBrainzCover(artist, album) {
     const data = await res.json();
     const release = data.releases?.[0];
     if (!release?.id) return null;
-
-    const imgRes = await fetch(`https://coverartarchive.org/release/${release.id}/front-250`, {
-      redirect: "follow"
-    });
+    const imgRes = await fetch(`https://coverartarchive.org/release/${release.id}/front-250`, { redirect: "follow" });
     return imgRes.ok ? imgRes.url : null;
   } catch {
     return null;
   }
-}
-
-async function renderStarterCollection() {
-  const grid = document.getElementById("starterCollectionGrid");
-  if (!grid) return;
-
-  // Make the container full width
-  const container = grid.closest(".starter-collection");
-  if (container) {
-    container.style.cssText = "width:100%;max-width:none;padding:0 24px 24px;box-sizing:border-box;";
-  }
-  grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;width:100%;";
-
-  STARTER_RECORDS.forEach((record) => {
-    const card = document.createElement("div");
-    card.className = "starter-card";
-
-    const cover = document.createElement("div");
-    cover.className = "starter-card-cover";
-    cover.style.background = record.color || "#1a1a24";
-    cover.innerHTML = '<i class="ti ti-vinyl" aria-hidden="true" style="font-size:32px;color:rgba(201,168,76,0.3);"></i>';
-
-    // Fetch cover art from MusicBrainz asynchronously
-    fetchMusicBrainzCover(record.artist, record.album).then(url => {
-      if (url) {
-        const img = document.createElement("img");
-        img.src = url;
-        img.alt = record.album;
-        img.style.cssText = "width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;border-radius:inherit;";
-        img.onerror = () => img.remove();
-        cover.style.position = "relative";
-        cover.innerHTML = "";
-        cover.appendChild(img);
-      }
-    }).catch(() => {});
-
-    const info = document.createElement("div");
-    info.className = "starter-card-info";
-
-    const albumEl = document.createElement("p");
-    albumEl.className = "starter-card-album";
-    albumEl.textContent = record.album;
-
-    const artistEl = document.createElement("p");
-    artistEl.className = "starter-card-artist";
-    artistEl.textContent = record.artist;
-
-    const genrePill = document.createElement("span");
-    genrePill.className = "starter-card-genre";
-    genrePill.textContent = record.genre;
-
-    info.appendChild(albumEl);
-    info.appendChild(artistEl);
-    info.appendChild(genrePill);
-
-    const addBtn = document.createElement("button");
-    addBtn.type = "button";
-    addBtn.className = "starter-card-btn";
-    addBtn.innerHTML = '<i class="ti ti-heart" aria-hidden="true"></i>';
-    addBtn.setAttribute("aria-label", `Add ${record.album} to wishlist`);
-    addBtn.setAttribute("title", "Add to wishlist");
-
-    addBtn.addEventListener("click", async () => {
-      if (addBtn.dataset.added) return;
-      addBtn.disabled = true;
-      addBtn.innerHTML = '<i class="ti ti-loader" aria-hidden="true"></i>';
-      try {
-        const { error } = await supabaseClient.from("wishlist").insert({
-          user_id: currentUser.id,
-          artist: record.artist,
-          album: record.album,
-          year: record.year,
-          cover_url: record.cover || null,
-        });
-        if (error) throw error;
-        addBtn.dataset.added = "1";
-        addBtn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i>';
-        addBtn.classList.add("starter-card-btn-added");
-        card.classList.add("starter-card-added");
-        await loadData();
-      } catch (err) {
-        console.error(err);
-        addBtn.disabled = false;
-        addBtn.innerHTML = '<i class="ti ti-heart" aria-hidden="true"></i>';
-      }
-    });
-
-    card.appendChild(cover);
-    card.appendChild(info);
-    card.appendChild(addBtn);
-    grid.appendChild(card);
-  });
 }
 
 // 2. Create Supabase client
@@ -521,15 +523,14 @@ function getFilteredWishlist() {
 
 function renderCards(filtered) {
   const grid = document.getElementById("cardGrid");
+  const starterWrap = document.getElementById("starterCollectionWrap");
   grid.innerHTML = "";
+  if (starterWrap) starterWrap.hidden = true;
 
   if (filtered.length === 0) {
-    // If there are no records at all (not just filtered out), show a
-    // prominent import CTA rather than a generic empty hint.
     if (allRecords.length === 0) {
       const emptyState = document.createElement("div");
       emptyState.className = "collection-empty-state";
-
       emptyState.innerHTML = `
         <div class="collection-empty-icon">
           <i class="ti ti-vinyl" aria-hidden="true"></i>
@@ -547,22 +548,23 @@ function renderCards(filtered) {
           </button>
         </div>
         <p class="collection-empty-hint">Already on Discogs? Export your collection as a CSV and import it here — it takes about 60 seconds.</p>
-        <div class="starter-collection">
-          <div class="starter-collection-header">
-            <h4 class="starter-collection-title">Or seed your wishlist with some classics</h4>
-            <p class="starter-collection-desc">Tap any album to add it to your wishlist — a great way to start building your taste profile.</p>
-          </div>
-          <div class="starter-collection-grid" id="starterCollectionGrid"></div>
-        </div>
       `;
+      grid.appendChild(emptyState);
+
+      // Show the starter collection in its own full-width section
+      if (starterWrap) {
+        starterWrap.hidden = false;
+        const starterGrid = document.getElementById("starterCollectionGrid");
+        if (starterGrid && !starterGrid.dataset.rendered) {
+          starterGrid.dataset.rendered = "true";
+          renderStarterCollection();
+        }
+      }
 
       setTimeout(() => {
         document.getElementById("emptyStateImportBtn")?.addEventListener("click", () => openImportModal());
         document.getElementById("emptyStateAddBtn")?.addEventListener("click", () => openAddRecordModal());
-        renderStarterCollection();
       }, 0);
-
-      grid.appendChild(emptyState);
     } else {
       const empty = document.createElement("p");
       empty.className = "field-hint";
