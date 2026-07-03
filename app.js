@@ -16,47 +16,60 @@ const IDENTIFY_COVER_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/fu
 // Organised by genre so the grid feels balanced, not random.
 
 const STARTER_RECORDS = [
-  // Jazz
-  { artist: "Miles Davis",      album: "Kind of Blue",                        year: 1959, genre: "Jazz",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Miles_Davis_-_Kind_of_Blue.jpg/300px-Miles_Davis_-_Kind_of_Blue.jpg" },
-  { artist: "John Coltrane",    album: "A Love Supreme",                      year: 1964, genre: "Jazz",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/John_Coltrane_-_A_Love_Supreme.jpg/300px-John_Coltrane_-_A_Love_Supreme.jpg" },
-  { artist: "Dave Brubeck",     album: "Time Out",                            year: 1959, genre: "Jazz",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/TimeOut.jpg/300px-TimeOut.jpg" },
-  { artist: "Art Blakey",       album: "Moanin'",                             year: 1958, genre: "Jazz",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Moaninalbum.jpg/300px-Moaninalbum.jpg" },
-  // Rock
-  { artist: "Led Zeppelin",     album: "Led Zeppelin IV",                     year: 1971, genre: "Rock",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/Led_Zeppelin_-_Led_Zeppelin_IV.jpg/300px-Led_Zeppelin_-_Led_Zeppelin_IV.jpg" },
-  { artist: "Fleetwood Mac",    album: "Rumours",                             year: 1977, genre: "Rock",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Fleetwood_Mac_-_Rumours.jpg/300px-Fleetwood_Mac_-_Rumours.jpg" },
-  { artist: "The Beatles",      album: "Abbey Road",                          year: 1969, genre: "Rock",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/Beatles_-_Abbey_Road.jpg/300px-Beatles_-_Abbey_Road.jpg" },
-  { artist: "Pink Floyd",       album: "The Dark Side of the Moon",           year: 1973, genre: "Rock",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Dark_Side_of_the_Moon.png/300px-Dark_Side_of_the_Moon.png" },
-  // Blues
-  { artist: "Robert Johnson",   album: "King of the Delta Blues Singers",     year: 1961, genre: "Blues",      cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Robert_Johnson_-_King_of_the_Delta_Blues_Singers.jpg/300px-Robert_Johnson_-_King_of_the_Delta_Blues_Singers.jpg" },
-  { artist: "Muddy Waters",     album: "Hard Again",                          year: 1977, genre: "Blues",      cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/MuddyWatersHardAgain.jpg/300px-MuddyWatersHardAgain.jpg" },
-  // Soul / R&B
-  { artist: "Marvin Gaye",      album: "What's Going On",                     year: 1971, genre: "Soul",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/MarvinGayeWhatsGoingOnalbumcover.jpg/300px-MarvinGayeWhatsGoingOnalbumcover.jpg" },
-  { artist: "Stevie Wonder",    album: "Songs in the Key of Life",            year: 1976, genre: "Soul",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Stevie_Wonder_-_Songs_in_the_Key_of_Life.jpg/300px-Stevie_Wonder_-_Songs_in_the_Key_of_Life.jpg" },
-  { artist: "Aretha Franklin",  album: "I Never Loved a Man the Way I Love You", year: 1967, genre: "Soul",   cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/ArethaFranklinINeverLovedAManTheWayILoveYou.jpg/300px-ArethaFranklinINeverLovedAManTheWayILoveYou.jpg" },
-  // Classical
-  { artist: "Glenn Gould",      album: "Goldberg Variations",                 year: 1955, genre: "Classical",  cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/GoldbergVariations_Gould.jpg/300px-GoldbergVariations_Gould.jpg" },
-  // Electronic
-  { artist: "Kraftwerk",        album: "Autobahn",                            year: 1974, genre: "Electronic", cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Kraftwerk_-_Autobahn.jpg/300px-Kraftwerk_-_Autobahn.jpg" },
-  { artist: "Brian Eno",        album: "Ambient 1: Music for Airports",       year: 1978, genre: "Ambient",    cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Music_for_Airports.jpg/300px-Music_for_Airports.jpg" },
-  // Latin
-  { artist: "João Gilberto",    album: "Getz/Gilberto",                       year: 1964, genre: "Bossa Nova", cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Getz-gilberto.jpg/300px-Getz-gilberto.jpg" },
-  // Reggae
-  { artist: "Bob Marley",       album: "Catch a Fire",                        year: 1973, genre: "Reggae",     cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/Catch_a_fire_cd.jpg/300px-Catch_a_fire_cd.jpg" },
-  // Country / Folk
-  { artist: "Johnny Cash",      album: "At Folsom Prison",                    year: 1968, genre: "Country",    cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Johnny_Cash_At_Folsom_Prison.jpg/300px-Johnny_Cash_At_Folsom_Prison.jpg" },
-  { artist: "Joni Mitchell",    album: "Blue",                                year: 1971, genre: "Folk",       cover: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Joni_Mitchell_-_Blue.jpg/300px-Joni_Mitchell_-_Blue.jpg" },
+  { artist: "Miles Davis",      album: "Kind of Blue",                            year: 1959, genre: "Jazz",       color: "#1a2a1a" },
+  { artist: "John Coltrane",    album: "A Love Supreme",                          year: 1964, genre: "Jazz",       color: "#1a1a2a" },
+  { artist: "Dave Brubeck",     album: "Time Out",                                year: 1959, genre: "Jazz",       color: "#2a1a1a" },
+  { artist: "Art Blakey",       album: "Moanin'",                                 year: 1958, genre: "Jazz",       color: "#2a2a1a" },
+  { artist: "Led Zeppelin",     album: "Led Zeppelin IV",                         year: 1971, genre: "Rock",       color: "#1a1a1a" },
+  { artist: "Fleetwood Mac",    album: "Rumours",                                 year: 1977, genre: "Rock",       color: "#2a1a2a" },
+  { artist: "The Beatles",      album: "Abbey Road",                              year: 1969, genre: "Rock",       color: "#1a2a2a" },
+  { artist: "Pink Floyd",       album: "The Dark Side of the Moon",               year: 1973, genre: "Rock",       color: "#0d0d1a" },
+  { artist: "Robert Johnson",   album: "King of the Delta Blues Singers",         year: 1961, genre: "Blues",      color: "#1a1a2a" },
+  { artist: "Muddy Waters",     album: "Hard Again",                              year: 1977, genre: "Blues",      color: "#2a1a1a" },
+  { artist: "Marvin Gaye",      album: "What's Going On",                         year: 1971, genre: "Soul",       color: "#2a1a0d" },
+  { artist: "Stevie Wonder",    album: "Songs in the Key of Life",                year: 1976, genre: "Soul",       color: "#1a2a0d" },
+  { artist: "Aretha Franklin",  album: "I Never Loved a Man the Way I Love You",  year: 1967, genre: "Soul",       color: "#2a0d1a" },
+  { artist: "Glenn Gould",      album: "Goldberg Variations",                     year: 1955, genre: "Classical",  color: "#0d1a2a" },
+  { artist: "Kraftwerk",        album: "Autobahn",                                year: 1974, genre: "Electronic", color: "#0d2a2a" },
+  { artist: "Brian Eno",        album: "Ambient 1: Music for Airports",           year: 1978, genre: "Ambient",    color: "#1a0d2a" },
+  { artist: "João Gilberto",    album: "Getz/Gilberto",                           year: 1964, genre: "Bossa Nova", color: "#2a1a0d" },
+  { artist: "Bob Marley",       album: "Catch a Fire",                            year: 1973, genre: "Reggae",     color: "#1a2a0d" },
+  { artist: "Johnny Cash",      album: "At Folsom Prison",                        year: 1968, genre: "Country",    color: "#1a0d0d" },
+  { artist: "Joni Mitchell",    album: "Blue",                                    year: 1971, genre: "Folk",       color: "#0d1a2a" },
 ];
+
+// Fetch cover art from MusicBrainz for starter collection cards
+async function fetchMusicBrainzCover(artist, album) {
+  try {
+    const q = encodeURIComponent(`release:"${album}" AND artist:"${artist}"`);
+    const res = await fetch(
+      `https://musicbrainz.org/ws/2/release/?query=${q}&limit=1&fmt=json`,
+      { headers: { "User-Agent": "SpinVinyl/1.0 (spinvinyl.co)" } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const release = data.releases?.[0];
+    if (!release?.id) return null;
+
+    const imgRes = await fetch(`https://coverartarchive.org/release/${release.id}/front-250`, {
+      redirect: "follow"
+    });
+    return imgRes.ok ? imgRes.url : null;
+  } catch {
+    return null;
+  }
+}
 
 async function renderStarterCollection() {
   const grid = document.getElementById("starterCollectionGrid");
   if (!grid) return;
 
-  // Group by genre
-  const byGenre = {};
-  STARTER_RECORDS.forEach((r) => {
-    if (!byGenre[r.genre]) byGenre[r.genre] = [];
-    byGenre[r.genre].push(r);
-  });
+  // Make the container full width
+  const container = grid.closest(".starter-collection");
+  if (container) {
+    container.style.cssText = "width:100%;max-width:none;padding:0 24px 24px;box-sizing:border-box;";
+  }
+  grid.style.cssText = "display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;width:100%;";
 
   STARTER_RECORDS.forEach((record) => {
     const card = document.createElement("div");
@@ -64,20 +77,22 @@ async function renderStarterCollection() {
 
     const cover = document.createElement("div");
     cover.className = "starter-card-cover";
+    cover.style.background = record.color || "#1a1a24";
+    cover.innerHTML = '<i class="ti ti-vinyl" aria-hidden="true" style="font-size:32px;color:rgba(201,168,76,0.3);"></i>';
 
-    if (record.cover) {
-      const img = document.createElement("img");
-      img.src = record.cover;
-      img.alt = record.album;
-      img.loading = "lazy";
-      img.onerror = () => {
-        img.remove();
-        cover.innerHTML = '<i class="ti ti-vinyl" aria-hidden="true"></i>';
-      };
-      cover.appendChild(img);
-    } else {
-      cover.innerHTML = '<i class="ti ti-vinyl" aria-hidden="true"></i>';
-    }
+    // Fetch cover art from MusicBrainz asynchronously
+    fetchMusicBrainzCover(record.artist, record.album).then(url => {
+      if (url) {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = record.album;
+        img.style.cssText = "width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;border-radius:inherit;";
+        img.onerror = () => img.remove();
+        cover.style.position = "relative";
+        cover.innerHTML = "";
+        cover.appendChild(img);
+      }
+    }).catch(() => {});
 
     const info = document.createElement("div");
     info.className = "starter-card-info";
