@@ -10881,9 +10881,13 @@ async function handleAuthSubmit(event) {
         statusEl.className = "form-status";
       }
     } else {
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
       statusEl.textContent = "";
+      // Explicitly call onSignedIn in case onAuthStateChange doesn't fire (iOS Safari)
+      if (data?.user) {
+        await onSignedIn(data.user);
+      }
     }
   } catch (err) {
     console.error(err);
@@ -11002,6 +11006,12 @@ async function onSignedIn(user) {
 
   document.getElementById("accountSection").hidden = false;
   showAuthOverlay(false);
+
+  // If already loaded (e.g. onAuthStateChange fired before our explicit call), skip heavy reload
+  if (!isFirstLoad && allRecords.length > 0) {
+    setPage("home");
+    return;
+  }
 
   resetSessionUiState();
   await loadProfile();
