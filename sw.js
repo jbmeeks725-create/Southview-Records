@@ -5,7 +5,7 @@
 //   • CDN assets (Chart.js, Tabler icons, etc.) → Stale While Revalidate
 //   • Everything else → Network First with offline fallback
 
-const CACHE_VERSION = 'spinvinyl-v3';
+const CACHE_VERSION = 'spinvinyl-v4';
 const SHELL_CACHE   = `${CACHE_VERSION}-shell`;
 const CDN_CACHE     = `${CACHE_VERSION}-cdn`;
 

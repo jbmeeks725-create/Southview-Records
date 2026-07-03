@@ -11,10 +11,10 @@
     if (window.location.search === "?" || window.location.href.endsWith("?")) {
       history.replaceState(null, "", window.location.pathname + window.location.hash);
     }
+    // If restored from bfcache, reload so JS listeners are fresh
     window.addEventListener("pageshow", function(e) {
       if (e.persisted) window.location.reload();
     });
-    window.addEventListener("unload", function() {});
   </script>
   <meta http-equiv="Expires" content="0" />
   <title>Spin Vinyl — The Digital Home for Your Vinyl Collection</title>
