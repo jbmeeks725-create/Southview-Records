@@ -155,7 +155,13 @@ async function fetchMusicBrainzCover(artist, album) {
 }
 
 // 2. Create Supabase client
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: "implicit",
+  }
+});
 
 // 3. State
 let allRecords = [];
@@ -10775,6 +10781,7 @@ const AVATAR_PRESETS = [
 let authMode = "signin"; // "signin" | "signup"
 
 function showAuthOverlay(show) {
+  console.log("[AUTH] showAuthOverlay:", show, new Date().toISOString(), new Error().stack?.split('\n')[2]?.trim());
   const overlay = document.getElementById("authOverlay");
   overlay.hidden = !show;
 }
@@ -10884,7 +10891,8 @@ async function handleAuthSubmit(event) {
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
       statusEl.textContent = "";
-      // Explicitly call onSignedIn in case onAuthStateChange doesn't fire (iOS Safari)
+      // Call onSignedIn directly from the result — never wait for onAuthStateChange
+      // onAuthStateChange is unreliable on iOS Safari after signInWithPassword
       if (data?.user) {
         await onSignedIn(data.user);
       }
@@ -11001,6 +11009,7 @@ async function handleChangePassword(event) {
 }
 
 async function onSignedIn(user) {
+  console.log("[AUTH] onSignedIn called, currentUser was:", currentUser?.email, "new user:", user.email);
   const isFirstLoad = !currentUser;
   currentUser = user;
 
@@ -12945,13 +12954,12 @@ function setupAuth() {
   wirePasswordToggle("confirmPasswordToggle", "confirmPasswordInput");
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
+    console.log("[AUTH]", event, session ? "has session" : "no session", new Date().toISOString());
     if (session?.user) {
       onSignedIn(session.user);
     } else if (event === "SIGNED_OUT") {
       onSignedOut();
     }
-    // Ignore TOKEN_REFRESHED, INITIAL_SESSION etc. with null session
-    // — these are transient states that don't mean the user is logged out
   });
 }
 
@@ -13422,6 +13430,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupPressingPicker();
   setupQuickrate();
   startHeaderNowPlayingPolling();
+
+  // Explicit session check — don't rely solely on onAuthStateChange
+  // which is unreliable on iOS Safari. Check storage directly.
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session?.user && !currentUser) {
+      await onSignedIn(session.user);
+    }
+  } catch (e) {
+    console.warn("[AUTH] getSession failed on startup:", e);
+  }
 });
 
 // ── Back/forward cache fix ───────────────────────────────────────────────────
