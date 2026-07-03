@@ -527,6 +527,21 @@ function getFilteredWishlist() {
   return filtered;
 }
 
+// Fields that feed Collection Insights + basic completeness — used for the
+// subtle "missing details" badge on collection cards. Checks acquired_date
+// directly (not the created_at-fallback version) since the badge should
+// flag records where the *true* acquisition date was never actually entered.
+function getMissingRecordFields(record) {
+  const missing = [];
+  if (!record.vinyl_grade?.trim()) missing.push("grade");
+  if (!record.acquired_date) missing.push("date acquired");
+  if (!record.pressing_country) missing.push("pressing country");
+  if (!record.label?.trim()) missing.push("label");
+  if (!record.genre_id && !record.genre_name) missing.push("genre");
+  if (!record.rating) missing.push("rating");
+  return missing;
+}
+
 function renderCards(filtered) {
   const grid = document.getElementById("cardGrid");
   const starterWrap = document.getElementById("starterCollectionWrap");
@@ -611,6 +626,18 @@ function renderCards(filtered) {
     }
 
     card.appendChild(coverWrap);
+
+    // Subtle missing-detail callout — nudges completing records that feed
+    // the Collection Insights visualizations, without being naggy.
+    const missingFields = getMissingRecordFields(r);
+    if (missingFields.length) {
+      card.classList.add("has-missing-details");
+      const badge = document.createElement("span");
+      badge.className = "record-missing-badge";
+      badge.innerHTML = '<i class="ti ti-alert-circle" aria-hidden="true"></i>';
+      badge.title = `Missing: ${missingFields.join(", ")}`;
+      coverWrap.appendChild(badge);
+    }
 
     // Favorite buttons (album + artist)
     const favWrap = document.createElement("div");
@@ -7828,6 +7855,8 @@ async function handleAddRecordSubmit(event) {
   const subgenreInput = document.getElementById("fieldSubgenre").value.trim();
   const vinylGrade = document.getElementById("fieldVinylGrade").value.trim() || null;
   const sleeveGrade = document.getElementById("fieldSleeveGrade").value.trim() || null;
+  const acquiredDateField = document.getElementById("fieldAcquiredDate").value || null;
+  const pressingCountry = document.getElementById("fieldPressingCountry").value.trim() || null;
   const description = document.getElementById("fieldDescription").value.trim() || null;
   const notes = document.getElementById("fieldNotes").value.trim() || null;
 
@@ -7852,6 +7881,8 @@ async function handleAddRecordSubmit(event) {
       description,
       vinyl_grade: vinylGrade,
       sleeve_grade: sleeveGrade,
+      acquired_date: acquiredDateField,
+      pressing_country: pressingCountry,
       notes,
       quantity: quantityVal,
       cover_url: pendingScannedCoverUrl,
@@ -9280,6 +9311,10 @@ async function moveWishlistItemToCollection(wishlistId) {
       cover_url: item.cover_url,
       notes: item.notes,
       quantity: 1,
+      // Wishlist items don't have a real acquisition date — the day it
+      // moves to the collection (i.e. today) is the best available signal
+      // of when it was actually acquired.
+      acquired_date: new Date().toISOString().slice(0, 10),
     };
 
     const { data, error } = await supabaseClient
@@ -9756,6 +9791,7 @@ function openRecordDetailModal(recordId, startTab = "details") {
   document.getElementById("detailSubgenre").value = record.subgenre_name || "";
   populateSubgenreOptionsForGenre(record.genre_name || "");
   document.getElementById("detailVinylGrade").value = record.vinyl_grade || "";
+  document.getElementById("detailPressingCountry").value = record.pressing_country || "";
   document.getElementById("detailSleeveGrade").value = record.sleeve_grade || "";
   document.getElementById("detailDescription").value = record.description || "";
   document.getElementById("detailNotes").value = record.notes || "";
@@ -10196,6 +10232,7 @@ async function handleRecordDetailSubmit(event) {
   const subgenreInput = document.getElementById("detailSubgenre").value.trim();
   const vinylGrade = document.getElementById("detailVinylGrade").value.trim() || null;
   const sleeveGrade = document.getElementById("detailSleeveGrade").value.trim() || null;
+  const pressingCountry = document.getElementById("detailPressingCountry").value.trim() || null;
   const description = document.getElementById("detailDescription").value.trim() || null;
   const notes = document.getElementById("detailNotes").value.trim() || null;
 
@@ -10220,6 +10257,7 @@ async function handleRecordDetailSubmit(event) {
       description,
       vinyl_grade: vinylGrade,
       sleeve_grade: sleeveGrade,
+      pressing_country: pressingCountry,
       notes,
       quantity: quantityVal,
     };
@@ -14472,14 +14510,23 @@ const CI_PALETTE = [
 // ── Data quality assessment ──────────────────────────────────────────────────
 // Returns a readiness object per visualization: { ready, level, count, total }
 // level: 'locked' (not enough data) | 'partial' (some, low confidence) | 'ready'
+// True acquisition date if known, falling back to when the record was added
+// to Spin Vinyl. Timeline/heatmap visualizations should always use this
+// rather than created_at directly — otherwise a June 2026 import of a
+// December 2025 purchase shows up as June, giving a false collecting
+// history for anyone who imported a backlog instead of buying live.
+function getRecordDate(record) {
+  return record.acquired_date || record.created_at;
+}
+
 function assessInsightsDataQuality() {
   const total = allRecords.length;
 
-  const withCreatedAt = allRecords.filter(r => !!r.created_at).length;
+  const withCreatedAt = allRecords.filter(r => !!getRecordDate(r)).length;
   const withLabel      = allRecords.filter(r => !!r.label?.trim()).length;
   const withGrade      = allRecords.filter(r => !!r.vinyl_grade?.trim()).length;
   const withCountry    = allRecords.filter(r => !!r.pressing_country).length;
-  const withCreatedDates = allRecords.filter(r => !!r.created_at).length;
+  const withCreatedDates = allRecords.filter(r => !!getRecordDate(r)).length;
 
   function level(count, total, readyThreshold = 0.6, partialThreshold = 0.15, minCount = 5) {
     if (total === 0 || count < minCount) return "locked";
@@ -14540,10 +14587,10 @@ function renderCollectionInsights() {
 
   renderCiTimeline(quality.timeline);
   renderCiLabelLoyalty(quality.label);
-  renderCiLockedCard("ciConditionCard", "ciConditionStatus", quality.condition, "condition");
-  renderCiLockedCard("ciGeoCard", "ciGeoStatus", quality.geography, "geography");
-  renderCiLockedCard("ciHeatmapCard", "ciHeatmapStatus", quality.heatmap, "heatmap");
-  renderCiLockedCard("ciNetworkCard", "ciNetworkStatus", quality.network, "network");
+  renderCiCondition(quality.condition);
+  renderCiGeography(quality.geography);
+  renderCiHeatmap(quality.heatmap);
+  renderCiNetwork(quality.network);
 }
 
 // ── 1. Collecting Velocity (Acquisition Timeline) ────────────────────────────
@@ -14573,8 +14620,9 @@ function renderCiTimeline(quality) {
 
   const buckets = {};
   allRecords.forEach(r => {
-    if (!r.created_at) return;
-    const d = new Date(r.created_at);
+    const recordDate = getRecordDate(r);
+    if (!recordDate) return;
+    const d = new Date(recordDate);
     const key = grouping === "month"
       ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
       : `${d.getFullYear()}`;
@@ -14714,37 +14762,325 @@ function renderCiLabelLoyalty(quality) {
   });
 }
 
-// ── 3–6. Scaffolded visualizations ───────────────────────────────────────────
-// These render a status badge showing data readiness. The actual chart code
-// will be added when each is built — for now they communicate clearly what's
-// needed to unlock them, which keeps expectations honest rather than showing
-// a broken or empty chart.
-function renderCiLockedCard(cardId, statusId, quality, vizKey) {
-  const card   = document.getElementById(cardId);
-  const status = document.getElementById(statusId);
-  if (!card || !status) return;
+// ── 3. Condition Breakdown (donut) ──────────────────────────────────────────
+let ciConditionChartInstance = null;
+const CI_GRADE_ORDER = ["M", "NM", "VG+", "VG", "VG-", "G+", "G", "F", "P"];
+const CI_GRADE_COLORS = ["#c9a84c","#a98f3f","#8a7433","#6b5a27","#e0c878","#4a3f1c","#3a3115","#2a2410","#1a1608"];
 
-  const userEnabled = isInsightEnabled(vizKey);
+function renderCiCondition(quality) {
+  const card = document.getElementById("ciConditionCard");
+  const empty = document.getElementById("ciConditionEmpty");
+  const wrap = document.querySelector("#ciConditionCard .ci-chart-wrap");
+  const legend = document.getElementById("ciConditionLegend");
+  if (!card) return;
 
-  if (!userEnabled) {
-    card.hidden = true;
-    return;
-  }
+  if (!isInsightEnabled("condition")) { card.hidden = true; return; }
   card.hidden = false;
 
-  card.classList.remove("ci-unlockable");
-  status.classList.remove("ci-status-locked", "ci-status-partial", "ci-status-ready");
-
-  if (quality.level === "ready") {
-    status.classList.add("ci-status-ready");
-    status.textContent = "Coming soon — your data is ready";
-  } else if (quality.level === "partial") {
-    status.classList.add("ci-status-partial");
-    status.textContent = `Coming soon — ${quality.count}/${quality.total} records have what's needed`;
-  } else {
-    status.classList.add("ci-status-locked");
-    status.textContent = "Not enough data yet";
+  if (quality.level === "locked") {
+    wrap.hidden = true;
+    legend.hidden = true;
+    empty.hidden = false;
+    empty.textContent = quality.count > 0
+      ? `Grade a few more records (${quality.count}/${quality.total} so far) to unlock this.`
+      : "Add a vinyl grade to your records (in the record detail view) to unlock this.";
+    if (ciConditionChartInstance) { ciConditionChartInstance.destroy(); ciConditionChartInstance = null; }
+    return;
   }
+
+  wrap.hidden = false;
+  legend.hidden = false;
+  empty.hidden = true;
+
+  const counts = {};
+  allRecords.forEach((r) => {
+    const g = r.vinyl_grade?.trim();
+    if (g) counts[g] = (counts[g] || 0) + 1;
+  });
+  const grades = Object.keys(counts).sort((a, b) => {
+    const ai = CI_GRADE_ORDER.indexOf(a), bi = CI_GRADE_ORDER.indexOf(b);
+    return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+  });
+  const colors = grades.map((g, i) => CI_GRADE_COLORS[CI_GRADE_ORDER.indexOf(g) !== -1 ? CI_GRADE_ORDER.indexOf(g) : i]);
+  const data = grades.map((g) => counts[g]);
+
+  const canvas = document.getElementById("ciConditionChart");
+  if (ciConditionChartInstance) ciConditionChartInstance.destroy();
+  ciConditionChartInstance = new Chart(canvas, {
+    type: "doughnut",
+    data: { labels: grades, datasets: [{ data, backgroundColor: colors, borderColor: "#14120e", borderWidth: 2 }] },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: "62%",
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed}` } },
+      },
+    },
+  });
+
+  legend.innerHTML = "";
+  grades.forEach((g, i) => {
+    const row = document.createElement("div");
+    row.className = "ci-label-legend-item";
+    row.innerHTML = `
+      <span class="ci-label-legend-swatch" style="background:${colors[i]}"></span>
+      <span class="ci-label-legend-name">${g}</span>
+      <span class="ci-label-legend-count">${counts[g]}</span>
+    `;
+    legend.appendChild(row);
+  });
+}
+
+// ── 4. Pressing Origins (ranked list) ───────────────────────────────────────
+const CI_COUNTRY_FLAGS = {
+  "us": "🇺🇸", "usa": "🇺🇸", "united states": "🇺🇸", "united states of america": "🇺🇸",
+  "uk": "🇬🇧", "united kingdom": "🇬🇧", "england": "🇬🇧", "great britain": "🇬🇧", "scotland": "🇬🇧", "wales": "🇬🇧",
+  "germany": "🇩🇪", "west germany": "🇩🇪", "deutschland": "🇩🇪",
+  "japan": "🇯🇵", "france": "🇫🇷", "italy": "🇮🇹", "spain": "🇪🇸",
+  "netherlands": "🇳🇱", "holland": "🇳🇱",
+  "canada": "🇨🇦", "australia": "🇦🇺", "brazil": "🇧🇷", "mexico": "🇲🇽",
+  "sweden": "🇸🇪", "norway": "🇳🇴", "denmark": "🇩🇰", "finland": "🇫🇮",
+  "belgium": "🇧🇪", "austria": "🇦🇹", "switzerland": "🇨🇭", "ireland": "🇮🇪",
+  "poland": "🇵🇱", "portugal": "🇵🇹", "greece": "🇬🇷",
+  "czech republic": "🇨🇿", "czechoslovakia": "🇨🇿",
+  "south korea": "🇰🇷", "korea": "🇰🇷", "india": "🇮🇳", "china": "🇨🇳",
+  "argentina": "🇦🇷", "new zealand": "🇳🇿", "south africa": "🇿🇦",
+  "russia": "🇷🇺", "ussr": "🇷🇺", "soviet union": "🇷🇺", "yugoslavia": "🇷🇸",
+};
+
+function ciNormalizeCountry(name) {
+  return name.trim().replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+}
+function ciCountryFlag(name) {
+  return CI_COUNTRY_FLAGS[name.trim().toLowerCase()] || "🌐";
+}
+
+function renderCiGeography(quality) {
+  const card = document.getElementById("ciGeoCard");
+  const list = document.getElementById("ciGeoList");
+  const empty = document.getElementById("ciGeoEmpty");
+  if (!card) return;
+
+  if (!isInsightEnabled("geography")) { card.hidden = true; return; }
+  card.hidden = false;
+
+  if (quality.level === "locked") {
+    list.hidden = true;
+    empty.hidden = false;
+    empty.textContent = quality.count > 0
+      ? `Add pressing country to a few more records (${quality.count}/${quality.total} so far) to unlock this.`
+      : "Add a pressing country to your records (in the record detail view) to unlock this.";
+    return;
+  }
+
+  list.hidden = false;
+  empty.hidden = true;
+
+  const counts = {};
+  allRecords.forEach((r) => {
+    if (!r.pressing_country) return;
+    const norm = ciNormalizeCountry(r.pressing_country);
+    counts[norm] = (counts[norm] || 0) + 1;
+  });
+  const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const max = ranked.length ? ranked[0][1] : 1;
+
+  list.innerHTML = "";
+  ranked.forEach(([name, count]) => {
+    const row = document.createElement("div");
+    row.className = "ci-geo-row";
+    row.innerHTML = `
+      <span class="ci-geo-flag">${ciCountryFlag(name)}</span>
+      <span class="ci-geo-name">${name}</span>
+      <span class="ci-geo-bar-track"><span class="ci-geo-bar-fill" style="width:${Math.round((count / max) * 100)}%"></span></span>
+      <span class="ci-geo-count">${count}</span>
+    `;
+    list.appendChild(row);
+  });
+}
+
+// ── 5. Collecting Calendar (heatmap) ────────────────────────────────────────
+function renderCiHeatmap(quality) {
+  const card = document.getElementById("ciHeatmapCard");
+  const grid = document.getElementById("ciHeatmapGrid");
+  const empty = document.getElementById("ciHeatmapEmpty");
+  const yearSelect = document.getElementById("ciHeatmapYear");
+  if (!card) return;
+
+  if (!isInsightEnabled("heatmap")) { card.hidden = true; return; }
+  card.hidden = false;
+
+  if (quality.level === "locked") {
+    grid.hidden = true;
+    yearSelect.hidden = true;
+    empty.hidden = false;
+    empty.textContent = "Add a few more records with dates to unlock this.";
+    return;
+  }
+
+  const dayCounts = {};
+  const years = new Set();
+  allRecords.forEach((r) => {
+    const raw = getRecordDate(r);
+    if (!raw) return;
+    const d = new Date(raw);
+    if (isNaN(d)) return;
+    dayCounts[d.toISOString().slice(0, 10)] = (dayCounts[d.toISOString().slice(0, 10)] || 0) + 1;
+    years.add(d.getUTCFullYear());
+  });
+
+  const sortedYears = [...years].sort((a, b) => b - a);
+  if (!sortedYears.length) {
+    grid.hidden = true;
+    yearSelect.hidden = true;
+    empty.hidden = false;
+    empty.textContent = "Add a few more records with dates to unlock this.";
+    return;
+  }
+
+  grid.hidden = false;
+  yearSelect.hidden = false;
+  empty.hidden = true;
+
+  const desired = sortedYears.map(String);
+  if ([...yearSelect.options].map((o) => o.value).join(",") !== desired.join(",")) {
+    const prev = yearSelect.value;
+    yearSelect.innerHTML = desired.map((y) => `<option value="${y}">${y}</option>`).join("");
+    yearSelect.value = desired.includes(prev) ? prev : desired[0];
+  }
+  const selectedYear = Number(yearSelect.value);
+  const maxCount = Math.max(1, ...Object.values(dayCounts));
+
+  grid.innerHTML = "";
+  const start = new Date(Date.UTC(selectedYear, 0, 1));
+  const end = new Date(Date.UTC(selectedYear, 11, 31));
+  const startPad = start.getUTCDay();
+  for (let i = 0; i < startPad; i++) {
+    const cell = document.createElement("div");
+    cell.className = "ci-heatmap-cell ci-heatmap-empty";
+    grid.appendChild(cell);
+  }
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    const key = d.toISOString().slice(0, 10);
+    const count = dayCounts[key] || 0;
+    const level = count === 0 ? 0 : count === 1 ? 1 : count <= 3 ? 2 : count <= 5 ? 3 : 4;
+    const cell = document.createElement("div");
+    cell.className = "ci-heatmap-cell";
+    cell.dataset.level = String(level);
+    cell.title = `${new Date(key).toLocaleDateString()}: ${count} record${count === 1 ? "" : "s"}`;
+    grid.appendChild(cell);
+  }
+}
+
+// ── 6. Artist Connections (force-directed network graph) ───────────────────
+let ciNetworkSimulation = null;
+
+function renderCiNetwork(quality) {
+  const card = document.getElementById("ciNetworkCard");
+  const wrap = document.getElementById("ciNetworkWrap");
+  const empty = document.getElementById("ciNetworkEmpty");
+  if (!card) return;
+
+  if (!isInsightEnabled("network")) { card.hidden = true; return; }
+  card.hidden = false;
+
+  if (ciNetworkSimulation) { ciNetworkSimulation.stop(); ciNetworkSimulation = null; }
+
+  if (typeof d3 === "undefined") {
+    wrap.hidden = true;
+    empty.hidden = false;
+    empty.textContent = "Artist Connections couldn't load — check your connection and refresh.";
+    return;
+  }
+
+  if (quality.level === "locked") {
+    wrap.hidden = true;
+    empty.hidden = false;
+    empty.textContent = "Add a few more labeled records across different artists to unlock this.";
+    return;
+  }
+
+  const artistData = {};
+  allRecords.forEach((r) => {
+    if (!r.artist) return;
+    if (!artistData[r.artist]) artistData[r.artist] = { genres: new Set(), labels: new Set(), count: 0 };
+    if (r.genre_id) artistData[r.artist].genres.add(r.genre_id);
+    if (r.label) artistData[r.artist].labels.add(r.label.trim().toLowerCase());
+    artistData[r.artist].count++;
+  });
+
+  const topArtists = Object.entries(artistData)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 40)
+    .map(([name]) => name);
+
+  const links = [];
+  for (let i = 0; i < topArtists.length; i++) {
+    for (let j = i + 1; j < topArtists.length; j++) {
+      const a = artistData[topArtists[i]], b = artistData[topArtists[j]];
+      const sharedGenres = [...a.genres].filter((g) => b.genres.has(g)).length;
+      const sharedLabels = [...a.labels].filter((l) => b.labels.has(l)).length;
+      const weight = sharedGenres + sharedLabels * 2;
+      if (weight > 0) links.push({ source: topArtists[i], target: topArtists[j], weight });
+    }
+  }
+
+  const connected = new Set();
+  links.forEach((l) => { connected.add(l.source); connected.add(l.target); });
+  const nodes = topArtists.filter((a) => connected.has(a)).map((a) => ({ id: a, count: artistData[a].count }));
+
+  if (!nodes.length) {
+    wrap.hidden = true;
+    empty.hidden = false;
+    empty.textContent = "Not enough shared genres or labels yet to draw connections.";
+    return;
+  }
+
+  wrap.hidden = false;
+  empty.hidden = true;
+  wrap.innerHTML = "";
+
+  const width = wrap.clientWidth || 600;
+  const height = 420;
+
+  const svg = d3.select(wrap).append("svg").attr("viewBox", `0 0 ${width} ${height}`);
+  const g = svg.append("g");
+  svg.call(d3.zoom().scaleExtent([0.4, 3]).on("zoom", (event) => g.attr("transform", event.transform)));
+
+  const link = g.append("g").selectAll("line").data(links).join("line")
+    .attr("stroke", "rgba(201,168,76,0.35)")
+    .attr("stroke-width", (d) => Math.min(4, 1 + d.weight * 0.5));
+
+  const node = g.append("g").selectAll("circle").data(nodes).join("circle")
+    .attr("r", (d) => 5 + Math.min(10, d.count))
+    .attr("fill", "#c9a84c")
+    .attr("stroke", "#14120e")
+    .attr("stroke-width", 1.5)
+    .call(
+      d3.drag()
+        .on("start", (event, d) => { if (!event.active) ciNetworkSimulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+        .on("drag", (event, d) => { d.fx = event.x; d.fy = event.y; })
+        .on("end", (event, d) => { if (!event.active) ciNetworkSimulation.alphaTarget(0); d.fx = null; d.fy = null; })
+    );
+
+  const label = g.append("g").selectAll("text").data(nodes).join("text")
+    .attr("class", "ci-network-node-label")
+    .attr("text-anchor", "middle")
+    .attr("dy", (d) => -(8 + Math.min(10, d.count)))
+    .text((d) => d.id);
+
+  ciNetworkSimulation = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).id((d) => d.id).distance(70).strength(0.3))
+    .force("charge", d3.forceManyBody().strength(-120))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("collide", d3.forceCollide(20))
+    .on("tick", () => {
+      link.attr("x1", (d) => d.source.x).attr("y1", (d) => d.source.y).attr("x2", (d) => d.target.x).attr("y2", (d) => d.target.y);
+      node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+      label.attr("x", (d) => d.x).attr("y", (d) => d.y);
+    });
 }
 
 // ── Settings wiring ───────────────────────────────────────────────────────────
@@ -14756,6 +15092,12 @@ function setupCollectionInsights() {
     ?.addEventListener("change", () => {
       const quality = assessInsightsDataQuality();
       renderCiTimeline(quality.timeline);
+    });
+
+  document.getElementById("ciHeatmapYear")
+    ?.addEventListener("change", () => {
+      const quality = assessInsightsDataQuality();
+      renderCiHeatmap(quality.heatmap);
     });
 
   const toggleMap = {
