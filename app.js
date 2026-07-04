@@ -13108,13 +13108,18 @@ function setupSpotify() {
 function showLandingAuthForm(mode) {
   document.getElementById("landingCtaButtons").hidden = true;
   document.getElementById("landingAuthForms").hidden = false;
+  document.getElementById("authOverlay")?.classList.add("auth-open");
   setAuthMode(mode);
+  // Bring the form into view — on mobile it would otherwise render
+  // below the fold of the (now hidden) marketing content
+  document.getElementById("landingAuthForms")?.scrollIntoView({ block: "center", behavior: "instant" });
   document.getElementById("authEmail")?.focus();
 }
 
 function showLandingCta() {
   document.getElementById("landingAuthForms").hidden = true;
   document.getElementById("landingCtaButtons").hidden = false;
+  document.getElementById("authOverlay")?.classList.remove("auth-open");
 }
 
 function setupAuth() {
@@ -13512,9 +13517,11 @@ function setupOnboarding() {
     btn.addEventListener("click", () => handlePersonaChoice(btn.dataset.persona));
   });
 
-  // Final: persona summary → launch
+  // Final: persona summary → launch, or back to persona question
   document.getElementById("personaSummaryContinueBtn")
     ?.addEventListener("click", () => launchIntoApp());
+  document.getElementById("personaSummaryBackBtn")
+    ?.addEventListener("click", () => showOnboardingStep(0));
 
   document.getElementById("onboardImportBtn").addEventListener("click", () => {
     onboardingDestination = "import";

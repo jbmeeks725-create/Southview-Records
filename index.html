@@ -192,6 +192,16 @@
     display: none !important;
   }
 
+  /* While the auth form is open, the marketing content steps aside so the
+     page stays compact — logo and tagline remain for context. Back restores
+     everything. */
+  #authOverlay.auth-open .landing-purpose,
+  #authOverlay.auth-open .landing-features,
+  #authOverlay.auth-open .landing-tour-btn,
+  #authOverlay.auth-open .landing-keywords {
+    display: none !important;
+  }
+
   @media (max-width: 640px) {
     .landing-features {
       grid-template-columns: 1fr;
@@ -429,6 +439,32 @@
     border-radius: 3px;
     transition: width 0.4s ease;
   }
+  /* Browser autofill (Chrome/Safari) paints its own white/yellow background
+     on fields it recognizes as address autofill targets (City, State) —
+     this overrides it to match the app's dark theme. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #14151c inset !important;
+    -webkit-text-fill-color: #e8e0d0 !important;
+    caret-color: #e8e0d0 !important;
+    transition: background-color 9999s ease-in-out 0s;
+  }
+
+  .onboarding-summary-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .onboarding-summary-back:hover { color: rgba(255,255,255,0.8); }
   .room-playback-hint {
     display: block;
     margin-top: 4px;
@@ -486,12 +522,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 14px;
-    font-weight: 600;
+    font-family: Jost, sans-serif;
+    font-size: 18px;
+    font-weight: 700;
     color: #e8e0d0;
     margin-bottom: 10px;
   }
-  .home-survey-header i { color: #c9a84c; }
+  .home-survey-header i { color: #c9a84c; font-size: 16px; }
   .home-survey-header .btn-text {
     background: none; border: none; cursor: pointer;
     color: rgba(255,255,255,0.45); font-size: 13px;
@@ -505,7 +542,7 @@
   .home-survey-chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .survey-chip {
     background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.15);
+    border: 1.5px solid rgba(201,168,76,0.5);
     border-radius: 999px;
     padding: 6px 14px;
     font-family: Inter, sans-serif;
@@ -3705,6 +3742,9 @@
 
       <div id="onboardingStepSummary" hidden>
         <div class="onboarding-step4-content">
+          <button type="button" id="personaSummaryBackBtn" class="link-btn onboarding-summary-back">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i> Back
+          </button>
           <div class="onboarding-step4-icon"><i class="ti ti-adjustments" aria-hidden="true"></i></div>
           <h2 class="onboarding-step4-title">You're set up as: <span id="personaSummaryName"></span></h2>
           <p class="onboarding-step4-desc">Based on your answers, here's how we've tuned Spin Vinyl for you:</p>
