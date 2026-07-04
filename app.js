@@ -54,9 +54,12 @@ async function renderStarterCollection() {
     cover.innerHTML = `<i class="ti ti-vinyl" style="font-size:36px;color:rgba(201,168,76,0.25);"></i>`;
     card.appendChild(cover);
 
-    // Fetch cover via MusicBrainz
+    // Fetch cover via MusicBrainz — kept in scope so the click handler can
+    // save it to the actual wishlist row, not just show it in this preview
+    let fetchedCoverUrl = null;
     fetchMusicBrainzCover(record.artist, record.album).then(url => {
       if (url) {
+        fetchedCoverUrl = url;
         const img = document.createElement("img");
         img.src = url;
         img.alt = record.album;
@@ -94,12 +97,14 @@ async function renderStarterCollection() {
       card.style.transform = "scale(0.97)";
 
       try {
+        const genreId = await getOrCreateGenreId(record.genre);
         await supabaseClient.from("wishlist").insert({
           user_id: currentUser.id,
           artist: record.artist,
           album: record.album,
           year: record.year,
-          genre: record.genre,
+          genre_id: genreId,
+          cover_url: fetchedCoverUrl,
         });
 
         // Reload wishlist in memory
@@ -6667,6 +6672,12 @@ function setPage(page) {
   atAGlanceSection.hidden = !isCollection;
   document.getElementById("cardSectionHeader").hidden = !isCollection;
   cardSection.hidden = !isCollection;
+  // Bug fix: this section was never wired into setPage's visibility list,
+  // so once shown (empty collection) it stayed visible on every other page
+  // forever, since only renderCards() ever touched it and that only runs
+  // while viewing Collection.
+  const starterCollectionWrap = document.getElementById("starterCollectionWrap");
+  if (starterCollectionWrap && !isCollection) starterCollectionWrap.hidden = true;
   wishlistSection.hidden = !isWishlist;
   if (collectionValueSection) collectionValueSection.hidden = !isCollectionValue;
   if (collectionInsightsSection) collectionInsightsSection.hidden = !isCollectionInsights;
