@@ -226,6 +226,11 @@
   @media (prefers-reduced-motion: reduce) {
     .header-now-playing-eq span { animation: none; transform: scaleY(0.7); }
   }
+  /* Quiet mode (Settings → Features → Celebrations & animations off) */
+  body.feature-quiet .header-now-playing-eq span { animation: none; transform: scaleY(0.7); }
+  body.feature-quiet .home-stat-card:hover,
+  body.feature-quiet .mini-list-item:hover { transform: none; box-shadow: none; }
+  body.feature-quiet .spotlight-ambient-bg { opacity: 0 !important; }
 
   /* ── Home page: ambient background wash behind everything ── */
   #homeSection {
@@ -379,8 +384,142 @@
     pointer-events: none;
   }
 
-  /* ── Missing-detail indicator on collection cards ── */
+  /* ── Missing-detail review (D1-B: filter view, not always-on badges) ── */
+  .missing-details-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(201,168,76,0.07);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+  }
+  .missing-details-banner i { color: #c9a84c; }
+  .missing-details-banner .btn-text {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #c9a84c;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
   .record-card.has-missing-details { position: relative; }
+
+  /* ── Locked-insight progress framing (T4) ── */
+  .ci-progress-track {
+    display: block;
+    width: 100%;
+    max-width: 260px;
+    height: 6px;
+    margin-top: 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .ci-progress-fill {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(201,168,76,0.55), #c9a84c);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  .room-playback-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  /* ── Persona summary (end of onboarding) ── */
+  .persona-summary-lists {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    max-width: 480px;
+    margin: 18px auto;
+    text-align: left;
+  }
+  .persona-summary-heading {
+    font-family: Jost, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #3ecf6e;
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .persona-summary-heading-off { color: rgba(255,255,255,0.4); }
+  .persona-summary-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+  }
+  .persona-summary-list li { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  @media (max-width: 640px) {
+    .persona-summary-lists { grid-template-columns: 1fr; }
+  }
+
+  /* ── Home survey card (optional Q2–Q4) ── */
+  .home-survey-card {
+    position: relative;
+    z-index: 1;
+    background: rgba(201,168,76,0.05);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+    font-family: Inter, sans-serif;
+  }
+  .home-survey-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8e0d0;
+    margin-bottom: 10px;
+  }
+  .home-survey-header i { color: #c9a84c; }
+  .home-survey-header .btn-text {
+    background: none; border: none; cursor: pointer;
+    color: rgba(255,255,255,0.45); font-size: 13px;
+  }
+  .home-survey-label {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    margin: 12px 0 6px;
+  }
+  .home-survey-sub { color: rgba(255,255,255,0.4); font-size: 12px; }
+  .home-survey-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .survey-chip {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .survey-chip.selected {
+    background: rgba(201,168,76,0.18);
+    border-color: #c9a84c;
+    color: #e8d9a8;
+  }
+  .home-survey-actions { margin-top: 14px; display: flex; justify-content: flex-end; }
   .record-missing-badge {
     position: absolute;
     top: 8px;
@@ -3372,7 +3511,39 @@
       <img src="icon-192.png" alt="" class="onboarding-logo" />
       <h1 class="onboarding-title">Welcome to Spin Vinyl</h1>
 
-      <div id="onboardingStep1">
+      <div id="onboardingStep0">
+        <p class="onboarding-tagline">Where are you in your vinyl journey?</p>
+
+        <div class="onboarding-options">
+          <button type="button" class="onboarding-option persona-option" data-persona="newcomer">
+            <i class="ti ti-seedling" aria-hidden="true"></i>
+            <span class="onboarding-option-title">Just getting started</span>
+            <span class="onboarding-option-desc">New to vinyl, or just bought my first records</span>
+          </button>
+          <button type="button" class="onboarding-option persona-option" data-persona="explorer">
+            <i class="ti ti-headphones" aria-hidden="true"></i>
+            <span class="onboarding-option-title">Exploring</span>
+            <span class="onboarding-option-desc">I love music and I'm testing the vinyl waters</span>
+          </button>
+          <button type="button" class="onboarding-option persona-option" data-persona="collector">
+            <i class="ti ti-books" aria-hidden="true"></i>
+            <span class="onboarding-option-title">Collecting for a while</span>
+            <span class="onboarding-option-desc">I have a real collection to organize</span>
+          </button>
+          <button type="button" class="onboarding-option persona-option" data-persona="audiophile">
+            <i class="ti ti-volume" aria-hidden="true"></i>
+            <span class="onboarding-option-title">Deep in the hobby</span>
+            <span class="onboarding-option-desc">Pressings, equipment, the whole thing</span>
+          </button>
+          <button type="button" class="onboarding-option persona-option" data-persona="inheritor">
+            <i class="ti ti-package" aria-hidden="true"></i>
+            <span class="onboarding-option-title">I inherited or was given a collection</span>
+            <span class="onboarding-option-desc">Help me figure out what I have</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="onboardingStep1" hidden>
         <p class="onboarding-tagline">How would you like to get started?</p>
 
         <div class="onboarding-options">
@@ -3532,6 +3703,26 @@
         </div>
       </div>
 
+      <div id="onboardingStepSummary" hidden>
+        <div class="onboarding-step4-content">
+          <div class="onboarding-step4-icon"><i class="ti ti-adjustments" aria-hidden="true"></i></div>
+          <h2 class="onboarding-step4-title">You're set up as: <span id="personaSummaryName"></span></h2>
+          <p class="onboarding-step4-desc">Based on your answers, here's how we've tuned Spin Vinyl for you:</p>
+          <div class="persona-summary-lists">
+            <div>
+              <h3 class="persona-summary-heading"><i class="ti ti-circle-check" aria-hidden="true"></i> On</h3>
+              <ul id="personaSummaryOn" class="persona-summary-list"></ul>
+            </div>
+            <div>
+              <h3 class="persona-summary-heading persona-summary-heading-off"><i class="ti ti-circle-minus" aria-hidden="true"></i> Off</h3>
+              <ul id="personaSummaryOff" class="persona-summary-list"></ul>
+            </div>
+          </div>
+          <p class="field-hint">Nothing is locked — visit <strong>Settings → Features</strong> anytime to toggle anything on or off.</p>
+          <button type="button" id="personaSummaryContinueBtn" class="btn-primary onboarding-step4-btn">Let's go</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -3550,7 +3741,7 @@
             <span></span><span></span><span></span>
           </span>
           <span class="header-now-playing-dot"></span>
-          <span class="header-now-playing-label">Now Playing</span>
+          <span class="header-now-playing-label">Now Playing on Spotify</span>
         </span>
         <img id="headerNowPlayingCover" class="header-now-playing-cover" alt="" hidden />
         <div class="header-now-playing-text">
@@ -3662,6 +3853,45 @@
 
   <section id="homeSection">
     <div id="spotlightAmbientBg" class="spotlight-ambient-bg" aria-hidden="true"></div>
+    <div id="homeSurveyCard" class="home-survey-card" hidden>
+      <div class="home-survey-header">
+        <span><i class="ti ti-sparkles" aria-hidden="true"></i> 30 seconds to make Spin Vinyl yours</span>
+        <button type="button" id="homeSurveyDismissBtn" class="btn-text" aria-label="Dismiss">Skip</button>
+      </div>
+      <div class="home-survey-q">
+        <p class="home-survey-label">What do you most want Spin Vinyl to help with? <span class="home-survey-sub">(pick up to 2)</span></p>
+        <div class="home-survey-chips" id="surveyGoalsChips">
+          <button type="button" class="survey-chip" data-goal="track">Keeping track of what I own</button>
+          <button type="button" class="survey-chip" data-goal="buy">Deciding what to buy next</button>
+          <button type="button" class="survey-chip" data-goal="taste">Understanding my taste</button>
+          <button type="button" class="survey-chip" data-goal="value">Knowing what my records are worth</button>
+          <button type="button" class="survey-chip" data-goal="share">Showing my collection to others</button>
+          <button type="button" class="survey-chip" data-goal="learn">Learning more about vinyl</button>
+        </div>
+      </div>
+      <div class="home-survey-q">
+        <p class="home-survey-label">How big is your collection right now?</p>
+        <div class="home-survey-chips" id="surveySizeChips">
+          <button type="button" class="survey-chip" data-size="0-10">0–10</button>
+          <button type="button" class="survey-chip" data-size="11-50">11–50</button>
+          <button type="button" class="survey-chip" data-size="51-200">51–200</button>
+          <button type="button" class="survey-chip" data-size="200+">200+</button>
+          <button type="button" class="survey-chip" data-size="unknown">Honestly, no idea — that's why I'm here</button>
+        </div>
+      </div>
+      <div class="home-survey-q">
+        <p class="home-survey-label">Do you keep your collection anywhere else today?</p>
+        <div class="home-survey-chips" id="surveyElsewhereChips">
+          <button type="button" class="survey-chip" data-elsewhere="discogs">Discogs</button>
+          <button type="button" class="survey-chip" data-elsewhere="spreadsheet">A spreadsheet</button>
+          <button type="button" class="survey-chip" data-elsewhere="other-app">Another app</button>
+          <button type="button" class="survey-chip" data-elsewhere="head">Just in my head</button>
+        </div>
+      </div>
+      <div class="home-survey-actions">
+        <button type="button" id="homeSurveySaveBtn" class="btn-primary">Done</button>
+      </div>
+    </div>
     <div id="homeHero" class="home-hero">
       <h1 class="home-hero-greeting" id="homeHeroGreeting">Welcome back.</h1>
       <p class="home-hero-sub" id="homeHeroSub"></p>
@@ -4158,6 +4388,70 @@
           </form>
         </div>
 
+        <div class="profile-card settings-privacy-card" id="settingsFeaturesCard">
+          <div class="profile-card-header">
+            <h2>Features</h2>
+          </div>
+          <p class="field-hint">
+            Spin Vinyl adapts to how you collect. These were set based on your answers when you
+            joined — change any of them, anytime.
+          </p>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">Expert fields</span>
+              <span class="privacy-toggle-desc">Grades, pressing country, and other detailed fields when adding records</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Toggle expert fields">
+                <input type="checkbox" id="featureExpertFields" checked />
+                <span class="privacy-switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">Beginner tips</span>
+              <span class="privacy-toggle-desc">Explanations of grading, pressings, and collecting terms</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Toggle beginner tips">
+                <input type="checkbox" id="featureTooltips" checked />
+                <span class="privacy-switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">Celebrations &amp; animations</span>
+              <span class="privacy-toggle-desc">Trophy toasts, count-ups, and other moving touches</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Toggle celebrations and animations">
+                <input type="checkbox" id="featureCelebrations" checked />
+                <span class="privacy-switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">Missing-details review</span>
+              <span class="privacy-toggle-desc">Show how many records are missing grades, dates, or other info</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Toggle missing-details review">
+                <input type="checkbox" id="featureMissingDetails" checked />
+                <span class="privacy-switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <p id="settingsFeaturesStatus" class="form-status"></p>
+        </div>
+
         <div class="profile-card settings-privacy-card" id="settingsInsightsCard">
           <div class="profile-card-header">
             <h2>Collection Insights</h2>
@@ -4196,7 +4490,7 @@
           <div class="privacy-toggle-row">
             <div class="privacy-toggle-info">
               <span class="privacy-toggle-label">Condition Breakdown</span>
-              <span class="privacy-toggle-desc">By vinyl grade — coming soon</span>
+              <span class="privacy-toggle-desc">Donut chart of your collection by vinyl grade</span>
             </div>
             <div class="privacy-toggle-controls">
               <label class="privacy-switch" aria-label="Toggle Condition Breakdown">
@@ -4209,7 +4503,7 @@
           <div class="privacy-toggle-row">
             <div class="privacy-toggle-info">
               <span class="privacy-toggle-label">Pressing Origins</span>
-              <span class="privacy-toggle-desc">By pressing country — coming soon</span>
+              <span class="privacy-toggle-desc">Where your records were pressed</span>
             </div>
             <div class="privacy-toggle-controls">
               <label class="privacy-switch" aria-label="Toggle Pressing Origins">
@@ -4222,7 +4516,7 @@
           <div class="privacy-toggle-row">
             <div class="privacy-toggle-info">
               <span class="privacy-toggle-label">Collecting Calendar</span>
-              <span class="privacy-toggle-desc">Year-at-a-glance heatmap — coming soon</span>
+              <span class="privacy-toggle-desc">Month-by-month collecting heatmap</span>
             </div>
             <div class="privacy-toggle-controls">
               <label class="privacy-switch" aria-label="Toggle Collecting Calendar">
@@ -4235,7 +4529,7 @@
           <div class="privacy-toggle-row">
             <div class="privacy-toggle-info">
               <span class="privacy-toggle-label">Artist Connections</span>
-              <span class="privacy-toggle-desc">Network graph — coming soon</span>
+              <span class="privacy-toggle-desc">Artists linked by shared genres and labels</span>
             </div>
             <div class="privacy-toggle-controls">
               <label class="privacy-switch" aria-label="Toggle Artist Connections">
@@ -4374,6 +4668,11 @@
   </div>
 
   <section id="collectionDnaSection" class="collection-dna-section" hidden>
+    <div id="missingDetailsBanner" class="missing-details-banner" hidden>
+      <span id="missingDetailsBannerText"><i class="ti ti-list-details" aria-hidden="true"></i> <span id="missingDetailsCount">0</span> records missing details</span>
+      <button type="button" id="missingDetailsReviewBtn" class="btn-text">Review</button>
+      <button type="button" id="missingDetailsExitBtn" class="btn-text" hidden>Show all records</button>
+    </div>
     <div class="page-toolbar">
       <div id="collectionFilters">
         <input type="text" id="searchInput" placeholder="Search by artist or album..." />
@@ -4570,7 +4869,7 @@
       <div class="room-page-header">
         <div class="page-header" style="padding-left:0">
           <h2 class="page-header-title">My Listening Room</h2>
-          <p class="page-header-sub">Nothing beats your own records — but take a seat, browse your collection, and enjoy a home away from home.</p>
+          <p class="page-header-sub">Nothing beats your own records — but take a seat, browse your collection, and enjoy a home away from home. <span class="room-playback-hint">Playback controls your active Spotify device — in-room playback is coming soon.</span></p>
         </div>
         <div class="room-page-header-actions">
           <button type="button" id="arrangeWallBtn" class="btn-secondary">Arrange wall</button>
@@ -5345,6 +5644,10 @@
           Pick from the list or type a new one — new genres/subgenres will be created automatically.
         </p>
 
+        <button type="button" id="expertFieldsToggle" class="link-btn expert-fields-toggle" hidden aria-expanded="false">
+          More details <i class="ti ti-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div id="expertFieldsWrap">
         <div class="form-row form-row-split">
           <div>
             <label for="fieldVinylGrade">Vinyl grade</label>
@@ -5378,6 +5681,7 @@
           </div>
         </div>
         <p class="field-hint">Month acquired is roughly when you actually got the record, not necessarily today — it drives your collecting timeline. Pressing country is where this specific copy was manufactured.</p>
+        </div>
 
         <div class="form-row">
           <label for="fieldDescription">Description</label>

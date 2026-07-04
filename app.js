@@ -431,6 +431,10 @@ function sortItems(items, sortValue, isWishlist) {
   return sorted;
 }
 
+// D1-B: when true, the collection shows only records missing details, with
+// per-card badges identifying which fields. Entered/exited via the banner.
+let missingDetailsViewActive = false;
+
 function getFilteredRecords() {
   const searchText = document
     .getElementById("searchInput")
@@ -442,6 +446,10 @@ function getFilteredRecords() {
   const ratingFilterVal = document.getElementById("ratingFilter").value;
 
   let filtered = allRecords.slice();
+
+  if (missingDetailsViewActive) {
+    filtered = filtered.filter((r) => getMissingRecordFields(r).length > 0);
+  }
 
   if (searchText) {
     filtered = filtered.filter((r) => {
@@ -542,6 +550,38 @@ function getMissingRecordFields(record) {
   return missing;
 }
 
+// D1-B banner: shows the count and Review / Show-all controls. Hidden when
+// the feature flag is off, when nothing is missing, or when the collection
+// is empty (a brand-new user shouldn't meet a to-do list first).
+function updateMissingDetailsBanner() {
+  const banner = document.getElementById("missingDetailsBanner");
+  if (!banner) return;
+  const countEl = document.getElementById("missingDetailsCount");
+  const reviewBtn = document.getElementById("missingDetailsReviewBtn");
+  const exitBtn = document.getElementById("missingDetailsExitBtn");
+
+  const missingCount = allRecords.filter((r) => getMissingRecordFields(r).length > 0).length;
+  const show = isFeatureEnabled("missing_details") && allRecords.length > 0 && (missingCount > 0 || missingDetailsViewActive);
+
+  banner.hidden = !show;
+  if (!show) { missingDetailsViewActive = false; return; }
+
+  countEl.textContent = missingCount;
+  reviewBtn.hidden = missingDetailsViewActive;
+  exitBtn.hidden = !missingDetailsViewActive;
+}
+
+function setupMissingDetailsBanner() {
+  document.getElementById("missingDetailsReviewBtn")?.addEventListener("click", () => {
+    missingDetailsViewActive = true;
+    render();
+  });
+  document.getElementById("missingDetailsExitBtn")?.addEventListener("click", () => {
+    missingDetailsViewActive = false;
+    render();
+  });
+}
+
 function renderCards(filtered) {
   const grid = document.getElementById("cardGrid");
   const starterWrap = document.getElementById("starterCollectionWrap");
@@ -627,10 +667,11 @@ function renderCards(filtered) {
 
     card.appendChild(coverWrap);
 
-    // Subtle missing-detail callout — nudges completing records that feed
-    // the Collection Insights visualizations, without being naggy.
+    // D1-B: the missing-details badge only appears inside the dedicated
+    // review view (missingDetailsViewActive), never on the default
+    // collection — a freshly imported collection shouldn't look broken.
     const missingFields = getMissingRecordFields(r);
-    if (missingFields.length) {
+    if (missingFields.length && missingDetailsViewActive) {
       card.classList.add("has-missing-details");
       const badge = document.createElement("span");
       badge.className = "record-missing-badge";
@@ -745,7 +786,8 @@ function buildMiniCover(coverUrl, alt) {
 function animateStatValue(el, endValue, { duration = 700, formatter = (v) => String(Math.round(v)) } = {}) {
   if (!el) return;
   if (!Number.isFinite(endValue)) { el.textContent = String(endValue); return; }
-  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+  const quiet = typeof isFeatureEnabled === "function" && !isFeatureEnabled("celebrations");
+  if (quiet || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
     el.textContent = formatter(endValue);
     return;
   }
@@ -1610,6 +1652,7 @@ function renderHome() {
   renderRecentlyAdded();
   renderWishlistHighlights();
   startSpotlightAutoRotate();
+  maybeShowHomeSurveyCard();
 }
 
 // ── Spotlight auto-rotation: cycles ambiently through a few recently
@@ -1673,6 +1716,7 @@ async function loadProfile() {
     console.error(err);
     currentProfile = null;
   }
+  applyFeaturePrefs();
 }
 
 async function saveProfileFields(fields) {
@@ -6536,6 +6580,7 @@ function render() {
   renderCharts();
   renderSuperlatives();
   renderActiveFilters();
+  updateMissingDetailsBanner();
 
   setStatus(`Showing ${filtered.length} of ${allRecords.length} records`);
 
@@ -7815,7 +7860,36 @@ function openAddRecordModal() {
   document.getElementById("scanStatus").className = "form-status";
   pendingScannedCoverUrl = null;
   populateSubgenreOptionsForGenre(document.getElementById("fieldGenre").value);
+  applyExpertFieldsPref();
   document.getElementById("fieldArtist").focus();
+}
+
+// Progressive disclosure: with expert_fields off, grades/month/country sit
+// collapsed behind a "More details" toggle; with it on, they're always
+// visible and the toggle is hidden. Values entered stay in the DOM either
+// way, so collapsing never loses input.
+function applyExpertFieldsPref() {
+  const wrap = document.getElementById("expertFieldsWrap");
+  const toggle = document.getElementById("expertFieldsToggle");
+  if (!wrap || !toggle) return;
+  const expert = isFeatureEnabled("expert_fields");
+  toggle.hidden = expert;
+  wrap.hidden = !expert;
+  toggle.setAttribute("aria-expanded", "false");
+}
+
+function setupExpertFieldsToggle() {
+  const wrap = document.getElementById("expertFieldsWrap");
+  const toggle = document.getElementById("expertFieldsToggle");
+  if (!wrap || !toggle) return;
+  toggle.addEventListener("click", () => {
+    const nowOpen = wrap.hidden;
+    wrap.hidden = !nowOpen;
+    toggle.setAttribute("aria-expanded", String(nowOpen));
+    toggle.innerHTML = nowOpen
+      ? 'Fewer details <i class="ti ti-chevron-up" aria-hidden="true"></i>'
+      : 'More details <i class="ti ti-chevron-down" aria-hidden="true"></i>';
+  });
 }
 
 function closeAddRecordModal() {
@@ -11086,6 +11160,7 @@ async function handleSignOut() {
 function renderSettings() {
   document.getElementById("settingsCurrentEmail").textContent = currentUser?.email || "—";
   syncInsightsToggles();
+  syncFeatureToggles();
 
   const emailForm = document.getElementById("changeEmailForm");
   const emailStatus = document.getElementById("changeEmailStatus");
@@ -13160,6 +13235,80 @@ function setupAuth() {
 
 // ------------ Onboarding ------------
 
+// ── Persona system (D2-B): survey answer sets feature_prefs DEFAULTS; the
+// user owns the toggles afterward via Settings → Features. ──
+const PERSONA_DEFS = {
+  newcomer: {
+    label: "🌱 Just Getting Started",
+    prefs: { expert_fields: false, tooltips: true, celebrations: true, missing_details: false },
+  },
+  explorer: {
+    label: "🎧 Exploring",
+    prefs: { expert_fields: false, tooltips: true, celebrations: true, missing_details: true },
+  },
+  collector: {
+    label: "📚 Collecting for a While",
+    prefs: { expert_fields: true, tooltips: false, celebrations: true, missing_details: true },
+  },
+  audiophile: {
+    label: "🔊 Deep in the Hobby",
+    prefs: { expert_fields: true, tooltips: false, celebrations: false, missing_details: true },
+  },
+  inheritor: {
+    label: "📦 Making Sense of a Collection",
+    prefs: { expert_fields: false, tooltips: true, celebrations: true, missing_details: false },
+  },
+};
+
+const FEATURE_FLAG_LABELS = {
+  expert_fields: "Expert fields (grades, pressing country, month acquired)",
+  tooltips: "Beginner tips & explanations",
+  celebrations: "Celebrations & animations",
+  missing_details: "Missing-details review",
+};
+
+let selectedPersona = null;
+
+function handlePersonaChoice(persona) {
+  selectedPersona = persona;
+  const def = PERSONA_DEFS[persona];
+  if (!def) { showOnboardingStep(1); return; }
+
+  // Persist persona + flag defaults; UI applies immediately
+  currentProfile = { ...(currentProfile || {}), persona_type: persona, feature_prefs: { ...def.prefs } };
+  saveProfileFields({ persona_type: persona, feature_prefs: { ...def.prefs } }).catch(() => {});
+  applyFeaturePrefs();
+
+  // Mirror to PostHog for persona-segmented analytics
+  try { window.posthog?.setPersonProperties?.({ persona_type: persona }); } catch (e) {}
+
+  showOnboardingStep(1);
+}
+
+function renderPersonaSummary() {
+  const def = PERSONA_DEFS[selectedPersona] || PERSONA_DEFS[currentProfile?.persona_type];
+  const nameEl = document.getElementById("personaSummaryName");
+  const onList = document.getElementById("personaSummaryOn");
+  const offList = document.getElementById("personaSummaryOff");
+  if (!nameEl || !onList || !offList) return;
+
+  nameEl.textContent = def?.label || "Collector";
+  onList.innerHTML = "";
+  offList.innerHTML = "";
+  // Render from the ACTUAL current prefs so this screen can never drift
+  // out of sync with what's really on and off.
+  Object.entries(FEATURE_FLAG_LABELS).forEach(([flag, label]) => {
+    const li = document.createElement("li");
+    li.textContent = label;
+    (isFeatureEnabled(flag) ? onList : offList).appendChild(li);
+  });
+  if (!offList.children.length) {
+    const li = document.createElement("li");
+    li.textContent = "Nothing — everything's on";
+    offList.appendChild(li);
+  }
+}
+
 function maybeShowOnboarding() {
   const screen = document.getElementById("onboardingScreen");
   if (!screen) return;
@@ -13177,20 +13326,24 @@ function maybeShowOnboarding() {
     return;
   }
 
-  // Truly new user — show onboarding
-  showOnboardingStep(1);
+  // Truly new user — show onboarding, starting with the persona question
+  showOnboardingStep(0);
   screen.hidden = false;
 }
 
 function showOnboardingStep(step) {
+  const s0 = document.getElementById("onboardingStep0");
   const s1 = document.getElementById("onboardingStep1");
   const s2 = document.getElementById("onboardingStep2");
   const s3 = document.getElementById("onboardingStep3");
   const s4 = document.getElementById("onboardingStep4");
+  const sSummary = document.getElementById("onboardingStepSummary");
+  if (s0) s0.hidden = step !== 0;
   if (s1) s1.hidden = step !== 1;
   if (s2) s2.hidden = step !== 2;
   if (s3) s3.hidden = step !== 3;
   if (s4) s4.hidden = step !== 4;
+  if (sSummary) sSummary.hidden = step !== "summary";
 }
 
 function dismissOnboarding() {
@@ -13206,12 +13359,13 @@ function goToOnboardingDestination() {
   // If the user chose a meaningful destination (import or add manually),
   // show a brief "Getting Started" step 4 that confirms what's about to
   // happen and builds excitement before dropping them into the app.
-  // "Explore first" goes straight through — no friction for that path.
+  // "Explore first" goes to the persona summary directly.
   if (onboardingDestination === "import" || onboardingDestination === "add") {
     renderOnboardingStep4();
     showOnboardingStep(4);
   } else {
-    launchIntoApp();
+    renderPersonaSummary();
+    showOnboardingStep("summary");
   }
 }
 
@@ -13262,7 +13416,7 @@ function renderOnboardingStep4() {
     btn.textContent = "Add my first record →";
   }
 
-  btn.onclick = () => launchIntoApp();
+  btn.onclick = () => { renderPersonaSummary(); showOnboardingStep("summary"); };
 }
 
 async function handleOnboardingBasicsSubmit(event) {
@@ -13353,6 +13507,15 @@ async function handleOnboardingSkip() {
 }
 
 function setupOnboarding() {
+  // Step 0: persona question
+  document.querySelectorAll(".persona-option").forEach((btn) => {
+    btn.addEventListener("click", () => handlePersonaChoice(btn.dataset.persona));
+  });
+
+  // Final: persona summary → launch
+  document.getElementById("personaSummaryContinueBtn")
+    ?.addEventListener("click", () => launchIntoApp());
+
   document.getElementById("onboardImportBtn").addEventListener("click", () => {
     onboardingDestination = "import";
     showOnboardingStep(2);
@@ -13371,6 +13534,81 @@ function setupOnboarding() {
   document.getElementById("onboardingBasicsForm").addEventListener("submit", handleOnboardingBasicsSubmit);
   document.getElementById("onboardingMoreForm").addEventListener("submit", handleOnboardingMoreSubmit);
   document.getElementById("onboardingSkipBtn").addEventListener("click", () => handleOnboardingSkip());
+
+  setupHomeSurveyCard();
+}
+
+// ── Home survey card (optional Q2–Q4, D8-B) ─────────────────────────────────
+// Shown on Home until answered or skipped; answers land in
+// profiles.onboarding_answers (jsonb) and PostHog person properties.
+const surveySelections = { goals: [], size: null, elsewhere: null };
+
+function setupHomeSurveyCard() {
+  const card = document.getElementById("homeSurveyCard");
+  if (!card) return;
+
+  // Goals: multi-select, max 2
+  document.querySelectorAll("#surveyGoalsChips .survey-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const goal = chip.dataset.goal;
+      const idx = surveySelections.goals.indexOf(goal);
+      if (idx >= 0) {
+        surveySelections.goals.splice(idx, 1);
+        chip.classList.remove("selected");
+      } else if (surveySelections.goals.length < 2) {
+        surveySelections.goals.push(goal);
+        chip.classList.add("selected");
+      }
+    });
+  });
+
+  // Size + elsewhere: single-select
+  [["#surveySizeChips", "size", "size"], ["#surveyElsewhereChips", "elsewhere", "elsewhere"]].forEach(([sel, key, dataKey]) => {
+    document.querySelectorAll(`${sel} .survey-chip`).forEach((chip) => {
+      chip.addEventListener("click", () => {
+        document.querySelectorAll(`${sel} .survey-chip`).forEach((c) => c.classList.remove("selected"));
+        chip.classList.add("selected");
+        surveySelections[key] = chip.dataset[dataKey];
+      });
+    });
+  });
+
+  document.getElementById("homeSurveySaveBtn")?.addEventListener("click", async () => {
+    const answers = {
+      ...(currentProfile?.onboarding_answers || {}),
+      goals: surveySelections.goals,
+      collection_size: surveySelections.size,
+      kept_elsewhere: surveySelections.elsewhere,
+      survey_done: true,
+    };
+    currentProfile = { ...currentProfile, onboarding_answers: answers };
+    saveProfileFields({ onboarding_answers: answers }).catch(() => {});
+    try {
+      window.posthog?.setPersonProperties?.({
+        survey_goals: surveySelections.goals.join(","),
+        survey_collection_size: surveySelections.size,
+        survey_kept_elsewhere: surveySelections.elsewhere,
+      });
+    } catch (e) {}
+    card.hidden = true;
+  });
+
+  document.getElementById("homeSurveyDismissBtn")?.addEventListener("click", () => {
+    const answers = { ...(currentProfile?.onboarding_answers || {}), survey_done: true };
+    currentProfile = { ...currentProfile, onboarding_answers: answers };
+    saveProfileFields({ onboarding_answers: answers }).catch(() => {});
+    card.hidden = true;
+  });
+}
+
+// Called from renderHome: show the card only for signed-in users who
+// completed onboarding but haven't answered or skipped the survey yet.
+function maybeShowHomeSurveyCard() {
+  const card = document.getElementById("homeSurveyCard");
+  if (!card) return;
+  const done = currentProfile?.onboarding_answers?.survey_done === true;
+  const onboarded = currentProfile?.onboarding_done === true;
+  card.hidden = done || !onboarded || !currentUser;
 }
 
 
@@ -13621,6 +13859,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupAdmin();
   setupCollectionValue();
   setupCollectionInsights();
+  setupFeatureToggles();
+  setupExpertFieldsToggle();
+  setupMissingDetailsBanner();
   setupFellowCollectors();
   setupPressingPicker();
   setupQuickrate();
@@ -14541,29 +14782,29 @@ function assessInsightsDataQuality() {
   return {
     timeline: {
       level: level(withCreatedAt, total, 0.5, 0.1, 5),
-      count: withCreatedAt, total,
+      count: withCreatedAt, total, threshold: 0.1, minCount: 5,
     },
     label: {
       level: level(withLabel, total, 0.5, 0.15, 8),
-      count: withLabel, total,
+      count: withLabel, total, threshold: 0.15, minCount: 8,
     },
     condition: {
       level: level(withGrade, total, 0.5, 0.15, 8),
-      count: withGrade, total,
+      count: withGrade, total, threshold: 0.15, minCount: 8,
     },
     geography: {
       level: level(withCountry, total, 0.3, 0.05, 5),
-      count: withCountry, total,
+      count: withCountry, total, threshold: 0.05, minCount: 5,
     },
     heatmap: {
       level: level(withCreatedDates, total, 0.7, 0.2, 15),
-      count: withCreatedDates, total,
+      count: withCreatedDates, total, threshold: 0.2, minCount: 15,
     },
     network: {
       // Needs decent genre + label overlap across many artists — proxy with
       // total record count and label coverage as a stand-in until built
       level: level(Math.min(withLabel, total), total, 0.5, 0.2, 20),
-      count: total, total,
+      count: total, total, threshold: 0.2, minCount: 20,
     },
   };
 }
@@ -14764,6 +15005,21 @@ function renderCiLabelLoyalty(quality) {
   });
 }
 
+// T4: locked insights show progress toward unlocking, not a closed door.
+// Renders "X of ~Y needed — almost there" with a small progress bar.
+function ciLockedProgressHTML(quality, actionText) {
+  const total = quality.total || 0;
+  const count = quality.count || 0;
+  const needed = Math.max(quality.minCount || 1, Math.ceil(total * (quality.threshold ?? 0.5)));
+  const pct = Math.min(100, Math.round((count / needed) * 100));
+  const remaining = Math.max(1, needed - count);
+  const nearly = pct >= 70 ? " — almost there!" : "";
+  return `
+    <span>${actionText} <strong>${remaining} more</strong> to unlock this${nearly}</span>
+    <span class="ci-progress-track"><span class="ci-progress-fill" style="width:${pct}%"></span></span>
+  `;
+}
+
 // ── 3. Condition Breakdown (donut) ──────────────────────────────────────────
 let ciConditionChartInstance = null;
 const CI_GRADE_ORDER = ["M", "NM", "VG+", "VG", "VG-", "G+", "G", "F", "P"];
@@ -14783,9 +15039,7 @@ function renderCiCondition(quality) {
     wrap.hidden = true;
     legend.hidden = true;
     empty.hidden = false;
-    empty.textContent = quality.count > 0
-      ? `Grade a few more records (${quality.count}/${quality.total} so far) to unlock this.`
-      : "Add a vinyl grade to your records (in the record detail view) to unlock this.";
+    empty.innerHTML = ciLockedProgressHTML(quality, "Add a vinyl grade to");
     if (ciConditionChartInstance) { ciConditionChartInstance.destroy(); ciConditionChartInstance = null; }
     return;
   }
@@ -14871,9 +15125,7 @@ function renderCiGeography(quality) {
   if (quality.level === "locked") {
     list.hidden = true;
     empty.hidden = false;
-    empty.textContent = quality.count > 0
-      ? `Add pressing country to a few more records (${quality.count}/${quality.total} so far) to unlock this.`
-      : "Add a pressing country to your records (in the record detail view) to unlock this.";
+    empty.innerHTML = ciLockedProgressHTML(quality, "Add a pressing country to");
     return;
   }
 
@@ -14920,7 +15172,7 @@ function renderCiHeatmap(quality) {
     grid.hidden = true;
     legend.hidden = true;
     empty.hidden = false;
-    empty.textContent = "Add a few more records with a month acquired to unlock this.";
+    empty.innerHTML = ciLockedProgressHTML(quality, "Add a month acquired to");
     return;
   }
 
@@ -14942,7 +15194,7 @@ function renderCiHeatmap(quality) {
     grid.hidden = true;
     legend.hidden = true;
     empty.hidden = false;
-    empty.textContent = "Add a few more records with a month acquired to unlock this.";
+    empty.innerHTML = ciLockedProgressHTML(quality, "Add a month acquired to");
     return;
   }
 
@@ -15016,7 +15268,7 @@ function renderCiNetwork(quality) {
   if (quality.level === "locked") {
     wrap.hidden = true;
     empty.hidden = false;
-    empty.textContent = "Add a few more labeled records across different artists to unlock this.";
+    empty.innerHTML = ciLockedProgressHTML(quality, "Add labels/genres to");
     return;
   }
 
@@ -15148,6 +15400,89 @@ function syncInsightsToggles() {
 }
 
 // ── End My Collection Insights ────────────────────────────────────────────────
+
+
+// ── Feature preferences (progressive disclosure foundation) ──────────────────
+//
+// One system that all persona-adaptive behavior hangs off. Stored in
+// profiles.feature_prefs (jsonb). Onboarding survey answers set the DEFAULTS;
+// the user owns the toggles afterward via Settings → Features.
+//
+// Flags:
+//   expert_fields   — grades/pressing-country/etc. shown on Add Record
+//   tooltips        — beginner explanations of collecting terms
+//   celebrations    — trophy toasts, count-ups, EQ, spotlight rotation
+//   missing_details — the "N records missing details" review affordance
+//
+// All default TRUE when unset, so existing users see no behavior change.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const FEATURE_FLAG_DEFAULTS = {
+  expert_fields: true,
+  tooltips: true,
+  celebrations: true,
+  missing_details: true,
+};
+
+function isFeatureEnabled(flag) {
+  const prefs = currentProfile?.feature_prefs || {};
+  if (Object.prototype.hasOwnProperty.call(prefs, flag)) return prefs[flag] !== false;
+  return FEATURE_FLAG_DEFAULTS[flag] !== false;
+}
+
+async function setFeatureEnabled(flag, enabled) {
+  const prefs = { ...(currentProfile?.feature_prefs || {}) };
+  prefs[flag] = !!enabled;
+  currentProfile = { ...currentProfile, feature_prefs: prefs };
+  const { error } = await supabaseClient
+    .from("profiles")
+    .update({ feature_prefs: prefs })
+    .eq("user_id", currentUser.id);
+  return { error };
+}
+
+const FEATURE_TOGGLE_MAP = {
+  featureExpertFields:   "expert_fields",
+  featureTooltips:       "tooltips",
+  featureCelebrations:   "celebrations",
+  featureMissingDetails: "missing_details",
+};
+
+function setupFeatureToggles() {
+  const statusEl = document.getElementById("settingsFeaturesStatus");
+  Object.entries(FEATURE_TOGGLE_MAP).forEach(([elId, flag]) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.addEventListener("change", async () => {
+      const { error } = await setFeatureEnabled(flag, el.checked);
+      if (statusEl) {
+        statusEl.textContent = error ? "Couldn't save — try again." : "Saved.";
+        statusEl.className = "form-status" + (error ? " form-status-error" : " form-status-success");
+        setTimeout(() => { statusEl.textContent = ""; }, 2000);
+      }
+      applyFeaturePrefs();
+    });
+  });
+}
+
+function syncFeatureToggles() {
+  Object.entries(FEATURE_TOGGLE_MAP).forEach(([elId, flag]) => {
+    const el = document.getElementById(elId);
+    if (el) el.checked = isFeatureEnabled(flag);
+  });
+}
+
+// Apply flags that affect always-visible UI. Called on profile load and on
+// any toggle change. Feature-specific consumers (tooltips, expert fields)
+// also check isFeatureEnabled() at their own render time.
+function applyFeaturePrefs() {
+  document.body.classList.toggle("feature-quiet", !isFeatureEnabled("celebrations"));
+  if (!isFeatureEnabled("celebrations")) {
+    stopSpotlightAutoRotate();
+  } else if (currentPage === "home") {
+    startSpotlightAutoRotate();
+  }
+}
 
 
 // ── Social Graph: Fellow Collectors & Activity Feed ──────────────────────────
