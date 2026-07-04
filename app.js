@@ -1650,6 +1650,8 @@ function renderWishlistHighlights() {
   });
 }
 
+let pendingWelcomeBanner = false;
+
 function renderHome() {
   renderStats();
   renderHomeHero();
@@ -1658,6 +1660,22 @@ function renderHome() {
   renderWishlistHighlights();
   startSpotlightAutoRotate();
   maybeShowHomeSurveyCard();
+  maybeShowWelcomeBanner();
+}
+
+function maybeShowWelcomeBanner() {
+  if (!pendingWelcomeBanner) return;
+  pendingWelcomeBanner = false;
+  const hero = document.getElementById("homeHero");
+  if (!hero) return;
+  const banner = document.createElement("div");
+  banner.className = "home-welcome-banner";
+  banner.innerHTML = `<i class="ti ti-circle-check" aria-hidden="true"></i> Account created! Welcome to Spin Vinyl.`;
+  hero.insertAdjacentElement("beforebegin", banner);
+  setTimeout(() => {
+    banner.style.opacity = "0";
+    setTimeout(() => banner.remove(), 400);
+  }, 4000);
 }
 
 // ── Spotlight auto-rotation: cycles ambiently through a few recently
@@ -11098,6 +11116,20 @@ async function handleSocialLogin(provider) {
   // to the provider now.
 }
 
+// Supabase can throw errors whose .message is technically a non-empty
+// string but useless to a person — e.g. AuthRetryableFetchError sometimes
+// has message "{}" when the server 500s. Only show messages that look like
+// actual sentences; everything else gets a friendly generic fallback.
+function isDisplayableAuthError(err) {
+  const msg = err?.message;
+  if (!msg || typeof msg !== "string") return false;
+  const trimmed = msg.trim();
+  if (!trimmed || trimmed === "{}" || trimmed === "[object Object]") return false;
+  // Real Supabase auth error messages are always readable words, not raw JSON
+  if (/^[{\[]/.test(trimmed)) return false;
+  return true;
+}
+
 async function handleAuthSubmit(event) {
   event.preventDefault();
 
@@ -11116,9 +11148,14 @@ async function handleAuthSubmit(event) {
       if (error) throw error;
 
       if (data.session && data.user) {
-        // Email confirmation is disabled in Supabase — signed in immediately
+        // Confirmation may be off (immediate session) — show the success
+        // message for a beat before transitioning, since onSignedIn()
+        // navigates into the app and would otherwise wipe this out before
+        // the user ever sees it. The Home banner is a backup guarantee.
         statusEl.textContent = "Account created! Welcome to Spin Vinyl.";
         statusEl.className = "form-status form-status-success";
+        pendingWelcomeBanner = true;
+        await new Promise((resolve) => setTimeout(resolve, 900));
         await onSignedIn(data.user);
       } else {
         // Email confirmation required — show a prominent message
@@ -11152,7 +11189,7 @@ async function handleAuthSubmit(event) {
     }
   } catch (err) {
     console.error(err);
-    statusEl.textContent = err.message || "Something went wrong. Please try again.";
+    statusEl.textContent = isDisplayableAuthError(err) ? err.message : "Something went wrong on our end. Please try again in a moment.";
     statusEl.className = "form-status form-status-error";
   } finally {
     submitBtn.disabled = false;
@@ -13394,11 +13431,70 @@ function launchIntoApp() {
   } else if (onboardingDestination === "add") {
     setPage("collection");
     openAddRecordModal();
+    seedStarterCollection();
   } else {
     setPage("home");
+    seedStarterCollection();
   }
 
   onboardingDestination = null;
+}
+
+// Auto-seed the 20-record starter collection into the user's real
+// collection (not the wishlist) for anyone who didn't choose to import
+// their own Discogs collection. Runs in the background — inserts land
+// fast without cover art, then covers backfill asynchronously afterward
+// so the user isn't stuck waiting before landing in the app.
+let starterCollectionSeeded = false;
+
+async function seedStarterCollection() {
+  if (!currentUser || starterCollectionSeeded || allRecords.length > 0) return;
+  starterCollectionSeeded = true;
+
+  try {
+    const genreIdCache = {};
+    const rows = [];
+    for (const rec of STARTER_RECORDS) {
+      if (!(rec.genre in genreIdCache)) {
+        genreIdCache[rec.genre] = await getOrCreateGenreId(rec.genre);
+      }
+      rows.push({
+        user_id: currentUser.id,
+        artist: rec.artist,
+        album: rec.album,
+        year: rec.year,
+        year_raw: String(rec.year),
+        genre_id: genreIdCache[rec.genre],
+        quantity: 1,
+      });
+    }
+
+    const { data, error } = await supabaseClient.from("records").insert(rows).select("*");
+    if (error) throw error;
+    if (!data) return;
+
+    allRecords = [...allRecords, ...data];
+    if (currentPage === "home") renderHome();
+    else if (currentPage === "collection") render();
+
+    // Backfill cover art in the background, one at a time so as not to
+    // hammer MusicBrainz — patch the DB row and re-render as each arrives.
+    for (const row of data) {
+      const src = STARTER_RECORDS.find((r) => r.artist === row.artist && r.album === row.album);
+      if (!src) continue;
+      fetchMusicBrainzCover(src.artist, src.album).then(async (url) => {
+        if (!url) return;
+        await supabaseClient.from("records").update({ cover_url: url }).eq("id", row.id);
+        const rec = allRecords.find((r) => r.id === row.id);
+        if (rec) rec.cover_url = url;
+        if (currentPage === "home") renderHome();
+        else if (currentPage === "collection") render();
+      }).catch(() => {});
+    }
+  } catch (e) {
+    console.error("Failed to seed starter collection:", e);
+    starterCollectionSeeded = false;
+  }
 }
 
 function renderOnboardingStep4() {
