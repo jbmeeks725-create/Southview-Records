@@ -467,6 +467,7 @@
     transition: opacity 0.4s ease;
   }
   .home-welcome-banner i { color: #3ecf6e; }
+  .auth-confirmation-message { width: 100%; max-width: 100%; }
   .onboarding-summary-back {
     display: inline-flex;
     align-items: center;
@@ -516,8 +517,21 @@
     font-family: Inter, sans-serif;
     font-size: 13px;
     color: rgba(255,255,255,0.75);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
-  .persona-summary-list li { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .persona-summary-list li {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(201,168,76,0.14);
+    border: 1px solid rgba(201,168,76,0.35);
+  }
+  .persona-summary-list#personaSummaryOff li {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.55);
+  }
   @media (max-width: 640px) {
     .persona-summary-lists { grid-template-columns: 1fr; }
   }
@@ -3330,11 +3344,13 @@
           </p>
         </form>
 
-        <div class="auth-social-divider">
+        <div id="authConfirmationMessage" class="auth-confirmation-message" hidden></div>
+
+        <div class="auth-social-divider" id="authSocialDivider">
           <span>or continue with</span>
         </div>
 
-        <div class="auth-social-buttons">
+        <div class="auth-social-buttons" id="authSocialButtons">
           <button type="button" id="authGoogleBtn" class="auth-social-btn auth-social-btn-google">
             <svg class="auth-social-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

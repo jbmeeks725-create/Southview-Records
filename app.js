@@ -6598,6 +6598,15 @@ function render() {
     return;
   }
 
+  // Every other page (Collection Value, Insights, Taste Profile, Room,
+  // Trophies, Community, Settings, Profile) has its own dedicated render
+  // function called elsewhere and needs nothing from here. This branch was
+  // previously an unconditional fallthrough, which meant renderCards() ran
+  // on EVERY page — and since it unconditionally shows starterCollectionWrap
+  // whenever the collection is empty, that's exactly what was undoing
+  // setPage()'s fix and leaking the starter-classics grid onto every tab.
+  if (currentPage !== "collection") return;
+
   const filtered = getFilteredRecords();
   renderCards(filtered);
   renderCharts();
@@ -11158,20 +11167,40 @@ async function handleAuthSubmit(event) {
         await new Promise((resolve) => setTimeout(resolve, 900));
         await onSignedIn(data.user);
       } else {
-        // Email confirmation required — show a prominent message
+        // Email confirmation required — show a prominent, persistent
+        // message. IMPORTANT: this must NOT live inside #authForm — a
+        // previous version put it in #authStatus (a child of the form) and
+        // then hid the whole form, which hid this message right along with
+        // it, leaving the user looking at a blank screen with no
+        // indication signup had worked at all.
         const authForm = document.getElementById("authForm");
-        if (authForm) {
-          authForm.hidden = true;
-        }
-        statusEl.innerHTML = `
-          <div style="text-align:center;padding:20px 0;">
-            <div style="font-size:32px;margin-bottom:12px;">📬</div>
-            <div style="font-family:Jost,sans-serif;font-size:18px;font-weight:700;color:#e8e0d0;margin-bottom:8px;">Check your email</div>
-            <div style="font-size:13px;color:#8a8290;line-height:1.6;">We sent a confirmation link to<br><strong style="color:#c9a84c;">${email}</strong><br><br>Click the link in that email to activate your account, then come back here to sign in.</div>
-            <button type="button" onclick="document.getElementById('authForm').hidden=false;document.getElementById('authStatus').textContent='';setAuthMode('signin');" style="margin-top:20px;background:transparent;border:1px solid #2a2830;color:#8a8290;border-radius:8px;padding:8px 20px;font-family:Inter,sans-serif;font-size:13px;cursor:pointer;">Back to sign in</button>
-          </div>
-        `;
+        const confirmEl = document.getElementById("authConfirmationMessage");
+        const socialDivider = document.getElementById("authSocialDivider");
+        const socialButtons = document.getElementById("authSocialButtons");
+        if (authForm) authForm.hidden = true;
+        if (socialDivider) socialDivider.hidden = true;
+        if (socialButtons) socialButtons.hidden = true;
+        statusEl.textContent = "";
         statusEl.className = "form-status";
+
+        if (confirmEl) {
+          confirmEl.hidden = false;
+          confirmEl.innerHTML = `
+            <div style="text-align:center;padding:20px 0;">
+              <div style="font-size:32px;margin-bottom:12px;">📬</div>
+              <div style="font-family:Jost,sans-serif;font-size:18px;font-weight:700;color:#e8e0d0;margin-bottom:8px;">Check your email</div>
+              <div style="font-size:13px;color:#8a8290;line-height:1.6;">We sent a confirmation link to<br><strong style="color:#c9a84c;">${email}</strong><br><br>Click the link in that email to activate your account, then come back here to sign in.</div>
+              <button type="button" id="authConfirmationBackBtn" style="margin-top:20px;background:transparent;border:1px solid #2a2830;color:#8a8290;border-radius:8px;padding:8px 20px;font-family:Inter,sans-serif;font-size:13px;cursor:pointer;">Back to sign in</button>
+            </div>
+          `;
+          document.getElementById("authConfirmationBackBtn")?.addEventListener("click", () => {
+            confirmEl.hidden = true;
+            if (authForm) authForm.hidden = false;
+            if (socialDivider) socialDivider.hidden = false;
+            if (socialButtons) socialButtons.hidden = false;
+            setAuthMode("signin");
+          });
+        }
       }
     } else {
       console.log("[AUTH] calling signInWithPassword...");
@@ -11299,7 +11328,24 @@ async function handleChangePassword(event) {
   }
 }
 
-async function onSignedIn(user) {
+// Signup triggers onSignedIn() twice: once directly from the signup
+// handler, and again from onAuthStateChange's own SIGNED_IN event. The old
+// guard below only skipped the second call once allRecords was non-empty —
+// for a brand-new user that's not yet true, so the second call used to
+// re-run the full loadProfile/loadData/maybeShowOnboarding cycle mid-flow,
+// visibly resetting onboarding back to step 0 while the user was still
+// going through it. Deduping the calls themselves fixes this at the root.
+let onSignedInPromise = null;
+
+function onSignedIn(user) {
+  if (onSignedInPromise) return onSignedInPromise;
+  onSignedInPromise = onSignedInInternal(user).finally(() => {
+    onSignedInPromise = null;
+  });
+  return onSignedInPromise;
+}
+
+async function onSignedInInternal(user) {
   console.log("[AUTH] onSignedIn called, currentUser was:", currentUser?.email, "new user:", user.email);
   const isFirstLoad = !currentUser;
   currentUser = user;
@@ -13157,6 +13203,14 @@ function showLandingAuthForm(mode) {
   document.getElementById("landingCtaButtons").hidden = true;
   document.getElementById("landingAuthForms").hidden = false;
   document.getElementById("authOverlay")?.classList.add("auth-open");
+  // Reset in case a previous signup attempt left the confirmation panel showing
+  const confirmEl = document.getElementById("authConfirmationMessage");
+  if (confirmEl && !confirmEl.hidden) {
+    confirmEl.hidden = true;
+    document.getElementById("authForm").hidden = false;
+    document.getElementById("authSocialDivider").hidden = false;
+    document.getElementById("authSocialButtons").hidden = false;
+  }
   setAuthMode(mode);
   // Bring the form into view — on mobile it would otherwise render
   // below the fold of the (now hidden) marketing content
@@ -13423,6 +13477,7 @@ function goToOnboardingDestination() {
 }
 
 function launchIntoApp() {
+  console.log("[SEED] launchIntoApp, destination:", onboardingDestination);
   dismissOnboarding();
 
   if (onboardingDestination === "import") {
@@ -13450,13 +13505,22 @@ let starterCollectionSeeded = false;
 async function seedStarterCollection() {
   if (!currentUser || starterCollectionSeeded || allRecords.length > 0) return;
   starterCollectionSeeded = true;
+  console.log("[SEED] Starting starter collection seed for", currentUser.email);
 
   try {
     const genreIdCache = {};
     const rows = [];
     for (const rec of STARTER_RECORDS) {
-      if (!(rec.genre in genreIdCache)) {
-        genreIdCache[rec.genre] = await getOrCreateGenreId(rec.genre);
+      let genreId = null;
+      try {
+        if (!(rec.genre in genreIdCache)) {
+          genreIdCache[rec.genre] = await getOrCreateGenreId(rec.genre);
+        }
+        genreId = genreIdCache[rec.genre];
+      } catch (genreErr) {
+        // One bad genre lookup shouldn't zero out the whole batch — fall
+        // back to no genre for this record and keep going.
+        console.error("[SEED] Genre lookup failed for", rec.genre, genreErr);
       }
       rows.push({
         user_id: currentUser.id,
@@ -13464,14 +13528,16 @@ async function seedStarterCollection() {
         album: rec.album,
         year: rec.year,
         year_raw: String(rec.year),
-        genre_id: genreIdCache[rec.genre],
+        genre_id: genreId,
         quantity: 1,
       });
     }
 
+    console.log("[SEED] Inserting", rows.length, "starter records");
     const { data, error } = await supabaseClient.from("records").insert(rows).select("*");
     if (error) throw error;
     if (!data) return;
+    console.log("[SEED] Insert succeeded:", data.length, "records");
 
     allRecords = [...allRecords, ...data];
     if (currentPage === "home") renderHome();
@@ -13492,7 +13558,7 @@ async function seedStarterCollection() {
       }).catch(() => {});
     }
   } catch (e) {
-    console.error("Failed to seed starter collection:", e);
+    console.error("[SEED] Failed to seed starter collection:", e);
     starterCollectionSeeded = false;
   }
 }
