@@ -748,6 +748,11 @@
     .care-hub-topics { grid-template-columns: 1fr; }
   }
   .upgrade-prompt-card { max-width: 380px; text-align: center; }
+  .account-menu-item-premium { color: #c9a84c !important; }
+  .account-menu-item-premium i { color: #c9a84c; }
+  .account-menu-item-premium:hover { background: rgba(201,168,76,0.1) !important; }
+  .upgrade-settings-card { border: 1px solid rgba(201,168,76,0.35) !important; background: rgba(201,168,76,0.04) !important; }
+  .upgrade-settings-card h2 { display: flex; align-items: center; gap: 8px; color: #c9a84c; }
   .upgrade-prompt-icon {
     width: 52px;
     height: 52px;
@@ -4252,6 +4257,9 @@
           <button type="button" id="accountMenuSettingsBtn" class="account-menu-item" role="menuitem">
             <i class="ti ti-settings" aria-hidden="true"></i> Settings
           </button>
+          <a href="/upgrade.html" class="account-menu-item account-menu-item-premium" role="menuitem" style="text-decoration:none;display:flex;align-items:center;gap:8px">
+            <i class="ti ti-diamond" aria-hidden="true"></i> Go Premium
+          </a>
           <a href="/about.html" class="account-menu-item" role="menuitem" style="text-decoration:none;display:flex;align-items:center;gap:8px">
             <i class="ti ti-info-circle" aria-hidden="true"></i> About Spin Vinyl
           </a>
@@ -4868,6 +4876,14 @@
               <button type="submit" class="btn-primary">Update password</button>
             </div>
           </form>
+        </div>
+
+        <div class="profile-card settings-privacy-card upgrade-settings-card">
+          <div class="profile-card-header">
+            <h2><i class="ti ti-diamond" aria-hidden="true"></i> Spin Vinyl Premium</h2>
+          </div>
+          <p class="field-hint">Unlimited AI scans, extra Listening Rooms, bulk editing tools, and more.</p>
+          <a href="/upgrade.html" class="btn-primary" style="display:inline-block;text-decoration:none;">See what's included</a>
         </div>
 
         <div class="profile-card settings-privacy-card" id="settingsCareCard">

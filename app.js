@@ -16490,11 +16490,10 @@ function setupUpgradePrompt() {
   if (!overlay) return;
   document.getElementById("upgradePromptCloseBtn")?.addEventListener("click", () => { overlay.hidden = true; });
   overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.hidden = true; });
-  // No real checkout yet — placeholder so the interaction path exists and
-  // is testable ahead of Stripe integration.
+  // No real checkout yet — links to the upgrade page so the interaction
+  // path exists and is testable ahead of Stripe integration.
   document.getElementById("upgradePromptCtaBtn")?.addEventListener("click", () => {
-    overlay.hidden = true;
-    showToast("Premium isn't available quite yet — check back soon!");
+    window.location.href = "/upgrade.html";
   });
 }
 
