@@ -529,6 +529,13 @@ function sortItems(items, sortValue, isWishlist) {
     }
     return (a.id ?? 0) - (b.id ?? 0);
   };
+  const cmpAcquired = (a, b) => {
+    const aDate = a.acquired_date || a.created_at;
+    const bDate = b.acquired_date || b.created_at;
+    if (!aDate) return 1;
+    if (!bDate) return -1;
+    return new Date(aDate).getTime() - new Date(bDate).getTime();
+  };
 
   switch (sortValue) {
     case "artist-desc":
@@ -551,6 +558,12 @@ function sortItems(items, sortValue, isWishlist) {
       break;
     case "added-asc":
       sorted.sort((a, b) => cmpAdded(a, b));
+      break;
+    case "acquired-desc":
+      sorted.sort((a, b) => cmpAcquired(b, a));
+      break;
+    case "acquired-asc":
+      sorted.sort((a, b) => cmpAcquired(a, b));
       break;
     case "artist-asc":
     default:
@@ -617,6 +630,35 @@ function renderBulkEditInput(field) {
   } else {
     wrap.innerHTML = `<input type="text" id="bulkEditValueText" placeholder="e.g. US, UK, Germany" />`;
   }
+}
+
+// T15: CSV export — client-side, no library needed
+function exportCollectionToCsv() {
+  const headers = ["Artist", "Album", "Year", "Label", "Genre", "Subgenre", "Vinyl Grade", "Sleeve Grade", "Pressing Country", "Pressing Notes", "Month Acquired", "Rating", "Quantity"];
+  const escapeCsv = (val) => {
+    if (val === null || val === undefined) return "";
+    const str = String(val);
+    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+  const rows = allRecords
+    .filter((r) => !r.is_starter)
+    .map((r) => [
+      r.artist, r.album, r.year || "", r.label || "", r.genre_name || "", r.subgenre_name || "",
+      r.vinyl_grade || "", r.sleeve_grade || "", r.pressing_country || "", r.pressing_notes || "",
+      r.acquired_date ? r.acquired_date.slice(0, 7) : "", r.rating || "", r.quantity || 1,
+    ].map(escapeCsv).join(","));
+
+  const csv = [headers.join(","), ...rows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `spin-vinyl-collection-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`Exported ${rows.length} records to CSV.`);
 }
 
 function setupBulkEdit() {
@@ -823,6 +865,7 @@ function getFilteredRecords() {
   const genreFilterVal = document.getElementById("genreFilter").value;
   const subgenreFilterVal = document.getElementById("subgenreFilter").value;
   const ratingFilterVal = document.getElementById("ratingFilter").value;
+  const gradeFilterVal = document.getElementById("gradeFilter")?.value || "";
 
   let filtered = allRecords.slice();
 
@@ -854,6 +897,14 @@ function getFilteredRecords() {
       filtered = filtered.filter((r) => !r.rating);
     } else {
       filtered = filtered.filter((r) => r.rating === ratingFilterVal);
+    }
+  }
+
+  if (gradeFilterVal) {
+    if (gradeFilterVal === "ungraded") {
+      filtered = filtered.filter((r) => !r.vinyl_grade?.trim());
+    } else {
+      filtered = filtered.filter((r) => r.vinyl_grade === gradeFilterVal);
     }
   }
 
@@ -2052,6 +2103,97 @@ function renderRecentlyAdded() {
   });
 }
 
+// T14: Listening log — one-tap "I listened to this" with optional history.
+let listeningLog = [];
+
+async function loadListeningLog() {
+  if (!currentUser) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from("listening_log")
+      .select("id, record_id, listened_at")
+      .eq("user_id", currentUser.id)
+      .order("listened_at", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    listeningLog = data || [];
+  } catch (e) {
+    console.error("Failed to load listening log:", e);
+    listeningLog = [];
+  }
+}
+
+async function logListen(recordId) {
+  if (!currentUser) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from("listening_log")
+      .insert({ user_id: currentUser.id, record_id: recordId })
+      .select("id, record_id, listened_at")
+      .single();
+    if (error) throw error;
+    listeningLog.unshift(data);
+    showToast("Logged — enjoy the record!");
+    updateLastListenedText(recordId);
+    renderRecentlyPlayed();
+  } catch (e) {
+    console.error("Failed to log listen:", e);
+    showToast("Couldn't log that — try again.");
+  }
+}
+
+function updateLastListenedText(recordId) {
+  const el = document.getElementById("lastListenedText");
+  if (!el) return;
+  const last = listeningLog.find((l) => l.record_id === recordId);
+  el.textContent = last ? `Last listened ${new Date(last.listened_at).toLocaleDateString()}` : "";
+}
+
+function renderRecentlyPlayed() {
+  const card = document.getElementById("homeRecentlyPlayedCard");
+  const list = document.getElementById("recentlyPlayedList");
+  if (!card || !list) return;
+
+  if (!listeningLog.length) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  list.innerHTML = "";
+
+  // Distinct records, most recent listen first
+  const seen = new Set();
+  const recent = [];
+  for (const entry of listeningLog) {
+    if (seen.has(entry.record_id)) continue;
+    seen.add(entry.record_id);
+    const record = allRecords.find((r) => r.id === entry.record_id);
+    if (record) recent.push(record);
+    if (recent.length >= 5) break;
+  }
+
+  recent.forEach((r) => {
+    const item = document.createElement("div");
+    item.className = "mini-list-item";
+    item.appendChild(buildMiniCover(r.cover_url, `${r.album} cover`));
+
+    const info = document.createElement("div");
+    info.className = "mini-info";
+    const artistEl = document.createElement("div");
+    artistEl.className = "mini-artist";
+    artistEl.textContent = r.artist;
+    const albumEl = document.createElement("div");
+    albumEl.className = "mini-album";
+    albumEl.textContent = r.album;
+    info.appendChild(artistEl);
+    info.appendChild(albumEl);
+    item.appendChild(info);
+
+    item.addEventListener("click", () => openRecordDetailModal(r.id));
+    list.appendChild(item);
+  });
+}
+
 function renderWishlistHighlights() {
   const list = document.getElementById("wishlistHighlightList");
   list.innerHTML = "";
@@ -2096,6 +2238,7 @@ function renderHome() {
   renderHomeHero();
   renderSpotlight();
   renderRecentlyAdded();
+  renderRecentlyPlayed();
   renderWishlistHighlights();
   startSpotlightAutoRotate();
   maybeShowHomeSurveyCard();
@@ -10418,6 +10561,7 @@ function openRecordDetailModal(recordId, startTab = "details") {
 
   activeDetailRecordId = recordId;
   pendingCoverUrl = undefined;
+  updateLastListenedText(recordId);
 
   document.getElementById("detailArtist").value = record.artist || "";
   document.getElementById("detailAlbum").value = record.album || "";
@@ -11092,6 +11236,10 @@ async function loadData() {
     // 2s delay ensures the UI is fully rendered and responsive first.
     setTimeout(() => mbEnrichMissingCovers(), 2000);
 
+    // T14: listening log — non-blocking, doesn't need to hold up the rest
+    // of the app rendering
+    loadListeningLog();
+
   } catch (err) {
     console.error(err);
     setStatus("Error loading data. See console for details.");
@@ -11166,6 +11314,10 @@ function setupEvents() {
   document
     .getElementById("ratingFilter")
     .addEventListener("change", () => render());
+
+  document
+    .getElementById("gradeFilter")
+    ?.addEventListener("change", () => render());
 
   document
     .getElementById("sortSelect")
@@ -14620,7 +14772,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupMissingDetailsBanner();
   setupTasteQuiz();
   setupFieldTooltips();
+  setupCareHub();
+  setupUpgradePrompt();
   setupBulkEdit();
+  document.getElementById("exportCsvBtn")?.addEventListener("click", exportCollectionToCsv);
+  document.getElementById("logListenBtn")?.addEventListener("click", () => {
+    if (activeDetailRecordId) logListen(activeDetailRecordId);
+  });
   setupBackfillWizard();
   setupFellowCollectors();
   setupPressingPicker();
@@ -16283,6 +16441,183 @@ function applyFeaturePrefs() {
     startSpotlightAutoRotate();
   }
   applyTooltipVisibility();
+  document.body.classList.toggle("is-premium-user", isPremiumUser());
+}
+
+// ── Premium tier groundwork ──────────────────────────────────────────────────
+//
+// No billing integration yet — this just establishes the check function and
+// gating pattern so every future Premium feature has one consistent place to
+// plug into, and can be built/tested end-to-end before Stripe exists.
+//
+// Schema (requires migration — see project notes):
+//   profiles.is_premium boolean default false
+//   profiles.premium_expires_at timestamptz
+//   profiles.premium_grandfathered boolean default false
+//
+// Grandfather clause: once Premium launches for real, early users can be
+// flipped to permanent free access by setting premium_grandfathered = true,
+// without needing any other code change — isPremiumUser() already checks it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function isPremiumUser() {
+  if (!currentProfile) return false;
+  if (currentProfile.premium_grandfathered) return true;
+  if (!currentProfile.is_premium) return false;
+  if (currentProfile.premium_expires_at && new Date(currentProfile.premium_expires_at) < new Date()) return false;
+  return true;
+}
+
+// Gate a Premium feature: runs `onAllowed` if the user has Premium, otherwise
+// shows the upgrade prompt. `featureLabel` is shown in the prompt copy.
+function requiresPremium(featureLabel, onAllowed) {
+  if (isPremiumUser()) {
+    onAllowed();
+    return;
+  }
+  showUpgradePrompt(featureLabel);
+}
+
+function showUpgradePrompt(featureLabel) {
+  const overlay = document.getElementById("upgradePromptOverlay");
+  if (!overlay) return;
+  document.getElementById("upgradePromptFeature").textContent = featureLabel || "This feature";
+  overlay.hidden = false;
+}
+
+function setupUpgradePrompt() {
+  const overlay = document.getElementById("upgradePromptOverlay");
+  if (!overlay) return;
+  document.getElementById("upgradePromptCloseBtn")?.addEventListener("click", () => { overlay.hidden = true; });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.hidden = true; });
+  // No real checkout yet — placeholder so the interaction path exists and
+  // is testable ahead of Stripe integration.
+  document.getElementById("upgradePromptCtaBtn")?.addEventListener("click", () => {
+    overlay.hidden = true;
+    showToast("Premium isn't available quite yet — check back soon!");
+  });
+}
+
+// T17: Vinyl Care & Learning content hub
+const CARE_HUB_ARTICLES = {
+  cleaning: {
+    icon: "ti-droplet",
+    title: "Cleaning your records",
+    summary: "The basics of getting dust and grime off safely",
+    body: `
+      <p>Surface noise is often just dirt, not damage. A little regular care goes a long way.</p>
+      <h3>Quick clean (every play)</h3>
+      <ul>
+        <li>Use a carbon-fiber brush in the direction of the grooves before dropping the needle.</li>
+        <li>Hold the record by its edges only — skin oils attract dust.</li>
+      </ul>
+      <h3>Deep clean (new or dusty finds)</h3>
+      <ul>
+        <li>A record-cleaning fluid + microfiber pad, wiped in the direction of the grooves, works for most cases.</li>
+        <li>For serious collections, a manual or vacuum record-cleaning machine removes ground-in dirt a cloth can't.</li>
+        <li>Never use household glass cleaner or paper towels — they can scratch the vinyl.</li>
+      </ul>
+    `,
+  },
+  storage: {
+    icon: "ti-stack-2",
+    title: "Storing your collection",
+    summary: "Keeping warping, mold, and ring wear away",
+    body: `
+      <h3>Position</h3>
+      <ul>
+        <li>Always store records vertically, like books — never stacked flat. Flat stacking causes warping over time.</li>
+        <li>Keep shelving snug enough that records don't lean, but not so tight that pulling one out scuffs the sleeve.</li>
+      </ul>
+      <h3>Environment</h3>
+      <ul>
+        <li>Avoid direct sunlight and heat sources — vinyl softens and warps well below boiling, faster than you'd think.</li>
+        <li>Aim for a stable, moderate humidity to avoid sleeve mold ("foxing").</li>
+      </ul>
+      <h3>Inner sleeves</h3>
+      <ul>
+        <li>Old paper inner sleeves can scuff vinyl over years. Poly-lined or rice-paper sleeves are the standard upgrade for long-term storage.</li>
+      </ul>
+    `,
+  },
+  grading: {
+    icon: "ti-stars",
+    title: "Understanding grading",
+    summary: "What M, NM, VG+ and the rest actually mean",
+    body: `
+      <p>Spin Vinyl uses the same Goldmine-style scale most of the collecting world uses.</p>
+      <table class="grading-scale-table">
+        <tr><th>Grade</th><th>Meaning</th></tr>
+        <tr><td>M</td><td>Mint — perfect, never played</td></tr>
+        <tr><td>NM</td><td>Near Mint — light use, no real wear</td></tr>
+        <tr><td>VG+</td><td>Very Good Plus — minor wear, plays great</td></tr>
+        <tr><td>VG</td><td>Very Good — noticeable wear, still solid</td></tr>
+        <tr><td>G+/G</td><td>Good — heavy wear, plays with some noise</td></tr>
+        <tr><td>F/P</td><td>Fair/Poor — well-worn, audible surface noise</td></tr>
+      </table>
+      <p>Grade the vinyl and sleeve separately — a record can easily be VG+ vinyl in a well-loved G+ sleeve.</p>
+    `,
+  },
+  setup: {
+    icon: "ti-adjustments-alt",
+    title: "Turntable setup basics",
+    summary: "The few adjustments that actually matter",
+    body: `
+      <h3>Tracking force</h3>
+      <ul>
+        <li>Set the counterweight so the tonearm floats level, then dial in the cartridge manufacturer's recommended tracking force (usually printed on the cartridge or its box).</li>
+      </ul>
+      <h3>Anti-skate</h3>
+      <ul>
+        <li>Roughly match anti-skate to your tracking force. Too little wears the outer groove wall; too much wears the inner.</li>
+      </ul>
+      <h3>Level and isolate</h3>
+      <ul>
+        <li>A level plinth reduces uneven wear and skipping. A wobbly shelf can also introduce audible rumble — isolation feet or a solid, stable surface help.</li>
+      </ul>
+      <h3>Stylus care</h3>
+      <ul>
+        <li>A stylus brush (front to back only) before each session keeps dust from grinding into the groove.</li>
+      </ul>
+    `,
+  },
+};
+
+function setupCareHub() {
+  const overlay = document.getElementById("careHubOverlay");
+  const topicsEl = document.getElementById("careHubTopics");
+  if (!overlay || !topicsEl) return;
+
+  topicsEl.innerHTML = Object.entries(CARE_HUB_ARTICLES).map(([key, a]) => `
+    <button type="button" class="care-hub-topic" data-topic="${key}">
+      <i class="ti ${a.icon}" aria-hidden="true"></i>
+      <span><strong>${a.title}</strong><span>${a.summary}</span></span>
+    </button>
+  `).join("");
+
+  document.getElementById("openCareHubBtn")?.addEventListener("click", () => {
+    overlay.hidden = false;
+    document.getElementById("careHubList").hidden = false;
+    document.getElementById("careHubArticle").hidden = true;
+  });
+  document.getElementById("careHubCloseBtn")?.addEventListener("click", () => { overlay.hidden = true; });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.hidden = true; });
+
+  topicsEl.querySelectorAll(".care-hub-topic").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const article = CARE_HUB_ARTICLES[btn.dataset.topic];
+      if (!article) return;
+      document.getElementById("careHubArticleTitle").textContent = article.title;
+      document.getElementById("careHubArticleBody").innerHTML = article.body;
+      document.getElementById("careHubList").hidden = true;
+      document.getElementById("careHubArticle").hidden = false;
+    });
+  });
+
+  document.getElementById("careHubBackBtn")?.addEventListener("click", () => {
+    document.getElementById("careHubList").hidden = false;
+    document.getElementById("careHubArticle").hidden = true;
+  });
 }
 
 // ── T5: field education tooltips ────────────────────────────────────────────

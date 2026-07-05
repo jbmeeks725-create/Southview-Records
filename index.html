@@ -710,6 +710,57 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+  .listening-log-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 16px;
+  }
+  .listening-log-row .field-hint { margin: 0; }
+  .care-hub-card { max-width: 560px; max-height: 80vh; overflow-y: auto; }
+  .care-hub-topics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .care-hub-topic {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    text-align: left;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.8);
+    font-family: Inter, sans-serif;
+  }
+  .care-hub-topic:hover { border-color: rgba(201,168,76,0.4); }
+  .care-hub-topic i { color: #c9a84c; font-size: 18px; margin-top: 2px; }
+  .care-hub-topic strong { display: block; font-size: 13px; color: #e8e0d0; margin-bottom: 2px; }
+  .care-hub-topic span { font-size: 12px; color: rgba(255,255,255,0.5); }
+  .care-hub-article-body { font-family: Inter, sans-serif; font-size: 13px; line-height: 1.7; color: rgba(255,255,255,0.8); }
+  .care-hub-article-body h3 { font-family: Jost, sans-serif; font-size: 14px; color: #c9a84c; margin: 16px 0 6px; }
+  .care-hub-article-body ul { padding-left: 20px; margin: 6px 0; }
+  @media (max-width: 640px) {
+    .care-hub-topics { grid-template-columns: 1fr; }
+  }
+  .upgrade-prompt-card { max-width: 380px; text-align: center; }
+  .upgrade-prompt-icon {
+    width: 52px;
+    height: 52px;
+    margin: 4px auto 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #d4b463, #c9a84c);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #14120e;
+  }
+  #upgradePromptCtaBtn { margin-top: 16px; width: 100%; }
   .cv-notable-education {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -4422,6 +4473,11 @@
           <div id="recentList" class="mini-list"></div>
         </div>
 
+        <div class="home-card home-recently-played" id="homeRecentlyPlayedCard" hidden>
+          <h2><i class="ti ti-headphones" aria-hidden="true"></i> Recently Played</h2>
+          <div id="recentlyPlayedList" class="mini-list"></div>
+        </div>
+
         <div class="home-card home-wishlist-highlight">
           <h2>From Your Wishlist</h2>
           <div id="wishlistHighlightList" class="mini-list"></div>
@@ -4814,6 +4870,16 @@
           </form>
         </div>
 
+        <div class="profile-card settings-privacy-card" id="settingsCareCard">
+          <div class="profile-card-header">
+            <h2>Vinyl Care &amp; Learning</h2>
+          </div>
+          <p class="field-hint">A few short guides — cleaning, storage, grading, and getting the most out of your setup.</p>
+          <button type="button" id="openCareHubBtn" class="btn-secondary">
+            <i class="ti ti-book" aria-hidden="true"></i> Open the guides
+          </button>
+        </div>
+
         <div class="profile-card settings-privacy-card" id="settingsFeaturesCard">
           <div class="profile-card-header">
             <h2>Features</h2>
@@ -5170,6 +5236,19 @@
         <option value="dislike">Dislike</option>
         <option value="unrated">Unrated</option>
       </select>
+      <select id="gradeFilter">
+        <option value="">All grades</option>
+        <option value="M">M</option>
+        <option value="NM">NM</option>
+        <option value="VG+">VG+</option>
+        <option value="VG">VG</option>
+        <option value="VG-">VG-</option>
+        <option value="G+">G+</option>
+        <option value="G">G</option>
+        <option value="F">F</option>
+        <option value="P">P</option>
+        <option value="ungraded">Ungraded</option>
+      </select>
       <select id="sortSelect">
         <option value="artist-asc">Artist: A–Z</option>
         <option value="artist-desc">Artist: Z–A</option>
@@ -5179,6 +5258,8 @@
         <option value="year-asc">Year: Oldest first</option>
         <option value="added-desc">Recently added</option>
         <option value="added-asc">Oldest added</option>
+        <option value="acquired-desc">Month acquired: Newest first</option>
+        <option value="acquired-asc">Month acquired: Oldest first</option>
       </select>
     </div>
     <div class="page-toolbar-actions">
@@ -5204,6 +5285,9 @@
       <button type="button" id="importBtn" class="btn-secondary">Import from spreadsheet</button>
       <button type="button" id="shareCollectionBtn" class="btn-secondary">
         <i class="ti ti-share" aria-hidden="true"></i> Share
+      </button>
+      <button type="button" id="exportCsvBtn" class="btn-secondary">
+        <i class="ti ti-download" aria-hidden="true"></i> Export CSV
       </button>
     </div>
   </div>
@@ -6432,6 +6516,13 @@
 
         <div id="detailRatingControls" class="detail-rating-controls"></div>
 
+        <div class="listening-log-row">
+          <button type="button" id="logListenBtn" class="btn-secondary">
+            <i class="ti ti-headphones" aria-hidden="true"></i> I listened to this
+          </button>
+          <span id="lastListenedText" class="field-hint"></span>
+        </div>
+
         <form id="recordDetailForm">
           <div class="form-row">
             <label for="detailArtist">Artist *</label>
@@ -7616,6 +7707,36 @@
       <span class="site-footer-copy">© 2025 Spin Vinyl</span>
     </div>
   </footer>
+
+  <!-- T17: Vinyl Care & Learning hub -->
+  <div id="careHubOverlay" class="modal-overlay" hidden>
+    <div class="modal care-hub-card" role="dialog" aria-modal="true" aria-labelledby="careHubTitle">
+      <button type="button" id="careHubCloseBtn" class="modal-close" aria-label="Close">&times;</button>
+      <div id="careHubList">
+        <h2 id="careHubTitle" class="taste-quiz-title">Vinyl Care &amp; Learning</h2>
+        <p class="field-hint">Short, practical guides — tap a topic.</p>
+        <div id="careHubTopics" class="care-hub-topics"></div>
+      </div>
+      <div id="careHubArticle" hidden>
+        <button type="button" id="careHubBackBtn" class="link-btn expert-fields-toggle" style="margin-bottom:8px;">
+          <i class="ti ti-arrow-left" aria-hidden="true"></i> All guides
+        </button>
+        <h2 id="careHubArticleTitle" class="taste-quiz-title"></h2>
+        <div id="careHubArticleBody" class="care-hub-article-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Premium groundwork: reusable upgrade prompt, inert until billing exists -->
+  <div id="upgradePromptOverlay" class="modal-overlay" hidden>
+    <div class="modal upgrade-prompt-card" role="dialog" aria-modal="true">
+      <button type="button" id="upgradePromptCloseBtn" class="modal-close" aria-label="Close">&times;</button>
+      <div class="upgrade-prompt-icon"><i class="ti ti-diamond" aria-hidden="true"></i></div>
+      <h2 class="taste-quiz-title">Spin Vinyl Premium</h2>
+      <p class="field-hint"><span id="upgradePromptFeature">This feature</span> is part of Spin Vinyl Premium.</p>
+      <button type="button" id="upgradePromptCtaBtn" class="btn-primary">Learn more</button>
+    </div>
+  </div>
 
   <div id="fieldTooltipPopover" class="field-tooltip-popover" hidden></div>
 </body>
