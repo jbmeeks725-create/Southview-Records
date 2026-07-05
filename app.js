@@ -10681,6 +10681,7 @@ async function loadData() {
         market_value_cached_at,
         market_value_type,
         pinned_for_value,
+        is_starter,
         created_at,
         genres ( name ),
         subgenres ( name )
