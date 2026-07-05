@@ -565,6 +565,255 @@ function sortItems(items, sortValue, isWishlist) {
 // per-card badges identifying which fields. Entered/exited via the banner.
 let missingDetailsViewActive = false;
 
+// T2: bulk edit — Select mode lets the user multi-select cards, then apply
+// one field's value to all of them at once via the fixed action bar.
+let bulkSelectMode = false;
+let bulkSelectedIds = new Set();
+
+function toggleBulkSelect(id, cardEl) {
+  if (bulkSelectedIds.has(id)) {
+    bulkSelectedIds.delete(id);
+    cardEl.classList.remove("selected");
+    cardEl.querySelector(".record-select-checkbox")?.classList.remove("selected");
+    const cb = cardEl.querySelector(".record-select-checkbox");
+    if (cb) cb.innerHTML = "";
+  } else {
+    bulkSelectedIds.add(id);
+    cardEl.classList.add("selected");
+    const cb = cardEl.querySelector(".record-select-checkbox");
+    if (cb) { cb.classList.add("selected"); cb.innerHTML = '<i class="ti ti-check"></i>'; }
+  }
+  updateBulkEditBar();
+}
+
+function updateBulkEditBar() {
+  const bar = document.getElementById("bulkEditBar");
+  if (!bar) return;
+  const count = bulkSelectedIds.size;
+  bar.hidden = !bulkSelectMode || count === 0;
+  const countEl = document.getElementById("bulkEditCount");
+  if (countEl) countEl.textContent = `${count} selected`;
+}
+
+function exitBulkSelectMode() {
+  bulkSelectMode = false;
+  bulkSelectedIds = new Set();
+  const bar = document.getElementById("bulkEditBar");
+  if (bar) bar.hidden = true;
+  const toggleBtn = document.getElementById("bulkSelectToggleBtn");
+  if (toggleBtn) toggleBtn.classList.remove("active");
+  render();
+}
+
+function renderBulkEditInput(field) {
+  const wrap = document.getElementById("bulkEditInputWrap");
+  if (!wrap) return;
+  if (field === "acquired_date") {
+    wrap.innerHTML = `<input type="month" id="bulkEditValueMonth" />`;
+  } else if (field === "genre") {
+    wrap.innerHTML = `<input type="text" id="bulkEditValueText" list="genreOptions" placeholder="e.g. Jazz" />`;
+  } else if (field === "vinyl_grade" || field === "sleeve_grade") {
+    wrap.innerHTML = `<input type="text" id="bulkEditValueText" list="gradeOptions" placeholder="e.g. VG+" />`;
+  } else {
+    wrap.innerHTML = `<input type="text" id="bulkEditValueText" placeholder="e.g. US, UK, Germany" />`;
+  }
+}
+
+function setupBulkEdit() {
+  const toggleBtn = document.getElementById("bulkSelectToggleBtn");
+  const cancelBtn = document.getElementById("bulkEditCancelBtn");
+  const applyBtn = document.getElementById("bulkEditApplyBtn");
+  const fieldSelect = document.getElementById("bulkEditField");
+  if (!toggleBtn) return;
+
+  toggleBtn.addEventListener("click", () => {
+    bulkSelectMode = !bulkSelectMode;
+    bulkSelectedIds = new Set();
+    toggleBtn.classList.toggle("active", bulkSelectMode);
+    updateBulkEditBar();
+    render();
+  });
+
+  cancelBtn?.addEventListener("click", exitBulkSelectMode);
+
+  fieldSelect?.addEventListener("change", () => renderBulkEditInput(fieldSelect.value));
+  renderBulkEditInput(fieldSelect?.value || "acquired_date");
+
+  applyBtn?.addEventListener("click", async () => {
+    const field = fieldSelect.value;
+    const statusEl = document.getElementById("bulkEditStatus");
+    const ids = [...bulkSelectedIds];
+    if (!ids.length) return;
+
+    try {
+      let updates = {};
+      if (field === "acquired_date") {
+        const monthVal = document.getElementById("bulkEditValueMonth")?.value;
+        if (!monthVal) { statusEl.textContent = "Pick a month first."; return; }
+        updates.acquired_date = `${monthVal}-01`;
+      } else if (field === "genre") {
+        const textVal = document.getElementById("bulkEditValueText")?.value.trim();
+        if (!textVal) { statusEl.textContent = "Enter a genre first."; return; }
+        updates.genre_id = await getOrCreateGenreId(textVal);
+      } else {
+        const textVal = document.getElementById("bulkEditValueText")?.value.trim();
+        if (!textVal) { statusEl.textContent = "Enter a value first."; return; }
+        updates[field] = textVal;
+      }
+
+      applyBtn.disabled = true;
+      statusEl.textContent = `Updating ${ids.length} records...`;
+
+      const { error } = await supabaseClient.from("records").update(updates).in("id", ids);
+      if (error) throw error;
+
+      // Patch local state so the UI reflects the change immediately
+      allRecords.forEach((r) => {
+        if (!ids.includes(r.id)) return;
+        Object.assign(r, updates);
+        if (field === "genre") r.genre_name = document.getElementById("bulkEditValueText")?.value.trim() || r.genre_name;
+      });
+
+      statusEl.textContent = `Updated ${ids.length} records.`;
+      setTimeout(() => { exitBulkSelectMode(); }, 700);
+    } catch (e) {
+      console.error("Bulk edit failed:", e);
+      statusEl.textContent = "Something went wrong — try again.";
+      applyBtn.disabled = false;
+    }
+  });
+}
+
+// ── T2c: Backfill wizard ─────────────────────────────────────────────────────
+// Steps through incomplete records one at a time, showing only the fields
+// that are actually missing — faster than opening each record's full edit
+// form just to fill in one or two fields.
+const BACKFILL_FIELD_CONFIG = {
+  grade: { label: "Vinyl grade", input: (r) => `<input type="text" id="bfVinylGrade" list="gradeOptions" placeholder="e.g. VG+" value="${r.vinyl_grade || ""}" />` },
+  "date acquired": { label: "Month acquired", input: (r) => `<input type="month" id="bfAcquiredDate" value="${r.acquired_date ? r.acquired_date.slice(0, 7) : ""}" />` },
+  "pressing country": { label: "Pressing country", input: (r) => `<input type="text" id="bfPressingCountry" placeholder="e.g. US, UK, Germany" value="${r.pressing_country || ""}" />` },
+  label: { label: "Label", input: (r) => `<input type="text" id="bfLabel" placeholder="e.g. Columbia" value="${r.label || ""}" />` },
+  genre: { label: "Genre", input: (r) => `<input type="text" id="bfGenre" list="genreOptions" placeholder="e.g. Jazz" value="${r.genre_name || ""}" />` },
+  rating: {
+    label: "Rating",
+    input: (r) => `
+      <select id="bfRating">
+        <option value="">Unrated</option>
+        <option value="love">Love</option>
+        <option value="like">Like</option>
+        <option value="neutral">Neutral</option>
+        <option value="dislike">Dislike</option>
+      </select>`,
+  },
+};
+
+let backfillQueue = [];
+let backfillIndex = 0;
+
+function startBackfillWizard() {
+  backfillQueue = allRecords.filter((r) => getMissingRecordFields(r).length > 0);
+  backfillIndex = 0;
+  if (!backfillQueue.length) return;
+  document.getElementById("backfillWizardOverlay").hidden = false;
+  renderBackfillWizardStep();
+}
+
+function renderBackfillWizardStep() {
+  const overlay = document.getElementById("backfillWizardOverlay");
+  if (backfillIndex >= backfillQueue.length) {
+    overlay.hidden = true;
+    render();
+    updateMissingDetailsBanner();
+    return;
+  }
+
+  const record = backfillQueue[backfillIndex];
+  document.getElementById("backfillWizardProgress").textContent = `Record ${backfillIndex + 1} of ${backfillQueue.length}`;
+  document.getElementById("backfillWizardTitle").textContent = record.album;
+  document.getElementById("backfillWizardArtist").textContent = record.artist;
+  document.getElementById("backfillWizardStatus").textContent = "";
+
+  const cover = document.getElementById("backfillWizardCover");
+  if (record.cover_url) {
+    cover.style.backgroundImage = `url(${record.cover_url})`;
+    cover.innerHTML = "";
+  } else {
+    cover.style.backgroundImage = "";
+    cover.innerHTML = '<i class="ti ti-vinyl"></i>';
+  }
+
+  const missing = getMissingRecordFields(record);
+  const fieldsEl = document.getElementById("backfillWizardFields");
+  fieldsEl.innerHTML = missing.map((key) => {
+    const config = BACKFILL_FIELD_CONFIG[key];
+    if (!config) return "";
+    return `<div class="backfill-wizard-field"><label>${config.label}</label>${config.input(record)}</div>`;
+  }).join("");
+}
+
+async function saveBackfillWizardStep() {
+  const record = backfillQueue[backfillIndex];
+  if (!record) return;
+  const statusEl = document.getElementById("backfillWizardStatus");
+  const saveBtn = document.getElementById("backfillWizardSaveBtn");
+
+  try {
+    saveBtn.disabled = true;
+    const updates = {};
+
+    const vinylGradeEl = document.getElementById("bfVinylGrade");
+    if (vinylGradeEl && vinylGradeEl.value.trim()) updates.vinyl_grade = vinylGradeEl.value.trim();
+
+    const acquiredEl = document.getElementById("bfAcquiredDate");
+    if (acquiredEl && acquiredEl.value) updates.acquired_date = `${acquiredEl.value}-01`;
+
+    const countryEl = document.getElementById("bfPressingCountry");
+    if (countryEl && countryEl.value.trim()) updates.pressing_country = countryEl.value.trim();
+
+    const labelEl = document.getElementById("bfLabel");
+    if (labelEl && labelEl.value.trim()) updates.label = labelEl.value.trim();
+
+    const genreEl = document.getElementById("bfGenre");
+    let newGenreName = null;
+    if (genreEl && genreEl.value.trim()) {
+      newGenreName = genreEl.value.trim();
+      updates.genre_id = await getOrCreateGenreId(newGenreName);
+    }
+
+    const ratingEl = document.getElementById("bfRating");
+    if (ratingEl && ratingEl.value) updates.rating = ratingEl.value;
+
+    if (Object.keys(updates).length) {
+      const { error } = await supabaseClient.from("records").update(updates).eq("id", record.id);
+      if (error) throw error;
+      Object.assign(record, updates);
+      if (newGenreName) record.genre_name = newGenreName;
+    }
+
+    backfillIndex++;
+    renderBackfillWizardStep();
+  } catch (e) {
+    console.error("Backfill save failed:", e);
+    statusEl.textContent = "Something went wrong — try again.";
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+function setupBackfillWizard() {
+  document.getElementById("missingDetailsWizardBtn")?.addEventListener("click", startBackfillWizard);
+  document.getElementById("backfillWizardSaveBtn")?.addEventListener("click", saveBackfillWizardStep);
+  document.getElementById("backfillWizardSkipBtn")?.addEventListener("click", () => {
+    backfillIndex++;
+    renderBackfillWizardStep();
+  });
+  document.getElementById("backfillWizardCloseBtn")?.addEventListener("click", () => {
+    document.getElementById("backfillWizardOverlay").hidden = true;
+    render();
+    updateMissingDetailsBanner();
+  });
+}
+
 function getFilteredRecords() {
   const searchText = document
     .getElementById("searchInput")
@@ -890,13 +1139,29 @@ function renderCards(filtered) {
     if (r.subgenre_name) metaParts.push(r.subgenre_name);
     metaEl.textContent = metaParts.join(" · ");
 
+    // T2: bulk-select checkbox, shown only while Select mode is active
+    if (bulkSelectMode) {
+      card.classList.add("bulk-select-mode");
+      if (bulkSelectedIds.has(r.id)) card.classList.add("selected");
+      const checkbox = document.createElement("div");
+      checkbox.className = "record-select-checkbox" + (bulkSelectedIds.has(r.id) ? " selected" : "");
+      checkbox.innerHTML = bulkSelectedIds.has(r.id) ? '<i class="ti ti-check"></i>' : "";
+      coverWrap.appendChild(checkbox);
+    }
+
     info.appendChild(artistEl);
     info.appendChild(albumEl);
     if (metaParts.length) info.appendChild(metaEl);
     info.appendChild(buildRatingControls(r));
 
     card.appendChild(info);
-    card.addEventListener("click", () => openRecordDetailModal(r.id));
+    card.addEventListener("click", () => {
+      if (bulkSelectMode) {
+        toggleBulkSelect(r.id, card);
+        return;
+      }
+      openRecordDetailModal(r.id);
+    });
     grid.appendChild(card);
   });
 }
@@ -6860,6 +7125,13 @@ function setPage(page, { skipPersist = false } = {}) {
   atAGlanceSection.hidden = !isCollection;
   const collectionToolbarWrap = document.getElementById("collectionToolbarWrap");
   if (collectionToolbarWrap) collectionToolbarWrap.hidden = !isCollection;
+  if (!isCollection && bulkSelectMode) {
+    bulkSelectMode = false;
+    bulkSelectedIds = new Set();
+    document.getElementById("bulkSelectToggleBtn")?.classList.remove("active");
+  }
+  const bulkEditBar = document.getElementById("bulkEditBar");
+  if (bulkEditBar && !isCollection) bulkEditBar.hidden = true;
   document.getElementById("cardSectionHeader").hidden = !isCollection;
   cardSection.hidden = !isCollection;
   // Bug fix: this section was never wired into setPage's visibility list,
@@ -14270,6 +14542,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupExpertFieldsToggle();
   setupMissingDetailsBanner();
   setupTasteQuiz();
+  setupFieldTooltips();
+  setupBulkEdit();
+  setupBackfillWizard();
   setupFellowCollectors();
   setupPressingPicker();
   setupQuickrate();
@@ -15890,6 +16165,78 @@ function applyFeaturePrefs() {
   } else if (currentPage === "home") {
     startSpotlightAutoRotate();
   }
+  applyTooltipVisibility();
+}
+
+// ── T5: field education tooltips ────────────────────────────────────────────
+const FIELD_TOOLTIP_CONTENT = {
+  grade: `
+    <strong>Condition grading</strong><br>
+    A quick estimate of wear, using the standard record-collecting scale.
+    Vinyl grade is the disc itself; sleeve grade is the cover.
+    <table class="grading-scale-table">
+      <tr><th>Grade</th><th>Meaning</th></tr>
+      <tr><td>M</td><td>Mint — perfect, never played</td></tr>
+      <tr><td>NM</td><td>Near Mint — light use, no real wear</td></tr>
+      <tr><td>VG+</td><td>Very Good Plus — minor wear, plays great</td></tr>
+      <tr><td>VG</td><td>Very Good — noticeable wear, still solid</td></tr>
+      <tr><td>G+/G</td><td>Good — heavy wear, plays with some noise</td></tr>
+      <tr><td>F/P</td><td>Fair/Poor — well-worn, audible surface noise</td></tr>
+    </table>
+  `,
+  pressingCountry: `
+    <strong>Pressing country</strong><br>
+    Where this specific copy was physically manufactured — not where the
+    artist is from. The same album is often pressed in multiple countries
+    over the years (e.g. a UK original vs. a later US reissue), and this can
+    affect sound quality and value. Check the runout groove or label for a
+    country of origin if you're not sure.
+  `,
+  monthAcquired: `
+    <strong>Month acquired</strong><br>
+    Roughly when <em>you</em> actually got this record — not when you added
+    it to Spin Vinyl. If you're importing an old collection, this is what
+    makes your Collecting Calendar and timeline tell the real story instead
+    of showing everything on the day you imported.
+  `,
+};
+
+function setupFieldTooltips() {
+  const popover = document.getElementById("fieldTooltipPopover");
+  if (!popover) return;
+
+  document.addEventListener("click", (e) => {
+    const icon = e.target.closest(".field-tooltip-icon");
+    if (icon) {
+      e.preventDefault();
+      const key = icon.dataset.tooltip;
+      const content = FIELD_TOOLTIP_CONTENT[key];
+      if (!content) return;
+      popover.innerHTML = content;
+      popover.hidden = false;
+
+      const rect = icon.getBoundingClientRect();
+      const popRect = popover.getBoundingClientRect();
+      let left = rect.left;
+      let top = rect.bottom + 6;
+      if (left + popRect.width > window.innerWidth - 12) left = window.innerWidth - popRect.width - 12;
+      if (top + popRect.height > window.innerHeight - 12) top = rect.top - popRect.height - 6;
+      popover.style.left = `${Math.max(12, left)}px`;
+      popover.style.top = `${Math.max(12, top)}px`;
+      return;
+    }
+    if (!popover.hidden && !e.target.closest("#fieldTooltipPopover")) {
+      popover.hidden = true;
+    }
+  });
+}
+
+// Hide all tooltip icons when the tooltips feature flag is off, per persona
+function applyTooltipVisibility() {
+  const show = isFeatureEnabled("tooltips");
+  document.querySelectorAll(".field-tooltip-icon").forEach((icon) => {
+    icon.style.display = show ? "" : "none";
+  });
 }
 
 

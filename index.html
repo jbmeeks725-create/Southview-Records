@@ -540,6 +540,132 @@
     cursor: pointer;
   }
   .wishlist-suggestions-clear:hover { color: rgba(255,255,255,0.7); }
+  .field-tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.6);
+    font-size: 10px;
+    font-weight: 700;
+    cursor: help;
+    vertical-align: middle;
+    padding: 0;
+    line-height: 1;
+  }
+  .field-tooltip-icon:hover { background: rgba(201,168,76,0.25); border-color: #c9a84c; color: #c9a84c; }
+  .field-tooltip-popover {
+    position: fixed;
+    z-index: 2000;
+    max-width: 280px;
+    background: #1a1820;
+    border: 1px solid rgba(201,168,76,0.4);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.8);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .field-tooltip-popover a { color: #c9a84c; }
+  .grading-scale-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+  .grading-scale-table th, .grading-scale-table td {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .grading-scale-table th { color: #c9a84c; font-family: Jost, sans-serif; }
+  .grading-scale-table td:first-child { font-weight: 700; color: #e8e0d0; white-space: nowrap; }
+  .bulk-edit-bar {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #1a1820;
+    border: 1px solid rgba(201,168,76,0.4);
+    border-radius: 12px;
+    padding: 10px 16px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+  }
+  .bulk-edit-bar select, .bulk-edit-bar input {
+    background: #0f0e14;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #e8e0d0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  .bulk-edit-bar .btn-text { background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 13px; }
+  .record-select-checkbox {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 3;
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    border: 2px solid rgba(255,255,255,0.6);
+    background: rgba(13,13,17,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .record-select-checkbox.selected {
+    background: #c9a84c;
+    border-color: #c9a84c;
+    color: #14120e;
+  }
+  .record-card.bulk-select-mode { cursor: pointer; }
+  .record-card.bulk-select-mode.selected { outline: 2px solid #c9a84c; outline-offset: -2px; }
+  #bulkSelectToggleBtn.active { background: #c9a84c; color: #14120e; border-color: #c9a84c; }
+  .backfill-wizard-card { max-width: 460px; }
+  .backfill-wizard-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 10px 0 18px;
+  }
+  .backfill-wizard-cover {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    background: #1a1a24;
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(201,168,76,0.3);
+    font-size: 24px;
+  }
+  .backfill-wizard-album { font-family: Jost, sans-serif; font-size: 17px; font-weight: 700; color: #e8e0d0; margin: 0; }
+  .backfill-wizard-artist { font-family: Inter, sans-serif; font-size: 13px; color: rgba(255,255,255,0.6); margin: 2px 0 0; }
+  .backfill-wizard-field { margin-bottom: 14px; }
+  .backfill-wizard-field label { display: block; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
+  .backfill-wizard-field input, .backfill-wizard-field select {
+    width: 100%;
+    box-sizing: border-box;
+    background: #0f0e14;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #e8e0d0;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
   .collection-dna-heading {
     font-family: Jost, sans-serif;
     font-size: 15px;
@@ -4890,6 +5016,7 @@
   <section id="collectionDnaSection" class="collection-dna-section" hidden>
     <div id="missingDetailsBanner" class="missing-details-banner" hidden>
       <span id="missingDetailsBannerText"><i class="ti ti-list-details" aria-hidden="true"></i> <span id="missingDetailsCount">0</span> records missing details</span>
+      <button type="button" id="missingDetailsWizardBtn" class="btn-text">Quick fill</button>
       <button type="button" id="missingDetailsReviewBtn" class="btn-text">Review</button>
       <button type="button" id="missingDetailsExitBtn" class="btn-text" hidden>Show all records</button>
     </div>
@@ -4988,6 +5115,9 @@
         </select>
       </div>
       <button type="button" id="addRecordBtn" class="add-record-btn">+ Add Record</button>
+      <button type="button" id="bulkSelectToggleBtn" class="btn-secondary" title="Select multiple records to edit at once">
+        <i class="ti ti-checklist" aria-hidden="true"></i> Select
+      </button>
       <button type="button" id="quickrateBtn" class="btn-secondary" title="Quickly rate your unrated records">
         <i class="ti ti-stars" aria-hidden="true"></i> Rate unrated
       </button>
@@ -5012,6 +5142,47 @@
       <!-- cards will be injected here -->
     </div>
   </section>
+
+  <!-- T2: Bulk edit action bar — fixed to the bottom of the viewport while
+       Select mode is active. -->
+  <div id="bulkEditBar" class="bulk-edit-bar" hidden>
+    <span id="bulkEditCount">0 selected</span>
+    <select id="bulkEditField">
+      <option value="acquired_date">Month acquired</option>
+      <option value="vinyl_grade">Vinyl grade</option>
+      <option value="sleeve_grade">Sleeve grade</option>
+      <option value="pressing_country">Pressing country</option>
+      <option value="genre">Genre</option>
+    </select>
+    <span id="bulkEditInputWrap">
+      <input type="month" id="bulkEditValueMonth" />
+    </span>
+    <button type="button" id="bulkEditApplyBtn" class="btn-primary">Apply</button>
+    <button type="button" id="bulkEditCancelBtn" class="btn-text">Cancel</button>
+    <span id="bulkEditStatus" class="form-status"></span>
+  </div>
+
+  <!-- T2c: Backfill wizard — steps through incomplete records one at a
+       time, showing only the fields that are actually missing. -->
+  <div id="backfillWizardOverlay" class="modal-overlay" hidden>
+    <div class="modal backfill-wizard-card" role="dialog" aria-modal="true" aria-labelledby="backfillWizardTitle">
+      <button type="button" id="backfillWizardCloseBtn" class="modal-close" aria-label="Close">&times;</button>
+      <p class="field-hint" id="backfillWizardProgress">Record 1 of 1</p>
+      <div class="backfill-wizard-header">
+        <div id="backfillWizardCover" class="backfill-wizard-cover"></div>
+        <div>
+          <h2 id="backfillWizardTitle" class="backfill-wizard-album"></h2>
+          <p id="backfillWizardArtist" class="backfill-wizard-artist"></p>
+        </div>
+      </div>
+      <div id="backfillWizardFields"></div>
+      <div class="home-survey-actions" style="justify-content:space-between;">
+        <button type="button" id="backfillWizardSkipBtn" class="btn-text">Skip this one</button>
+        <button type="button" id="backfillWizardSaveBtn" class="btn-primary">Save &amp; Next</button>
+      </div>
+      <p id="backfillWizardStatus" class="form-status"></p>
+    </div>
+  </div>
 
   <!-- Starter collection — full width, outside the record grid -->
   <section id="starterCollectionWrap" hidden style="padding:0 0 40px;">
@@ -5957,11 +6128,11 @@
         <div id="expertFieldsWrap">
         <div class="form-row form-row-split">
           <div>
-            <label for="fieldVinylGrade">Vinyl grade</label>
+            <label for="fieldVinylGrade">Vinyl grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a vinyl grade?">?</button></label>
             <input type="text" id="fieldVinylGrade" list="gradeOptions" placeholder="e.g. VG+" />
           </div>
           <div>
-            <label for="fieldSleeveGrade">Sleeve grade</label>
+            <label for="fieldSleeveGrade">Sleeve grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a sleeve grade?">?</button></label>
             <input type="text" id="fieldSleeveGrade" list="gradeOptions" placeholder="e.g. VG+" />
           </div>
         </div>
@@ -5979,11 +6150,11 @@
 
         <div class="form-row form-row-split">
           <div>
-            <label for="fieldAcquiredDate">Month acquired</label>
+            <label for="fieldAcquiredDate">Month acquired <button type="button" class="field-tooltip-icon" data-tooltip="monthAcquired" aria-label="What's month acquired?">?</button></label>
             <input type="month" id="fieldAcquiredDate" />
           </div>
           <div>
-            <label for="fieldPressingCountry">Pressing country</label>
+            <label for="fieldPressingCountry">Pressing country <button type="button" class="field-tooltip-icon" data-tooltip="pressingCountry" aria-label="What's pressing country?">?</button></label>
             <input type="text" id="fieldPressingCountry" placeholder="e.g. US, UK, Germany" />
           </div>
         </div>
@@ -6214,17 +6385,17 @@
 
           <div class="form-row form-row-split">
             <div>
-              <label for="detailVinylGrade">Vinyl grade</label>
+              <label for="detailVinylGrade">Vinyl grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a vinyl grade?">?</button></label>
               <input type="text" id="detailVinylGrade" list="gradeOptions" placeholder="e.g. VG+" />
             </div>
             <div>
-              <label for="detailSleeveGrade">Sleeve grade</label>
+              <label for="detailSleeveGrade">Sleeve grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a sleeve grade?">?</button></label>
               <input type="text" id="detailSleeveGrade" list="gradeOptions" placeholder="e.g. VG+" />
             </div>
           </div>
 
           <div class="form-row">
-            <label for="detailPressingCountry">Pressing country</label>
+            <label for="detailPressingCountry">Pressing country <button type="button" class="field-tooltip-icon" data-tooltip="pressingCountry" aria-label="What's pressing country?">?</button></label>
             <input type="text" id="detailPressingCountry" placeholder="e.g. US, UK, Germany" />
           </div>
 
@@ -7320,5 +7491,6 @@
     </div>
   </footer>
 
+  <div id="fieldTooltipPopover" class="field-tooltip-popover" hidden></div>
 </body>
 </html>
