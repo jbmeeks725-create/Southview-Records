@@ -666,6 +666,69 @@
     padding: 8px 10px;
     font-size: 13px;
   }
+  .scan-session-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    color: rgba(255,255,255,0.65);
+    margin-top: 8px;
+    cursor: pointer;
+  }
+  .scan-session-counter {
+    display: inline-block;
+    margin-left: 8px;
+    background: rgba(201,168,76,0.15);
+    color: #c9a84c;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-family: Jost, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .app-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%) translateY(20px);
+    z-index: 3000;
+    background: #1a1820;
+    border: 1px solid rgba(201,168,76,0.4);
+    color: #e8e0d0;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .app-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .cv-notable-education {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 18px;
+  }
+  .cv-notable-tip {
+    display: flex;
+    gap: 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .cv-notable-tip i { color: #c9a84c; font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+  .cv-notable-tip strong { display: block; font-family: Jost, sans-serif; font-size: 13px; color: #e8e0d0; margin-bottom: 4px; }
+  .cv-notable-tip p { font-family: Inter, sans-serif; font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.5; margin: 0; }
+  @media (max-width: 640px) {
+    .cv-notable-education { grid-template-columns: 1fr; }
+  }
   .collection-dna-heading {
     font-family: Jost, sans-serif;
     font-size: 15px;
@@ -690,6 +753,22 @@
     border-radius: 999px;
     cursor: help;
   }
+  .record-duplicate-badge {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    z-index: 2;
+    background: rgba(62,110,207,0.25);
+    border: 1px solid rgba(120,160,230,0.5);
+    color: #a8c4f0;
+    font-family: Inter, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .record-duplicate-badge:hover { background: rgba(62,110,207,0.4); }
   .starter-remove-banner {
     display: flex;
     align-items: center;
@@ -6064,6 +6143,11 @@
 
       <div class="scan-section">
         <button type="button" id="scanBarcodeBtn" class="btn-secondary">Scan barcode</button>
+        <label class="scan-session-toggle">
+          <input type="checkbox" id="scanSessionModeToggle" />
+          Keep scanning — add several records in a row
+        </label>
+        <span id="scanSessionCounter" class="scan-session-counter" hidden></span>
         <div id="scannerWrap" hidden>
           <div id="scannerVideo"></div>
           <button type="button" id="cancelScanBtn" class="btn-secondary">Cancel scan</button>
@@ -6159,6 +6243,11 @@
           </div>
         </div>
         <p class="field-hint">Month acquired is roughly when you actually got the record, not necessarily today — it drives your collecting timeline. Pressing country is where this specific copy was manufactured.</p>
+
+        <div class="form-row">
+          <label for="fieldPressingNotes">Pressing notes <span class="field-hint" style="display:inline;">(matrix/runout numbers, mastering info, etc.)</span></label>
+          <input type="text" id="fieldPressingNotes" placeholder="e.g. Matrix: STERLING RL / hand-etched RL" />
+        </div>
         </div>
 
         <div class="form-row">
@@ -6397,6 +6486,11 @@
           <div class="form-row">
             <label for="detailPressingCountry">Pressing country <button type="button" class="field-tooltip-icon" data-tooltip="pressingCountry" aria-label="What's pressing country?">?</button></label>
             <input type="text" id="detailPressingCountry" placeholder="e.g. US, UK, Germany" />
+          </div>
+
+          <div class="form-row">
+            <label for="detailPressingNotes">Pressing notes <span class="field-hint" style="display:inline;">(matrix/runout numbers, mastering info, etc.)</span></label>
+            <input type="text" id="detailPressingNotes" placeholder="e.g. Matrix: STERLING RL / hand-etched RL" />
           </div>
 
           <div class="form-row">
@@ -6706,6 +6800,37 @@
         <p class="cv-block-hint">Auto-ranked by market price. Pin any record to keep it here.</p>
       </div>
       <div id="cvTop5Grid" class="cv-top5-grid"></div>
+    </div>
+
+    <!-- T10: Notable Records — flags records with real value above a
+         threshold, for insurance/appraisal purposes. Never shows estimates,
+         only exact matched-pressing prices, consistent with the rest of
+         Collection Value. -->
+    <div class="collection-value-block" id="cvNotableBlock" hidden>
+      <div class="cv-block-header">
+        <h2 class="cv-block-title">
+          <i class="ti ti-shield-check" aria-hidden="true"></i>
+          Notable Records
+        </h2>
+        <p class="cv-block-hint">Records with a confirmed value worth knowing about — for insurance, care, or peace of mind.</p>
+      </div>
+      <div id="cvNotableGrid" class="cv-top5-grid"></div>
+      <div class="cv-notable-education">
+        <div class="cv-notable-tip">
+          <i class="ti ti-search" aria-hidden="true"></i>
+          <div>
+            <strong>Not sure about the rest of your collection?</strong>
+            <p>Check the runout groove (the area near the label) for matrix/stamper numbers — that's how you identify your exact pressing and unlock a real value here.</p>
+          </div>
+        </div>
+        <div class="cv-notable-tip">
+          <i class="ti ti-certificate" aria-hidden="true"></i>
+          <div>
+            <strong>Considering insurance or a sale?</strong>
+            <p>Spin Vinyl shows verified marketplace prices, not formal appraisals. For insurance documentation or high-value sales, a professional appraiser or a reputable dealer can give you a signed valuation.</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Full collection value table -->

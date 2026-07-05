@@ -974,6 +974,14 @@ function updateStarterRemoveBanner() {
   if (countEl) countEl.textContent = starterCount;
 }
 
+// T11 (scoped): count how many records share this artist+album, for the
+// duplicate-copy badge. Case-insensitive, ignores the starter placeholder
+// collection so it can't falsely flag a real record as a duplicate.
+function getDuplicateCopyCount(record) {
+  const key = `${record.artist}|${record.album}`.toLowerCase();
+  return allRecords.filter((r) => !r.is_starter && `${r.artist}|${r.album}`.toLowerCase() === key).length;
+}
+
 function renderCards(filtered) {
   const grid = document.getElementById("cardGrid");
   const starterWrap = document.getElementById("starterCollectionWrap");
@@ -1081,6 +1089,23 @@ function renderCards(filtered) {
       placeholderBadge.textContent = "Placeholder";
       placeholderBadge.title = "Sample record to get you started — remove anytime from My Collection";
       coverWrap.appendChild(placeholderBadge);
+    }
+
+    // T11 (scoped): duplicate-copy detection — same artist+album appearing
+    // more than once gets a small badge; clicking filters the collection
+    // down to just those copies so they're easy to compare side by side.
+    const dupCount = getDuplicateCopyCount(r);
+    if (dupCount > 1) {
+      const dupBadge = document.createElement("span");
+      dupBadge.className = "record-duplicate-badge";
+      dupBadge.textContent = `${dupCount} copies`;
+      dupBadge.title = "Click to see all copies of this album";
+      dupBadge.addEventListener("click", (e) => {
+        e.stopPropagation();
+        document.getElementById("searchInput").value = r.album;
+        render();
+      });
+      coverWrap.appendChild(dupBadge);
     }
 
     // Favorite buttons (album + artist)
@@ -8326,12 +8351,37 @@ async function getOrCreateSubgenreId(subgenreNameRaw, genreId) {
   return data.id;
 }
 
+// Simple reusable toast — bottom-of-screen, auto-dismissing
+function showToast(message) {
+  let toast = document.getElementById("appToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "appToast";
+    toast.className = "app-toast";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add("visible");
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => {
+    toast.classList.remove("visible");
+  }, 3200);
+}
+
+// T9: scanner session mode — running count of records added in one sitting
+let scanSessionCount = 0;
+
 function openAddRecordModal() {
   document.getElementById("addRecordOverlay").hidden = false;
   document.getElementById("addRecordStatus").textContent = "";
   document.getElementById("scanStatus").textContent = "";
   document.getElementById("scanStatus").className = "form-status";
   pendingScannedCoverUrl = null;
+  scanSessionCount = 0;
+  const counterEl = document.getElementById("scanSessionCounter");
+  if (counterEl) counterEl.hidden = true;
+  const sessionToggle = document.getElementById("scanSessionModeToggle");
+  if (sessionToggle) sessionToggle.checked = false;
   populateSubgenreOptionsForGenre(document.getElementById("fieldGenre").value);
   applyExpertFieldsPref();
   document.getElementById("fieldArtist").focus();
@@ -8368,6 +8418,10 @@ function setupExpertFieldsToggle() {
 function closeAddRecordModal() {
   document.getElementById("addRecordOverlay").hidden = true;
   stopBarcodeScan();
+  if (scanSessionCount > 0) {
+    showToast(`Session complete — added ${scanSessionCount} record${scanSessionCount === 1 ? "" : "s"}.`);
+    scanSessionCount = 0;
+  }
 }
 
 function resetAddRecordForm() {
@@ -8405,6 +8459,7 @@ async function handleAddRecordSubmit(event) {
   const acquiredMonthField = document.getElementById("fieldAcquiredDate").value || null;
   const acquiredDateField = acquiredMonthField ? `${acquiredMonthField}-01` : null;
   const pressingCountry = document.getElementById("fieldPressingCountry").value.trim() || null;
+  const pressingNotes = document.getElementById("fieldPressingNotes").value.trim() || null;
   const description = document.getElementById("fieldDescription").value.trim() || null;
   const notes = document.getElementById("fieldNotes").value.trim() || null;
 
@@ -8431,6 +8486,7 @@ async function handleAddRecordSubmit(event) {
       sleeve_grade: sleeveGrade,
       acquired_date: acquiredDateField,
       pressing_country: pressingCountry,
+      pressing_notes: pressingNotes,
       notes,
       quantity: quantityVal,
       cover_url: pendingScannedCoverUrl,
@@ -8483,9 +8539,26 @@ async function handleAddRecordSubmit(event) {
     statusEl.className = "form-status form-status-success";
 
     resetAddRecordForm();
-    setTimeout(() => {
-      closeAddRecordModal();
-    }, 900);
+
+    // T9: Session mode — keep the modal open, reset the form, and jump
+    // straight back into scanning instead of closing after one record.
+    const sessionToggle = document.getElementById("scanSessionModeToggle");
+    if (sessionToggle?.checked) {
+      scanSessionCount++;
+      const counterEl = document.getElementById("scanSessionCounter");
+      if (counterEl) {
+        counterEl.hidden = false;
+        counterEl.textContent = `${scanSessionCount} added this session`;
+      }
+      setTimeout(() => {
+        statusEl.textContent = "";
+        startBarcodeScan(ADD_RECORD_SCAN_CONFIG);
+      }, 700);
+    } else {
+      setTimeout(() => {
+        closeAddRecordModal();
+      }, 900);
+    }
   } catch (err) {
     console.error(err);
     statusEl.textContent = "Couldn't save this record. Check console for details.";
@@ -10356,6 +10429,7 @@ function openRecordDetailModal(recordId, startTab = "details") {
   populateSubgenreOptionsForGenre(record.genre_name || "");
   document.getElementById("detailVinylGrade").value = record.vinyl_grade || "";
   document.getElementById("detailPressingCountry").value = record.pressing_country || "";
+  document.getElementById("detailPressingNotes").value = record.pressing_notes || "";
   document.getElementById("detailSleeveGrade").value = record.sleeve_grade || "";
   document.getElementById("detailDescription").value = record.description || "";
   document.getElementById("detailNotes").value = record.notes || "";
@@ -10798,6 +10872,7 @@ async function handleRecordDetailSubmit(event) {
   const vinylGrade = document.getElementById("detailVinylGrade").value.trim() || null;
   const sleeveGrade = document.getElementById("detailSleeveGrade").value.trim() || null;
   const pressingCountry = document.getElementById("detailPressingCountry").value.trim() || null;
+  const pressingNotes = document.getElementById("detailPressingNotes").value.trim() || null;
   const description = document.getElementById("detailDescription").value.trim() || null;
   const notes = document.getElementById("detailNotes").value.trim() || null;
 
@@ -10823,6 +10898,7 @@ async function handleRecordDetailSubmit(event) {
       vinyl_grade: vinylGrade,
       sleeve_grade: sleeveGrade,
       pressing_country: pressingCountry,
+      pressing_notes: pressingNotes,
       notes,
       quantity: quantityVal,
     };
@@ -10954,6 +11030,7 @@ async function loadData() {
         market_value_type,
         pinned_for_value,
         is_starter,
+        pressing_notes,
         created_at,
         genres ( name ),
         subgenres ( name )
@@ -14956,13 +15033,53 @@ function renderCollectionValue() {
     document.getElementById("cvValuedCount").textContent = "0";
     document.getElementById("cvHighestValue").textContent = "—";
     renderCvTop5([]);
+    renderCvNotable([]);
     renderCvTable([]);
     return;
   }
 
   renderCvStats();
   renderCvTop5(getSortedByValue().slice(0, 5));
+  renderCvNotable(getSortedByValue());
   renderCvTable(getSortedByValue());
+}
+
+// T10: Notable Records — anything with a confirmed (never estimated) value
+// over this threshold gets flagged for insurance/care awareness.
+const NOTABLE_RECORD_THRESHOLD = 50;
+
+function renderCvNotable(sortedRecords) {
+  const block = document.getElementById("cvNotableBlock");
+  const grid = document.getElementById("cvNotableGrid");
+  if (!block || !grid) return;
+
+  const notable = sortedRecords.filter((r) => (r._cv?.value ?? 0) >= NOTABLE_RECORD_THRESHOLD);
+  block.hidden = notable.length === 0;
+  if (!notable.length) return;
+
+  grid.innerHTML = "";
+  notable.slice(0, 10).forEach((record) => {
+    const card = document.createElement("div");
+    card.className = "cv-top5-card";
+    card.style.cursor = "pointer";
+    if (record.cover_url) {
+      const img = document.createElement("img");
+      img.className = "cv-top5-cover";
+      img.src = record.cover_url;
+      img.alt = record.album;
+      card.appendChild(img);
+    }
+    const info = document.createElement("div");
+    info.className = "cv-top5-info";
+    info.innerHTML = `
+      <div class="cv-top5-album">${record.album}</div>
+      <div class="cv-top5-artist">${record.artist}</div>
+      <div class="cv-top5-price">${cvFormatPrice(record._cv.value)}</div>
+    `;
+    card.appendChild(info);
+    card.addEventListener("click", () => openRecordDetailModal(record.id));
+    grid.appendChild(card);
+  });
 }
 
 function getSortedByValue() {
