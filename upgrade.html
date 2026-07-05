@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Upgrade — Spin Vinyl</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600&display=swap" />
+  <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+
+    :root {
+      --gold:      #c9a84c;
+      --gold-lt:   #e0c070;
+      --gold-dk:   #8a6a28;
+      --ink:       #0b0c0f;
+      --ink-2:     #0d0d11;
+      --ink-3:     #13121a;
+      --ink-4:     #1e1c24;
+      --ink-5:     #2a2830;
+      --cream:     #e8e0d0;
+      --muted:     #b8b0a0;
+      --dim:       #6b6470;
+      --dimmer:    #3a3840;
+    }
+
+    body {
+      background: var(--ink);
+      color: var(--cream);
+      font-family: Inter, sans-serif;
+      line-height: 1.65;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    /* ── Header ── */
+    .site-header {
+      background: var(--ink-2);
+      border-bottom: 1px solid var(--ink-4);
+      padding: 14px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .site-header a {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .site-header img { width: 32px; height: 32px; border-radius: 8px; }
+    .brand { font-family: Jost, sans-serif; font-weight: 700; font-size: 17px; color: var(--cream); letter-spacing: 0.04em; }
+    .brand em { font-style: normal; color: var(--gold); }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 72px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: Jost, sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 24px;
+    }
+    .eyebrow::before,
+    .eyebrow::after {
+      content: '';
+      display: block;
+      width: 28px;
+      height: 1px;
+      background: var(--gold);
+      opacity: 0.5;
+    }
+    .hero h1 {
+      font-family: Jost, sans-serif;
+      font-size: clamp(30px, 5vw, 52px);
+      font-weight: 700;
+      line-height: 1.1;
+      color: var(--cream);
+      margin-bottom: 24px;
+    }
+    .hero h1 em { font-style: italic; color: var(--gold); }
+    .hero-vision {
+      font-size: 17px;
+      color: var(--muted);
+      max-width: 540px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+    .hero-vision strong { color: var(--cream); font-weight: 600; }
+
+    /* ── Pricing toggle ── */
+    .pricing-toggle {
+      display: inline-flex;
+      background: var(--ink-3);
+      border: 1px solid var(--ink-5);
+      border-radius: 100px;
+      padding: 4px;
+      gap: 2px;
+      margin-bottom: 64px;
+    }
+    .toggle-btn {
+      font-family: Inter, sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 7px 20px;
+      border-radius: 100px;
+      border: none;
+      background: transparent;
+      color: var(--dim);
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .toggle-btn.active {
+      background: var(--gold);
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .save-badge {
+      position: absolute;
+      top: -10px;
+      right: -8px;
+      background: #3a8a5a;
+      color: white;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 10px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* ── Plans grid ── */
+    .plans {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      max-width: 900px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+      align-items: stretch; /* both cards same height */
+    }
+    @media (max-width: 640px) {
+      .plans { grid-template-columns: 1fr; gap: 16px; }
+    }
+
+    .plan {
+      background: var(--ink-3);
+      border: 1px solid var(--ink-4);
+      border-radius: 16px;
+      padding: 36px 32px 40px;
+      display: flex;
+      flex-direction: column;
+    }
+    .plan-premium {
+      background: linear-gradient(160deg, #1a1620 0%, #13111a 100%);
+      border-color: var(--gold-dk);
+      border-width: 1px;
+      position: relative;
+      overflow: hidden;
+    }
+    .plan-premium::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+
+    /* Badge row — both cards reserve identical height so plan-name aligns */
+    .plan-badge-row {
+      height: 30px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .plan-badge {
+      display: inline-block;
+      font-family: Jost, sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ink);
+      background: var(--gold);
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+    .plan-name {
+      font-family: Jost, sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--cream);
+      margin-bottom: 6px;
+    }
+    /* Fixed min-height so price block starts at same Y on both sides */
+    .plan-tagline {
+      font-size: 14px;
+      color: var(--dim);
+      margin-bottom: 28px;
+      line-height: 1.5;
+      min-height: 44px;
+    }
+    /* Fixed min-height so feature lists start at same Y on both sides */
+    .plan-price {
+      margin-bottom: 32px;
+      min-height: 76px;
+    }
+    .price-amount {
+      font-family: Jost, sans-serif;
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--cream);
+      line-height: 1;
+    }
+    .price-amount span {
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--dim);
+      vertical-align: super;
+      font-family: Inter, sans-serif;
+    }
+    .price-period {
+      font-size: 13px;
+      color: var(--dim);
+      margin-top: 4px;
+    }
+    .price-annual {
+      display: none;
+    }
+    body.annual .price-monthly { display: none; }
+    body.annual .price-annual  { display: block; }
+
+    /* ── Feature list — flex:1 pushes CTA to bottom of card ── */
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex: 1;
+    }
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .feature-item .check {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      margin-top: 1px;
+    }
+    .plan-free .check { color: var(--dim); }
+    .plan-premium .check { color: var(--gold); }
+
+    .feature-group-label {
+      font-family: Jost, sans-serif;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-5);
+      padding: 12px 0 4px;
+    }
+    .plan-premium .feature-group-label { color: var(--gold-dk); }
+
+    .feature-item strong { color: var(--cream); font-weight: 600; }
+    .feature-item.premium-only strong { color: var(--gold-lt); }
+
+    .plan a.plan-cta,
+    .plan button.plan-cta {
+      display: block;
+      width: 100%;
+      text-align: center;
+      margin-top: 32px;
+      padding: 13px 24px;
+      border-radius: 8px;
+      font-family: Jost, sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    .plan-free a.plan-cta,
+    .plan-free button.plan-cta {
+      background: transparent;
+      border: 1px solid var(--ink-5);
+      color: var(--dim);
+    }
+    .plan-free a.plan-cta:hover,
+    .plan-free button.plan-cta:hover { border-color: var(--dim); color: var(--muted); }
+    .plan-premium a.plan-cta,
+    .plan-premium button.plan-cta {
+      background: var(--gold);
+      color: var(--ink);
+    }
+    .plan-premium a.plan-cta:hover,
+    .plan-premium button.plan-cta:hover { background: var(--gold-lt); transform: translateY(-1px); }
+    button.plan-cta:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Founding member banner ── */
+    .founding-banner {
+      max-width: 900px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+    }
+    .founding-inner {
+      background: linear-gradient(135deg, #1a1520 0%, #120f1a 100%);
+      border: 1px solid var(--gold-dk);
+      border-radius: 16px;
+      padding: 32px 36px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    @media (max-width: 580px) {
+      .founding-inner { flex-direction: column; text-align: center; gap: 20px; }
+    }
+    .founding-icon {
+      font-size: 40px;
+      flex-shrink: 0;
+    }
+    .founding-text { flex: 1; }
+    .founding-text h3 {
+      font-family: Jost, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+    .founding-text p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .founding-text p strong { color: var(--cream); }
+    .founding-price {
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .founding-amount {
+      font-family: Jost, sans-serif;
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .founding-amount sup { font-size: 18px; vertical-align: super; }
+    .founding-period { font-size: 12px; color: var(--dim); margin-top: 4px; }
+
+    /* ── FAQ ── */
+    .faq {
+      max-width: 640px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+    }
+    .faq h2 {
+      font-family: Jost, sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--cream);
+      margin-bottom: 32px;
+      text-align: center;
+    }
+    .faq-item {
+      border-top: 1px solid var(--ink-4);
+      padding: 20px 0;
+    }
+    .faq-item:last-child { border-bottom: 1px solid var(--ink-4); }
+    .faq-q {
+      font-family: Jost, sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--cream);
+      margin-bottom: 8px;
+    }
+    .faq-a {
+      font-size: 14px;
+      color: var(--dim);
+      line-height: 1.65;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--ink-4);
+      padding: 20px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--dimmer);
+      margin-top: auto;
+    }
+    footer a { color: var(--dim); text-decoration: none; margin: 0 8px; transition: color 0.15s; }
+    footer a:hover { color: var(--gold); }
+
+    /* ── Coming soon overlay ── */
+    .coming-soon-ribbon {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--ink-2);
+      border-top: 1px solid var(--ink-4);
+      padding: 14px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--dim);
+      z-index: 50;
+    }
+    .coming-soon-ribbon strong { color: var(--gold); }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <a href="/">
+      <img src="icon-192.png" alt="Spin Vinyl" />
+      <span class="brand">Spin <em>Vinyl</em></span>
+    </a>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <p class="eyebrow">Membership</p>
+    <h1>Built for the love of it.<br><em>Powered by the depth of it.</em></h1>
+    <p class="hero-vision">
+      Every tool that helps you catalog, understand, and share your collection is free —
+      <strong>and stays free.</strong> Premium removes usage caps on the two AI-powered features
+      and adds power tools for collectors managing hundreds of records.
+    </p>
+
+    <!-- Billing toggle -->
+    <div class="pricing-toggle" role="group" aria-label="Billing period">
+      <button class="toggle-btn active" id="monthlyBtn" onclick="setBilling('monthly')">Monthly</button>
+      <button class="toggle-btn" id="annualBtn" onclick="setBilling('annual')">
+        Annual
+        <span class="save-badge">Save 37%</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- Plans -->
+  <div class="plans">
+
+    <!-- Free -->
+    <div class="plan plan-free">
+      <div class="plan-badge-row"><!-- spacer matches premium badge height --></div>
+      <p class="plan-name">Free</p>
+      <p class="plan-tagline">Everything you need to know your collection.</p>
+      <div class="plan-price">
+        <div class="price-amount">$<span style="font-size:42px;color:var(--cream);vertical-align:baseline">0</span></div>
+        <p class="price-period">Always free. No credit card.</p>
+      </div>
+
+      <ul class="feature-list">
+        <li class="feature-group-label">Your Collection</li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Unlimited records</strong> — no caps, ever</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Unlimited wishlist</strong>, with real Discogs pricing</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Barcode scanner</strong> — including Scan in Store, with session mode to add several in a row</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>AI cover identification</strong> — up to 15 scans a month</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Discogs import</strong> — bring your existing collection in under a minute</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Bulk edit &amp; backfill wizard</strong> — fix up grades, dates, and countries across many records at once</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Ratings, notes, duplicate-copy detection &amp; pressing notes on every record</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>CSV export of your full collection</span>
+        </li>
+
+        <li class="feature-group-label">Your Taste &amp; Insights</li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Taste Profile &amp; Taste Evolution</strong> — how your ear has changed over time</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Collection Insights</strong> — condition, pressing origins, collecting calendar, artist connections &amp; more</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Collection Value</strong>, including the Notable Records report</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Taste Quiz &amp; wishlist suggestions</strong> — a few runs a month</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Listening log</strong> — track every spin, see what you've played recently</span>
+        </li>
+
+        <li class="feature-group-label">Your Identity</li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Collection DNA</strong> — superlatives and personality</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Trophies</strong> — all 35 achievements to earn</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>My Listening Room</strong> — one room theme</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>My Community</strong> — follow collectors, activity feed</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Collector profile with system, shops &amp; story</span>
+        </li>
+
+        <li class="feature-group-label">Sharing</li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Public collection, wishlist &amp; trophies links</strong> — never paywalled, no exceptions</span>
+        </li>
+        <li class="feature-item">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Public Listening Room — shareable with anyone</span>
+        </li>
+      </ul>
+
+      <a href="/" class="plan-cta">Start free</a>
+    </div>
+
+    <!-- Premium -->
+    <div class="plan plan-premium">
+      <div class="plan-badge-row"><span class="plan-badge">Premium</span></div>
+      <p class="plan-name">Collector+</p>
+      <p class="plan-tagline">For collectors who want to go as deep as their shelves.</p>
+
+      <div class="plan-price">
+        <div class="price-monthly">
+          <div class="price-amount"><span>$</span>3<span style="font-size:28px;vertical-align:baseline;color:var(--cream)">.99</span></div>
+          <p class="price-period">per month, billed monthly</p>
+        </div>
+        <div class="price-annual">
+          <div class="price-amount"><span>$</span>2<span style="font-size:28px;vertical-align:baseline;color:var(--cream)">.50</span></div>
+          <p class="price-period">per month — $29.99 billed annually</p>
+        </div>
+      </div>
+
+      <ul class="feature-list">
+        <li class="feature-group-label">Everything in Free</li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>All of it</strong> — Premium never removes anything, it only adds</span>
+        </li>
+
+        <li class="feature-group-label">No More Caps</li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Unlimited AI cover identification</strong> <em style="color:var(--dim);font-size:12px">— free tier: 15/month</em></span>
+        </li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Unlimited Taste Quiz &amp; suggestions</strong> <em style="color:var(--dim);font-size:12px">— free tier: a few runs/month</em></span>
+        </li>
+
+        <li class="feature-group-label">Your Room</li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Up to 5 Listening Rooms</strong> + custom backgrounds <em style="color:var(--dim);font-size:12px">— free tier: 1 room</em></span>
+        </li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Spotify in-room playback</strong> — play directly from your room <em style="color:var(--dim);font-size:12px">(coming soon)</em></span>
+        </li>
+
+        <li class="feature-group-label">Power Tools</li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Spreadsheet-style bulk editor</strong> — for collections in the hundreds</span>
+        </li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Priority bulk Discogs re-scan</strong> — re-match pressings across your whole shelf</span>
+        </li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Advanced analytics</strong> — value tracked over time, deeper trend breakdowns</span>
+        </li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Advanced export</strong> — formatted XLSX &amp; scheduled backups <em style="color:var(--dim);font-size:12px">— free tier: plain CSV</em></span>
+        </li>
+
+        <li class="feature-group-label">Extras</li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Listening recap</strong> — most played, your yearly spin history</span>
+        </li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Profile flair</strong> — cosmetic badges for your profile</span>
+        </li>
+        <li class="feature-item premium-only">
+          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span><strong>Priority support</strong> from the creator</span>
+        </li>
+      </ul>
+
+      <button class="plan-cta" disabled>Coming soon</button>
+    </div>
+
+  </div>
+
+  <!-- Founding member banner -->
+  <div class="founding-banner">
+    <div class="founding-inner">
+      <div class="founding-icon">🎙️</div>
+      <div class="founding-text">
+        <h3>Founding Member — locked for life</h3>
+        <p>The first 200 members to upgrade will lock in <strong>$19.99/year forever</strong> — that's less than the cost of one good record find. A thank-you for being here early, written into your account permanently.</p>
+      </div>
+      <div class="founding-price">
+        <div class="founding-amount"><sup>$</sup>19.99</div>
+        <div class="founding-period">/ year · forever</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="faq">
+    <h2>Questions</h2>
+    <div class="faq-item">
+      <p class="faq-q">Will the free tier ever get worse?</p>
+      <p class="faq-a">No. Everything on the free tier today stays free. We'll never move existing free features behind a paywall. If you can do it today for free, you'll always be able to.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">What happens when premium launches?</p>
+      <p class="faq-a">Existing active users will receive a 30-day free trial of premium automatically — no credit card required. You'll have time to try every feature before deciding.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">Can I cancel anytime?</p>
+      <p class="faq-a">Yes. Cancel anytime from Settings and you'll retain premium access until the end of your billing period. No questions, no friction.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">What's the difference between monthly and annual?</p>
+      <p class="faq-a">Annual is $29.99 — equivalent to $2.50/month, saving you 37% versus monthly. And if you're a Founding Member, your rate is locked at $19.99/year regardless of future pricing.</p>
+    </div>
+    <div class="faq-item">
+      <p class="faq-q">Why is Spin Vinyl free at all?</p>
+      <p class="faq-a">Because the vision isn't a business — it's a community. Passionate listeners and collectors sharing their love of music with each other. Not for money, not for fame. Just for the love of it. Premium exists to keep the lights on and build more of what you love.</p>
+    </div>
+  </div>
+
+  <footer>
+    <a href="/">Home</a>
+    <a href="/about.html">About</a>
+    <a href="/privacy.html">Privacy Policy</a>
+    <a href="/terms.html">Terms of Service</a>
+    <a href="mailto:hello@spinvinyl.co">Contact</a>
+    &nbsp;·&nbsp; © 2026 Spin Vinyl
+  </footer>
+
+  <!-- Coming soon notice -->
+  <div class="coming-soon-ribbon">
+    <strong>Premium is coming.</strong> Free tier is live today — create your account and your Founding Member spot will be waiting.
+  </div>
+
+  <script>
+    function setBilling(period) {
+      document.body.classList.toggle('annual', period === 'annual');
+      document.getElementById('monthlyBtn').classList.toggle('active', period === 'monthly');
+      document.getElementById('annualBtn').classList.toggle('active', period === 'annual');
+    }
+  </script>
+
+</body>
+</html>
