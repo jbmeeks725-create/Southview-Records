@@ -6780,8 +6780,15 @@ function render() {
   }
 }
 
-function setPage(page) {
+function setPage(page, { skipPersist = false } = {}) {
   currentPage = page;
+
+  // Remember where the user was, so reopening the app (tab/PWA relaunch)
+  // returns them there instead of always dumping them back on Home. Skip
+  // account-management pages, which make more sense to always enter fresh.
+  if (!skipPersist && page !== "profile" && page !== "settings") {
+    try { localStorage.setItem("spin-last-page", page); } catch (e) {}
+  }
 
   const homeBtn = document.getElementById("homePageBtn");
   const collectionBtn = document.getElementById("collectionPageBtn");
@@ -11527,8 +11534,7 @@ async function onSignedInInternal(user) {
   console.log("[AUTH] auth overlay hidden");
 
   if (!isFirstLoad && allRecords.length > 0) {
-    console.log("[AUTH] already loaded, skipping to setPage home");
-    setPage("home");
+    console.log("[AUTH] already loaded, staying on current page");
     return;
   }
 
@@ -11541,7 +11547,13 @@ async function onSignedInInternal(user) {
   console.log("[AUTH] calling loadData...");
   await loadData();
   console.log("[AUTH] loadData done, records:", allRecords.length);
-  if (isFirstLoad) setPage("home");
+  if (isFirstLoad) {
+    // Reopening the app (tab/PWA relaunch) — return to wherever the user
+    // last was instead of always resetting to Home.
+    let lastPage = "home";
+    try { lastPage = localStorage.getItem("spin-last-page") || "home"; } catch (e) {}
+    setPage(lastPage);
+  }
   console.log("[AUTH] calling maybeShowOnboarding...");
   maybeShowOnboarding();
   console.log("[AUTH] onSignedIn complete");
@@ -11560,7 +11572,7 @@ function onSignedOut() {
   resetSessionUiState();
   allRecords = [];
   wishlist = [];
-  setPage("home");
+  setPage("home", { skipPersist: true });
   showAuthOverlay(true);
 }
 

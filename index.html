@@ -467,7 +467,18 @@
     transition: opacity 0.4s ease;
   }
   .home-welcome-banner i { color: #3ecf6e; }
-  .auth-confirmation-message { width: 100%; max-width: 100%; }
+  .auth-confirmation-message {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .auth-confirmation-message * {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
   .onboarding-subtitle {
     text-align: center;
     font-family: Inter, sans-serif;
@@ -475,6 +486,60 @@
     color: rgba(255,255,255,0.5);
     margin: -8px 0 20px;
   }
+  .wishlist-suggestions-card-v2 {
+    position: relative;
+    text-align: center;
+    padding-bottom: 36px;
+  }
+  .wishlist-suggestions-centered {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .wishlist-suggestions-card-v2 .wishlist-suggestions-title {
+    font-family: Jost, sans-serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: #e8e0d0;
+    margin: 0 0 4px;
+  }
+  .wishlist-suggestions-actions-v2 {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .wishlist-suggestions-pill {
+    background: linear-gradient(135deg, #d4b463, #c9a84c);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #14120e;
+    font-family: Jost, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .wishlist-suggestions-pill:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(201,168,76,0.35);
+  }
+  .wishlist-suggestions-clear {
+    position: absolute;
+    bottom: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    font-family: Inter, sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .wishlist-suggestions-clear:hover { color: rgba(255,255,255,0.7); }
   .collection-dna-heading {
     font-family: Jost, sans-serif;
     font-size: 15px;
@@ -4960,23 +5025,23 @@
   <section id="wishlistSection" hidden>
 
     <!-- Suggested For You — AI-powered wishlist recommendations -->
-    <div class="dna-card wishlist-suggestions-card" id="wishlistSuggestionsCard">
-      <div class="wishlist-suggestions-header">
-        <div>
-          <h3 class="wishlist-suggestions-title">Suggested For You</h3>
-          <p class="field-hint" id="wishlistSuggestionsHint">Based on the albums you've rated "Love" and "Like."</p>
-        </div>
-        <div class="wishlist-suggestions-actions">
-          <button type="button" id="quickrateBtnWishlist" class="btn-secondary wishlist-suggestions-btn">
-            <i class="ti ti-stars" aria-hidden="true"></i> Rate unrated
+    <div class="dna-card wishlist-suggestions-card wishlist-suggestions-card-v2" id="wishlistSuggestionsCard">
+      <div class="wishlist-suggestions-centered">
+        <h3 class="wishlist-suggestions-title">✨ Suggested For You</h3>
+        <p class="field-hint" id="wishlistSuggestionsHint">Based on the albums you've rated "Love" and "Like."</p>
+        <div class="wishlist-suggestions-actions wishlist-suggestions-actions-v2">
+          <button type="button" id="quickrateBtnWishlist" class="wishlist-suggestions-pill">
+            ⭐ Rate unrated
           </button>
-          <button type="button" id="takeTasteQuizBtn" class="btn-secondary wishlist-suggestions-btn">
-            <i class="ti ti-list-details" aria-hidden="true"></i> Take the Taste Quiz
+          <button type="button" id="takeTasteQuizBtn" class="wishlist-suggestions-pill">
+            📋 Take the Taste Quiz
           </button>
-          <button type="button" id="wishlistGetRecommendationsBtn" class="btn-primary wishlist-suggestions-btn">Get suggestions</button>
-          <button type="button" id="clearDismissedSuggestionsBtn" class="btn-text">Clear dismissed</button>
+          <button type="button" id="wishlistGetRecommendationsBtn" class="wishlist-suggestions-pill">
+            🎁 Get suggestions
+          </button>
         </div>
       </div>
+      <button type="button" id="clearDismissedSuggestionsBtn" class="btn-text wishlist-suggestions-clear">Clear dismissed</button>
       <div id="wishlistRecommendationsStatus" class="form-status"></div>
       <div id="wishlistRecommendationsList" class="recommendations-list"></div>
     </div>
