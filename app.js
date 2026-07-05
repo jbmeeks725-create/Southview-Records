@@ -16,130 +16,255 @@ const IDENTIFY_COVER_FUNCTION_URL = "https://wdgiskawukblqgapkmig.supabase.co/fu
 // Organised by genre so the grid feels balanced, not random.
 
 const STARTER_RECORDS = [
-  { artist: "Miles Davis",      album: "Kind of Blue",                            year: 1959, genre: "Jazz",       color: "#1a2a1a" },
-  { artist: "John Coltrane",    album: "A Love Supreme",                          year: 1964, genre: "Jazz",       color: "#1a1a2a" },
-  { artist: "Dave Brubeck",     album: "Time Out",                                year: 1959, genre: "Jazz",       color: "#2a1a1a" },
-  { artist: "Art Blakey",       album: "Moanin'",                                 year: 1958, genre: "Jazz",       color: "#2a2a1a" },
-  { artist: "Led Zeppelin",     album: "Led Zeppelin IV",                         year: 1971, genre: "Rock",       color: "#1a1a1a" },
-  { artist: "Fleetwood Mac",    album: "Rumours",                                 year: 1977, genre: "Rock",       color: "#2a1a2a" },
-  { artist: "The Beatles",      album: "Abbey Road",                              year: 1969, genre: "Rock",       color: "#1a2a2a" },
-  { artist: "Pink Floyd",       album: "The Dark Side of the Moon",               year: 1973, genre: "Rock",       color: "#0d0d1a" },
-  { artist: "Robert Johnson",   album: "King of the Delta Blues Singers",         year: 1961, genre: "Blues",      color: "#1a1a2a" },
-  { artist: "Muddy Waters",     album: "Hard Again",                              year: 1977, genre: "Blues",      color: "#2a1a1a" },
-  { artist: "Marvin Gaye",      album: "What's Going On",                         year: 1971, genre: "Soul",       color: "#2a1a0d" },
-  { artist: "Stevie Wonder",    album: "Songs in the Key of Life",                year: 1976, genre: "Soul",       color: "#1a2a0d" },
-  { artist: "Aretha Franklin",  album: "I Never Loved a Man the Way I Love You",  year: 1967, genre: "Soul",       color: "#2a0d1a" },
-  { artist: "Glenn Gould",      album: "Goldberg Variations",                     year: 1955, genre: "Classical",  color: "#0d1a2a" },
-  { artist: "Kraftwerk",        album: "Autobahn",                                year: 1974, genre: "Electronic", color: "#0d2a2a" },
-  { artist: "Brian Eno",        album: "Ambient 1: Music for Airports",           year: 1978, genre: "Ambient",    color: "#1a0d2a" },
-  { artist: "João Gilberto",    album: "Getz/Gilberto",                           year: 1964, genre: "Bossa Nova", color: "#2a1a0d" },
-  { artist: "Bob Marley",       album: "Catch a Fire",                            year: 1973, genre: "Reggae",     color: "#1a2a0d" },
-  { artist: "Johnny Cash",      album: "At Folsom Prison",                        year: 1968, genre: "Country",    color: "#1a0d0d" },
-  { artist: "Joni Mitchell",    album: "Blue",                                    year: 1971, genre: "Folk",       color: "#0d1a2a" },
+  { artist: "Miles Davis",      album: "Kind of Blue",                            year: 1959, genre: "Jazz",       color: "#1a2a1a", label: "Columbia",          country: "US",      vinylGrade: "NM",  sleeveGrade: "NM" },
+  { artist: "John Coltrane",    album: "A Love Supreme",                          year: 1964, genre: "Jazz",       color: "#1a1a2a", label: "Impulse!",          country: "US",      vinylGrade: "VG+", sleeveGrade: "VG+" },
+  { artist: "Dave Brubeck",     album: "Time Out",                                year: 1959, genre: "Jazz",       color: "#2a1a1a", label: "Columbia",          country: "US",      vinylGrade: "VG+", sleeveGrade: "VG+" },
+  { artist: "Art Blakey",       album: "Moanin'",                                 year: 1958, genre: "Jazz",       color: "#2a2a1a", label: "Blue Note",         country: "US",      vinylGrade: "VG",  sleeveGrade: "VG+" },
+  { artist: "Led Zeppelin",     album: "Led Zeppelin IV",                         year: 1971, genre: "Rock",       color: "#1a1a1a", label: "Atlantic",          country: "UK",      vinylGrade: "VG+", sleeveGrade: "VG+" },
+  { artist: "Fleetwood Mac",    album: "Rumours",                                 year: 1977, genre: "Rock",       color: "#2a1a2a", label: "Warner Bros.",      country: "US",      vinylGrade: "NM",  sleeveGrade: "NM" },
+  { artist: "The Beatles",      album: "Abbey Road",                              year: 1969, genre: "Rock",       color: "#1a2a2a", label: "Apple Records",     country: "UK",      vinylGrade: "VG+", sleeveGrade: "VG+" },
+  { artist: "Pink Floyd",       album: "The Dark Side of the Moon",               year: 1973, genre: "Rock",       color: "#0d0d1a", label: "Harvest",           country: "UK",      vinylGrade: "NM",  sleeveGrade: "NM" },
+  { artist: "Robert Johnson",   album: "King of the Delta Blues Singers",         year: 1961, genre: "Blues",      color: "#1a1a2a", label: "Columbia",          country: "US",      vinylGrade: "VG",  sleeveGrade: "VG" },
+  { artist: "Muddy Waters",     album: "Hard Again",                              year: 1977, genre: "Blues",      color: "#2a1a1a", label: "Blue Sky",          country: "US",      vinylGrade: "VG+", sleeveGrade: "VG+" },
+  { artist: "Marvin Gaye",      album: "What's Going On",                         year: 1971, genre: "Soul",       color: "#2a1a0d", label: "Tamla",             country: "US",      vinylGrade: "VG+", sleeveGrade: "NM" },
+  { artist: "Stevie Wonder",    album: "Songs in the Key of Life",                year: 1976, genre: "Soul",       color: "#1a2a0d", label: "Tamla",             country: "US",      vinylGrade: "NM",  sleeveGrade: "NM" },
+  { artist: "Aretha Franklin",  album: "I Never Loved a Man the Way I Love You",  year: 1967, genre: "Soul",       color: "#2a0d1a", label: "Atlantic",          country: "US",      vinylGrade: "VG",  sleeveGrade: "VG+" },
+  { artist: "Glenn Gould",      album: "Goldberg Variations",                     year: 1955, genre: "Classical",  color: "#0d1a2a", label: "Columbia Masterworks", country: "US",   vinylGrade: "VG+", sleeveGrade: "VG" },
+  { artist: "Kraftwerk",        album: "Autobahn",                                year: 1974, genre: "Electronic", color: "#0d2a2a", label: "Vertigo",           country: "Germany", vinylGrade: "VG+", sleeveGrade: "VG+" },
+  { artist: "Brian Eno",        album: "Ambient 1: Music for Airports",           year: 1978, genre: "Ambient",    color: "#1a0d2a", label: "EG Records",        country: "UK",      vinylGrade: "NM",  sleeveGrade: "NM" },
+  { artist: "João Gilberto",    album: "Getz/Gilberto",                           year: 1964, genre: "Bossa Nova", color: "#2a1a0d", label: "Verve",             country: "US",      vinylGrade: "VG+", sleeveGrade: "VG+" },
+  { artist: "Bob Marley",       album: "Catch a Fire",                            year: 1973, genre: "Reggae",     color: "#1a2a0d", label: "Island Records",    country: "UK",      vinylGrade: "VG",  sleeveGrade: "VG" },
+  { artist: "Johnny Cash",      album: "At Folsom Prison",                        year: 1968, genre: "Country",    color: "#1a0d0d", label: "Columbia",          country: "US",      vinylGrade: "VG+", sleeveGrade: "NM" },
+  { artist: "Joni Mitchell",    album: "Blue",                                    year: 1971, genre: "Folk",       color: "#0d1a2a", label: "Reprise",           country: "US",      vinylGrade: "NM",  sleeveGrade: "NM" },
 ];
 
 async function renderStarterCollection() {
   const grid = document.getElementById("starterCollectionGrid");
   if (!grid) return;
   grid.innerHTML = "";
+  STARTER_RECORDS.forEach((record) => grid.appendChild(buildWishlistTapCard(record)));
+}
 
-  STARTER_RECORDS.forEach((record) => {
-    const card = document.createElement("div");
-    card.className = "starter-card";
-    card.style.cssText = "position:relative;border-radius:10px;overflow:hidden;background:#13121a;border:1px solid rgba(201,168,76,0.2);cursor:pointer;transition:transform 0.15s,border-color 0.15s;";
+// Builds a tap-to-add-to-wishlist card for a { artist, album, year, genre,
+// color? } record. Shared by the starter-classics grid and the taste quiz
+// results, so both get identical, tested add-to-wishlist behavior.
+function buildWishlistTapCard(record) {
+  const card = document.createElement("div");
+  card.className = "starter-card";
+  card.style.cssText = "position:relative;border-radius:10px;overflow:hidden;background:#13121a;border:1px solid rgba(201,168,76,0.2);cursor:pointer;transition:transform 0.15s,border-color 0.15s;";
 
-    // Cover area
-    const cover = document.createElement("div");
-    cover.style.cssText = `width:100%;aspect-ratio:1;background:${record.color || "#1a1a24"};display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;`;
-    cover.innerHTML = `<i class="ti ti-vinyl" style="font-size:36px;color:rgba(201,168,76,0.25);"></i>`;
-    card.appendChild(cover);
+  // Cover area
+  const cover = document.createElement("div");
+  cover.style.cssText = `width:100%;aspect-ratio:1;background:${record.color || "#1a1a24"};display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;`;
+  cover.innerHTML = `<i class="ti ti-vinyl" style="font-size:36px;color:rgba(201,168,76,0.25);"></i>`;
+  card.appendChild(cover);
 
-    // Fetch cover via MusicBrainz — kept in scope so the click handler can
-    // save it to the actual wishlist row, not just show it in this preview
-    let fetchedCoverUrl = null;
-    fetchMusicBrainzCover(record.artist, record.album).then(url => {
-      if (url) {
-        fetchedCoverUrl = url;
-        const img = document.createElement("img");
-        img.src = url;
-        img.alt = record.album;
-        img.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;";
-        img.onerror = () => img.remove();
-        cover.appendChild(img);
+  // Fetch cover via MusicBrainz — kept in scope so the click handler can
+  // save it to the actual wishlist row, not just show it in this preview
+  let fetchedCoverUrl = null;
+  fetchMusicBrainzCover(record.artist, record.album).then(url => {
+    if (url) {
+      fetchedCoverUrl = url;
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = record.album;
+      img.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;";
+      img.onerror = () => img.remove();
+      cover.appendChild(img);
+    }
+  }).catch(() => {});
+
+  // Heart button
+  const heartBtn = document.createElement("button");
+  heartBtn.type = "button";
+  heartBtn.style.cssText = "position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(13,13,17,0.8);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#e8e0d0;font-size:15px;z-index:2;";
+  heartBtn.innerHTML = `<i class="ti ti-heart"></i>`;
+  card.appendChild(heartBtn);
+
+  // Info
+  const info = document.createElement("div");
+  info.style.cssText = "padding:10px 12px 12px;";
+  info.innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:#e8e0d0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${record.album}</div>
+    <div style="font-size:12px;color:#8a8290;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${record.artist}</div>
+    <span style="font-size:10px;font-weight:600;background:rgba(201,168,76,0.12);color:#c9a84c;border-radius:4px;padding:2px 7px;">${record.genre}</span>
+  `;
+  card.appendChild(info);
+
+  // Click handler — add to wishlist with visual feedback
+  const addToWishlist = async () => {
+    if (card.dataset.added) return;
+    card.dataset.added = "true";
+
+    // Visual feedback
+    heartBtn.innerHTML = `<i class="ti ti-heart-filled" style="color:#e07070;"></i>`;
+    card.style.opacity = "0.5";
+    card.style.transform = "scale(0.97)";
+
+    try {
+      const genreId = await getOrCreateGenreId(record.genre);
+      await supabaseClient.from("wishlist").insert({
+        user_id: currentUser.id,
+        artist: record.artist,
+        album: record.album,
+        year: record.year,
+        genre_id: genreId,
+        cover_url: fetchedCoverUrl,
+      });
+
+      // Reload wishlist in memory
+      const { data } = await supabaseClient
+        .from("wishlist")
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false });
+      if (data) wishlist = data;
+
+      // Fade out card after short delay
+      setTimeout(() => {
+        card.style.transition = "opacity 0.4s,transform 0.4s";
+        card.style.opacity = "0";
+        card.style.transform = "scale(0.9)";
+        setTimeout(() => { card.style.display = "none"; }, 400);
+      }, 600);
+    } catch (e) {
+      console.error("Failed to add to wishlist:", e);
+      card.dataset.added = "";
+      heartBtn.innerHTML = `<i class="ti ti-heart"></i>`;
+      card.style.opacity = "1";
+      card.style.transform = "";
+    }
+  };
+
+  card.addEventListener("click", addToWishlist);
+  heartBtn.addEventListener("click", (e) => { e.stopPropagation(); addToWishlist(); });
+
+  card.addEventListener("mouseenter", () => { if (!card.dataset.added) card.style.transform = "translateY(-3px)"; card.style.borderColor = "rgba(201,168,76,0.5)"; });
+  card.addEventListener("mouseleave", () => { if (!card.dataset.added) card.style.transform = ""; card.style.borderColor = "rgba(201,168,76,0.2)"; });
+
+  return card;
+}
+// ── Taste Quiz: curated pool cross-referenced against quiz answers ──
+// era: "pre1970" | "1970s" | "1980s90s" | "2000s"
+// mood: "mellow" | "upbeat" | "raw" | "introspective" | "eclectic"
+// familiarity: "classic" | "deepcut"
+const QUIZ_ALBUM_POOL = [
+  { artist: "Miles Davis", album: "Kind of Blue", year: 1959, genre: "Jazz", era: "pre1970", mood: "mellow", familiarity: "classic", color: "#1a2a1a" },
+  { artist: "John Coltrane", album: "A Love Supreme", year: 1964, genre: "Jazz", era: "pre1970", mood: "introspective", familiarity: "classic", color: "#1a1a2a" },
+  { artist: "Herbie Hancock", album: "Head Hunters", year: 1973, genre: "Jazz", era: "1970s", mood: "upbeat", familiarity: "deepcut", color: "#2a2410" },
+  { artist: "Alice Coltrane", album: "Journey in Satchidananda", year: 1971, genre: "Jazz", era: "1970s", mood: "mellow", familiarity: "deepcut", color: "#1a1a2a" },
+  { artist: "Led Zeppelin", album: "Led Zeppelin IV", year: 1971, genre: "Rock", era: "1970s", mood: "raw", familiarity: "classic", color: "#1a1a1a" },
+  { artist: "Fleetwood Mac", album: "Rumours", year: 1977, genre: "Rock", era: "1970s", mood: "mellow", familiarity: "classic", color: "#2a1a2a" },
+  { artist: "The Velvet Underground", album: "The Velvet Underground & Nico", year: 1967, genre: "Rock", era: "pre1970", mood: "raw", familiarity: "deepcut", color: "#1a1a1a" },
+  { artist: "Radiohead", album: "In Rainbows", year: 2007, genre: "Rock", era: "2000s", mood: "introspective", familiarity: "classic", color: "#0d0d1a" },
+  { artist: "Fontaines D.C.", album: "Dogrel", year: 2019, genre: "Rock", era: "2000s", mood: "raw", familiarity: "deepcut", color: "#1a1a1a" },
+  { artist: "Robert Johnson", album: "King of the Delta Blues Singers", year: 1961, genre: "Blues", era: "pre1970", mood: "raw", familiarity: "classic", color: "#1a1a2a" },
+  { artist: "Muddy Waters", album: "Hard Again", year: 1977, genre: "Blues", era: "1970s", mood: "raw", familiarity: "classic", color: "#2a1a1a" },
+  { artist: "Gary Clark Jr.", album: "Live North America 2016", year: 2017, genre: "Blues", era: "2000s", mood: "raw", familiarity: "deepcut", color: "#1a1a1a" },
+  { artist: "Marvin Gaye", album: "What's Going On", year: 1971, genre: "Soul", era: "1970s", mood: "introspective", familiarity: "classic", color: "#2a1a0d" },
+  { artist: "Stevie Wonder", album: "Songs in the Key of Life", year: 1976, genre: "Soul", era: "1970s", mood: "upbeat", familiarity: "classic", color: "#1a2a0d" },
+  { artist: "Sharon Jones & The Dap-Kings", album: "100 Days, 100 Nights", year: 2007, genre: "Soul", era: "2000s", mood: "upbeat", familiarity: "deepcut", color: "#2a1a0d" },
+  { artist: "D'Angelo", album: "Voodoo", year: 2000, genre: "Soul", era: "2000s", mood: "mellow", familiarity: "deepcut", color: "#1a1a1a" },
+  { artist: "Kraftwerk", album: "Autobahn", year: 1974, genre: "Electronic", era: "1970s", mood: "eclectic", familiarity: "classic", color: "#0d2a2a" },
+  { artist: "Aphex Twin", album: "Selected Ambient Works 85-92", year: 1992, genre: "Electronic", era: "1980s90s", mood: "mellow", familiarity: "deepcut", color: "#0d1a2a" },
+  { artist: "Daft Punk", album: "Discovery", year: 2001, genre: "Electronic", era: "2000s", mood: "upbeat", familiarity: "classic", color: "#1a1a2a" },
+  { artist: "Bonobo", album: "Black Sands", year: 2010, genre: "Electronic", era: "2000s", mood: "mellow", familiarity: "deepcut", color: "#0d2a2a" },
+  { artist: "Glenn Gould", album: "Goldberg Variations", year: 1955, genre: "Classical", era: "pre1970", mood: "introspective", familiarity: "classic", color: "#0d1a2a" },
+  { artist: "Max Richter", album: "The Blue Notebooks", year: 2004, genre: "Classical", era: "2000s", mood: "mellow", familiarity: "deepcut", color: "#0d1a2a" },
+  { artist: "Joni Mitchell", album: "Blue", year: 1971, genre: "Folk", era: "1970s", mood: "introspective", familiarity: "classic", color: "#0d1a2a" },
+  { artist: "Nick Drake", album: "Pink Moon", year: 1972, genre: "Folk", era: "1970s", mood: "mellow", familiarity: "deepcut", color: "#1a1a1a" },
+  { artist: "Fleet Foxes", album: "Fleet Foxes", year: 2008, genre: "Folk", era: "2000s", mood: "mellow", familiarity: "classic", color: "#1a2a1a" },
+  { artist: "Kendrick Lamar", album: "To Pimp a Butterfly", year: 2015, genre: "Hip-Hop", era: "2000s", mood: "introspective", familiarity: "classic", color: "#1a1a1a" },
+  { artist: "A Tribe Called Quest", album: "Midnight Marauders", year: 1993, genre: "Hip-Hop", era: "1980s90s", mood: "upbeat", familiarity: "classic", color: "#1a1a2a" },
+  { artist: "MF DOOM", album: "Madvillainy", year: 2004, genre: "Hip-Hop", era: "2000s", mood: "eclectic", familiarity: "deepcut", color: "#1a1a1a" },
+  { artist: "Bob Marley", album: "Catch a Fire", year: 1973, genre: "Reggae", era: "1970s", mood: "mellow", familiarity: "classic", color: "#1a2a0d" },
+  { artist: "Toots and the Maytals", album: "Funky Kingston", year: 1973, genre: "Reggae", era: "1970s", mood: "upbeat", familiarity: "deepcut", color: "#1a2a0d" },
+  { artist: "Fleetwood Mac", album: "Tusk", year: 1979, genre: "Pop", era: "1970s", mood: "eclectic", familiarity: "deepcut", color: "#2a1a2a" },
+  { artist: "Michael Jackson", album: "Thriller", year: 1982, genre: "Pop", era: "1980s90s", mood: "upbeat", familiarity: "classic", color: "#1a1a1a" },
+  { artist: "Tame Impala", album: "Currents", year: 2015, genre: "Pop", era: "2000s", mood: "eclectic", familiarity: "classic", color: "#1a1a2a" },
+  { artist: "Johnny Cash", album: "At Folsom Prison", year: 1968, genre: "Country", era: "pre1970", mood: "raw", familiarity: "classic", color: "#1a0d0d" },
+  { artist: "Willie Nelson", album: "Red Headed Stranger", year: 1975, genre: "Country", era: "1970s", mood: "introspective", familiarity: "deepcut", color: "#1a0d0d" },
+  { artist: "Sturgill Simpson", album: "Metamodern Sounds in Country Music", year: 2014, genre: "Country", era: "2000s", mood: "eclectic", familiarity: "deepcut", color: "#1a0d0d" },
+  { artist: "Brian Eno", album: "Ambient 1: Music for Airports", year: 1978, genre: "Ambient", era: "1970s", mood: "mellow", familiarity: "classic", color: "#1a0d2a" },
+  { artist: "Stars of the Lid", album: "And Their Refinement of the Decline", year: 2007, genre: "Ambient", era: "2000s", mood: "mellow", familiarity: "deepcut", color: "#1a0d2a" },
+];
+
+const tasteQuizState = { genres: [], era: null, mood: null, familiarity: null };
+
+function setupTasteQuiz() {
+  const overlay = document.getElementById("tasteQuizOverlay");
+  if (!overlay) return;
+
+  document.getElementById("takeTasteQuizBtn")?.addEventListener("click", () => {
+    overlay.hidden = false;
+    document.getElementById("tasteQuizQuestions").hidden = false;
+    document.getElementById("tasteQuizResults").hidden = true;
+  });
+  document.getElementById("tasteQuizCloseBtn")?.addEventListener("click", () => { overlay.hidden = true; });
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.hidden = true; });
+
+  // Genre: multi-select, max 3
+  document.querySelectorAll("#quizGenreChips .survey-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const g = chip.dataset.genre;
+      const idx = tasteQuizState.genres.indexOf(g);
+      if (idx >= 0) {
+        tasteQuizState.genres.splice(idx, 1);
+        chip.classList.remove("selected");
+      } else if (tasteQuizState.genres.length < 3) {
+        tasteQuizState.genres.push(g);
+        chip.classList.add("selected");
       }
-    }).catch(() => {});
+    });
+  });
 
-    // Heart button
-    const heartBtn = document.createElement("button");
-    heartBtn.type = "button";
-    heartBtn.style.cssText = "position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(13,13,17,0.8);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#e8e0d0;font-size:15px;z-index:2;";
-    heartBtn.innerHTML = `<i class="ti ti-heart"></i>`;
-    card.appendChild(heartBtn);
+  // Era / mood / familiarity: single-select
+  [["#quizEraChips", "era", "era"], ["#quizMoodChips", "mood", "mood"], ["#quizFamiliarityChips", "familiarity", "familiarity"]].forEach(([sel, key, dataKey]) => {
+    document.querySelectorAll(`${sel} .survey-chip`).forEach((chip) => {
+      chip.addEventListener("click", () => {
+        document.querySelectorAll(`${sel} .survey-chip`).forEach((c) => c.classList.remove("selected"));
+        chip.classList.add("selected");
+        tasteQuizState[key] = chip.dataset[dataKey];
+      });
+    });
+  });
 
-    // Info
-    const info = document.createElement("div");
-    info.style.cssText = "padding:10px 12px 12px;";
-    info.innerHTML = `
-      <div style="font-size:13px;font-weight:700;color:#e8e0d0;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${record.album}</div>
-      <div style="font-size:12px;color:#8a8290;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${record.artist}</div>
-      <span style="font-size:10px;font-weight:600;background:rgba(201,168,76,0.12);color:#c9a84c;border-radius:4px;padding:2px 7px;">${record.genre}</span>
-    `;
-    card.appendChild(info);
-
-    // Click handler — add to wishlist with visual feedback
-    const addToWishlist = async () => {
-      if (card.dataset.added) return;
-      card.dataset.added = "true";
-
-      // Visual feedback
-      heartBtn.innerHTML = `<i class="ti ti-heart-filled" style="color:#e07070;"></i>`;
-      card.style.opacity = "0.5";
-      card.style.transform = "scale(0.97)";
-
-      try {
-        const genreId = await getOrCreateGenreId(record.genre);
-        await supabaseClient.from("wishlist").insert({
-          user_id: currentUser.id,
-          artist: record.artist,
-          album: record.album,
-          year: record.year,
-          genre_id: genreId,
-          cover_url: fetchedCoverUrl,
-        });
-
-        // Reload wishlist in memory
-        const { data } = await supabaseClient
-          .from("wishlist")
-          .select("*")
-          .eq("user_id", currentUser.id)
-          .order("created_at", { ascending: false });
-        if (data) wishlist = data;
-
-        // Fade out card after short delay
-        setTimeout(() => {
-          card.style.transition = "opacity 0.4s,transform 0.4s";
-          card.style.opacity = "0";
-          card.style.transform = "scale(0.9)";
-          setTimeout(() => { card.style.display = "none"; }, 400);
-        }, 600);
-      } catch (e) {
-        console.error("Failed to add to wishlist:", e);
-        card.dataset.added = "";
-        heartBtn.innerHTML = `<i class="ti ti-heart"></i>`;
-        card.style.opacity = "1";
-        card.style.transform = "";
-      }
-    };
-
-    card.addEventListener("click", addToWishlist);
-    heartBtn.addEventListener("click", (e) => { e.stopPropagation(); addToWishlist(); });
-
-    card.addEventListener("mouseenter", () => { if (!card.dataset.added) card.style.transform = "translateY(-3px)"; card.style.borderColor = "rgba(201,168,76,0.5)"; });
-    card.addEventListener("mouseleave", () => { if (!card.dataset.added) card.style.transform = ""; card.style.borderColor = "rgba(201,168,76,0.2)"; });
-
-    grid.appendChild(card);
+  document.getElementById("tasteQuizSubmitBtn")?.addEventListener("click", renderTasteQuizResults);
+  document.getElementById("tasteQuizRetakeBtn")?.addEventListener("click", () => {
+    document.getElementById("tasteQuizQuestions").hidden = false;
+    document.getElementById("tasteQuizResults").hidden = true;
   });
 }
+
+function renderTasteQuizResults() {
+  // Score each pool album against the answers — genre match matters most,
+  // then mood, then era; familiarity filters rather than scores, so a
+  // "classics only" answer doesn't get buried under well-matched deep cuts.
+  const scored = QUIZ_ALBUM_POOL
+    .filter((a) => tasteQuizState.familiarity === "mix" || !tasteQuizState.familiarity || a.familiarity === tasteQuizState.familiarity)
+    .map((a) => {
+      let score = 0;
+      if (tasteQuizState.genres.length && tasteQuizState.genres.includes(a.genre)) score += 3;
+      if (tasteQuizState.mood && tasteQuizState.mood !== "eclectic" && a.mood === tasteQuizState.mood) score += 2;
+      if (tasteQuizState.mood === "eclectic") score += 1; // eclectic rewards variety, not exact mood match
+      if (tasteQuizState.era && tasteQuizState.era !== "any" && a.era === tasteQuizState.era) score += 1;
+      return { a, score };
+    })
+    .sort((x, y) => y.score - x.score);
+
+  // Take the top matches, but always return something even with sparse
+  // answers (score-0 albums still fill out the grid rather than showing
+  // an empty result for someone who skipped every question).
+  const top = scored.slice(0, 8).map((s) => s.a);
+
+  const grid = document.getElementById("tasteQuizResultsGrid");
+  grid.innerHTML = "";
+  top.forEach((record) => grid.appendChild(buildWishlistTapCard(record)));
+
+  document.getElementById("tasteQuizQuestions").hidden = true;
+  document.getElementById("tasteQuizResults").hidden = false;
+}
+
 // Fetch cover art from MusicBrainz for starter collection cards
 async function fetchMusicBrainzCover(artist, album) {
   try {
@@ -585,6 +710,19 @@ function setupMissingDetailsBanner() {
     missingDetailsViewActive = false;
     render();
   });
+  document.getElementById("starterRemoveBtn")?.addEventListener("click", async () => {
+    if (!confirm("Remove all placeholder records? This can't be undone.")) return;
+    await removeStarterRecords();
+  });
+}
+
+function updateStarterRemoveBanner() {
+  const banner = document.getElementById("starterRemoveBanner");
+  if (!banner) return;
+  const starterCount = allRecords.filter((r) => r.is_starter).length;
+  banner.hidden = starterCount === 0;
+  const countEl = document.getElementById("starterRemoveCount");
+  if (countEl) countEl.textContent = starterCount;
 }
 
 function renderCards(filtered) {
@@ -683,6 +821,17 @@ function renderCards(filtered) {
       badge.innerHTML = '<i class="ti ti-alert-circle" aria-hidden="true"></i>';
       badge.title = `Missing: ${missingFields.join(", ")}`;
       coverWrap.appendChild(badge);
+    }
+
+    // Placeholder badge for the auto-seeded starter collection — concise,
+    // always visible, tells the user exactly what it is and that it's
+    // removable without them having to ask.
+    if (r.is_starter) {
+      const placeholderBadge = document.createElement("span");
+      placeholderBadge.className = "record-placeholder-badge";
+      placeholderBadge.textContent = "Placeholder";
+      placeholderBadge.title = "Sample record to get you started — remove anytime from My Collection";
+      coverWrap.appendChild(placeholderBadge);
     }
 
     // Favorite buttons (album + artist)
@@ -5964,9 +6113,13 @@ const TROPHY_DEFS = [
 ];
 
 function computeTrophies() {
+  // Placeholder starter records shouldn't count toward achievements —
+  // trophies should reflect the user's own collection, not the demo data
+  // we seeded for them.
+  const realRecords = allRecords.filter((r) => !r.is_starter);
   return TROPHY_DEFS.map((def) => ({
     ...def,
-    earned: def.check(allRecords, wishlist, currentProfile),
+    earned: def.check(realRecords, wishlist, currentProfile),
   }));
 }
 
@@ -6613,6 +6766,7 @@ function render() {
   renderSuperlatives();
   renderActiveFilters();
   updateMissingDetailsBanner();
+  updateStarterRemoveBanner();
 
   setStatus(`Showing ${filtered.length} of ${allRecords.length} records`);
 
@@ -6697,6 +6851,8 @@ function setPage(page) {
   trophiesSection.hidden = !isTrophies;
   collectionDnaSection.hidden = !isCollection;
   atAGlanceSection.hidden = !isCollection;
+  const collectionToolbarWrap = document.getElementById("collectionToolbarWrap");
+  if (collectionToolbarWrap) collectionToolbarWrap.hidden = !isCollection;
   document.getElementById("cardSectionHeader").hidden = !isCollection;
   cardSection.hidden = !isCollection;
   // Bug fix: this section was never wired into setPage's visibility list,
@@ -8080,6 +8236,22 @@ function formatPrice(value, currency) {
 function renderWishlist(filtered) {
   const grid = document.getElementById("wishlistGrid");
   grid.innerHTML = "";
+
+  // "Get suggestions" needs Love/Like ratings to work from — a brand-new
+  // user has none, so point them at the quiz instead rather than a button
+  // that would just come back empty.
+  const hintEl = document.getElementById("wishlistSuggestionsHint");
+  const getSuggestionsBtn = document.getElementById("wishlistGetRecommendationsBtn");
+  const hasRatedAnything = allRecords.some((r) => r.rating === "love" || r.rating === "like");
+  if (hintEl && getSuggestionsBtn) {
+    if (hasRatedAnything) {
+      hintEl.textContent = "Based on the albums you've rated \"Love\" and \"Like.\"";
+      getSuggestionsBtn.hidden = false;
+    } else {
+      hintEl.textContent = "Rate a few records first, or take the quiz below to get started.";
+      getSuggestionsBtn.hidden = true;
+    }
+  }
 
   if (wishlist.length === 0) {
     const empty = document.createElement("p");
@@ -13510,34 +13682,61 @@ async function seedStarterCollection() {
   try {
     const genreIdCache = {};
     const rows = [];
-    for (const rec of STARTER_RECORDS) {
-      let genreId = null;
+    const now = new Date();
+    STARTER_RECORDS.forEach((rec, i) => {
+      // Spread acquired dates across the last several months so the
+      // Collecting Calendar/Velocity charts have something real to show,
+      // rather than every record landing on the same day.
+      const monthsAgo = i % 6;
+      const acquired = new Date(now.getFullYear(), now.getMonth() - monthsAgo, 1);
+      rows.push({
+        rec,
+        row: {
+          user_id: currentUser.id,
+          artist: rec.artist,
+          album: rec.album,
+          year: rec.year,
+          year_raw: String(rec.year),
+          label: rec.label,
+          vinyl_grade: rec.vinylGrade,
+          sleeve_grade: rec.sleeveGrade,
+          pressing_country: rec.country,
+          acquired_date: acquired.toISOString().slice(0, 10),
+          quantity: 1,
+          rating: "like",
+          is_starter: true,
+        },
+      });
+    });
+
+    for (const item of rows) {
       try {
-        if (!(rec.genre in genreIdCache)) {
-          genreIdCache[rec.genre] = await getOrCreateGenreId(rec.genre);
+        if (!(item.rec.genre in genreIdCache)) {
+          genreIdCache[item.rec.genre] = await getOrCreateGenreId(item.rec.genre);
         }
-        genreId = genreIdCache[rec.genre];
+        item.row.genre_id = genreIdCache[item.rec.genre];
       } catch (genreErr) {
         // One bad genre lookup shouldn't zero out the whole batch — fall
         // back to no genre for this record and keep going.
-        console.error("[SEED] Genre lookup failed for", rec.genre, genreErr);
+        console.error("[SEED] Genre lookup failed for", item.rec.genre, genreErr);
+        item.row.genre_id = null;
       }
-      rows.push({
-        user_id: currentUser.id,
-        artist: rec.artist,
-        album: rec.album,
-        year: rec.year,
-        year_raw: String(rec.year),
-        genre_id: genreId,
-        quantity: 1,
-      });
     }
 
     console.log("[SEED] Inserting", rows.length, "starter records");
-    const { data, error } = await supabaseClient.from("records").insert(rows).select("*");
+    const { data, error } = await supabaseClient.from("records").insert(rows.map((r) => r.row)).select("*");
     if (error) throw error;
     if (!data) return;
     console.log("[SEED] Insert succeeded:", data.length, "records");
+
+    // The insert response only has raw `records` columns — genre_name is
+    // normally a joined field from loadData()'s query, so without patching
+    // it in here these records would show as "Unspecified" in every chart
+    // that reads record.genre_name (By Genre, Taste Profile, etc.).
+    data.forEach((row) => {
+      const src = STARTER_RECORDS.find((r) => r.artist === row.artist && r.album === row.album);
+      if (src) row.genre_name = src.genre;
+    });
 
     allRecords = [...allRecords, ...data];
     if (currentPage === "home") renderHome();
@@ -13560,6 +13759,21 @@ async function seedStarterCollection() {
   } catch (e) {
     console.error("[SEED] Failed to seed starter collection:", e);
     starterCollectionSeeded = false;
+  }
+}
+
+// Bulk-remove all starter/placeholder records at once.
+async function removeStarterRecords() {
+  const starterIds = allRecords.filter((r) => r.is_starter).map((r) => r.id);
+  if (!starterIds.length) return;
+  try {
+    const { error } = await supabaseClient.from("records").delete().in("id", starterIds);
+    if (error) throw error;
+    allRecords = allRecords.filter((r) => !r.is_starter);
+    render();
+    if (currentPage === "home") renderHome();
+  } catch (e) {
+    console.error("[SEED] Failed to remove starter records:", e);
   }
 }
 
@@ -14042,6 +14256,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupFeatureToggles();
   setupExpertFieldsToggle();
   setupMissingDetailsBanner();
+  setupTasteQuiz();
   setupFellowCollectors();
   setupPressingPicker();
   setupQuickrate();

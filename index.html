@@ -468,6 +468,89 @@
   }
   .home-welcome-banner i { color: #3ecf6e; }
   .auth-confirmation-message { width: 100%; max-width: 100%; }
+  .onboarding-subtitle {
+    text-align: center;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    margin: -8px 0 20px;
+  }
+  .collection-dna-heading {
+    font-family: Jost, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: #e8e0d0;
+    margin: 0 0 10px;
+  }
+  .record-placeholder-badge {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    z-index: 2;
+    background: rgba(20,18,14,0.85);
+    border: 1px solid rgba(201,168,76,0.45);
+    color: #c9a84c;
+    font-family: Inter, sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    cursor: help;
+  }
+  .starter-remove-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(201,168,76,0.07);
+    border: 1px solid rgba(201,168,76,0.25);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+  }
+  .starter-remove-banner .btn-text {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: #c9a84c;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .taste-quiz-card { max-width: 640px; max-height: 85vh; overflow-y: auto; }
+  .taste-quiz-title {
+    font-family: Jost, sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #e8e0d0;
+    margin: 0 0 4px;
+  }
+  .taste-quiz-question { margin-top: 18px; }
+  .taste-quiz-label {
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 8px;
+  }
+  #quizGenreChips .survey-chip.selected,
+  #quizEraChips .survey-chip.selected,
+  #quizMoodChips .survey-chip.selected,
+  #quizFamiliarityChips .survey-chip.selected {
+    background: rgba(201,168,76,0.18);
+    border-color: #c9a84c;
+    color: #e8d9a8;
+  }
+  .starter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+  }
   .onboarding-summary-back {
     display: inline-flex;
     align-items: center;
@@ -3578,6 +3661,7 @@
     <div class="onboarding-content">
       <img src="icon-192.png" alt="" class="onboarding-logo" />
       <h1 class="onboarding-title">Welcome to Spin Vinyl</h1>
+      <p class="onboarding-subtitle">A few short questions to make Spin Vinyl yours.</p>
 
       <div id="onboardingStep0">
         <p class="onboarding-tagline">Where are you in your vinyl journey?</p>
@@ -4744,66 +4828,16 @@
       <button type="button" id="missingDetailsReviewBtn" class="btn-text">Review</button>
       <button type="button" id="missingDetailsExitBtn" class="btn-text" hidden>Show all records</button>
     </div>
-    <div class="page-toolbar">
-      <div id="collectionFilters">
-        <input type="text" id="searchInput" placeholder="Search by artist or album..." />
-        <select id="genreFilter">
-          <option value="">All genres</option>
-        </select>
-        <select id="subgenreFilter">
-          <option value="">All subgenres</option>
-        </select>
-        <select id="ratingFilter">
-          <option value="">All ratings</option>
-          <option value="love">Love</option>
-          <option value="like">Like</option>
-          <option value="neutral">Neutral</option>
-          <option value="dislike">Dislike</option>
-          <option value="unrated">Unrated</option>
-        </select>
-        <select id="sortSelect">
-          <option value="artist-asc">Artist: A–Z</option>
-          <option value="artist-desc">Artist: Z–A</option>
-          <option value="album-asc">Album: A–Z</option>
-          <option value="album-desc">Album: Z–A</option>
-          <option value="year-desc">Year: Newest first</option>
-          <option value="year-asc">Year: Oldest first</option>
-          <option value="added-desc">Recently added</option>
-          <option value="added-asc">Oldest added</option>
-        </select>
-      </div>
-      <div class="page-toolbar-actions">
-        <div id="gridDensityControl">
-          <label for="gridColsSelect">Per row</label>
-          <select id="gridColsSelect">
-            <option value="auto">Auto</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="8">8</option>
-            <option value="10">10</option>
-          </select>
-        </div>
-        <button type="button" id="addRecordBtn" class="add-record-btn">+ Add Record</button>
-        <button type="button" id="quickrateBtn" class="btn-secondary" title="Quickly rate your unrated records">
-          <i class="ti ti-stars" aria-hidden="true"></i> Rate unrated
-        </button>
-        <button type="button" id="importBtn" class="btn-secondary">Import from spreadsheet</button>
-        <button type="button" id="shareCollectionBtn" class="btn-secondary">
-          <i class="ti ti-share" aria-hidden="true"></i> Share
-        </button>
-      </div>
+
+    <div id="starterRemoveBanner" class="starter-remove-banner" hidden>
+      <span><i class="ti ti-sparkles" aria-hidden="true"></i> Your collection includes <span id="starterRemoveCount">20</span> sample records to help you get started.</span>
+      <button type="button" id="starterRemoveBtn" class="btn-text">Remove all placeholders</button>
     </div>
-    <div id="activeFiltersBar" class="active-filters-bar" hidden></div>
 
     <div id="collectionDnaWrap">
       <div class="dna-card">
-        <button type="button" class="collection-collapsible-header" id="collectionDnaToggle" aria-expanded="false" aria-controls="collectionDnaBody">
-          <span>Your Collection DNA</span>
-          <i class="ti ti-chevron-down collection-collapsible-icon" aria-hidden="true"></i>
-        </button>
-        <div id="collectionDnaBody" class="collection-collapsible-body" hidden>
+        <h3 class="collection-dna-heading">Your Collection DNA</h3>
+        <div id="collectionDnaBody" class="collection-collapsible-body">
           <div id="superlativesWrap" class="superlatives-wrap" hidden></div>
         </div>
       </div>
@@ -4844,6 +4878,63 @@
     </div>
   </div>
 
+  <!-- Search/filter toolbar — placed after the DNA card and charts, right
+       above the actual record grid, per product request. -->
+  <div id="collectionToolbarWrap" hidden>
+  <div class="page-toolbar">
+    <div id="collectionFilters">
+      <input type="text" id="searchInput" placeholder="Search by artist or album..." />
+      <select id="genreFilter">
+        <option value="">All genres</option>
+      </select>
+      <select id="subgenreFilter">
+        <option value="">All subgenres</option>
+      </select>
+      <select id="ratingFilter">
+        <option value="">All ratings</option>
+        <option value="love">Love</option>
+        <option value="like">Like</option>
+        <option value="neutral">Neutral</option>
+        <option value="dislike">Dislike</option>
+        <option value="unrated">Unrated</option>
+      </select>
+      <select id="sortSelect">
+        <option value="artist-asc">Artist: A–Z</option>
+        <option value="artist-desc">Artist: Z–A</option>
+        <option value="album-asc">Album: A–Z</option>
+        <option value="album-desc">Album: Z–A</option>
+        <option value="year-desc">Year: Newest first</option>
+        <option value="year-asc">Year: Oldest first</option>
+        <option value="added-desc">Recently added</option>
+        <option value="added-asc">Oldest added</option>
+      </select>
+    </div>
+    <div class="page-toolbar-actions">
+      <div id="gridDensityControl">
+        <label for="gridColsSelect">Per row</label>
+        <select id="gridColsSelect">
+          <option value="auto">Auto</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+      <button type="button" id="addRecordBtn" class="add-record-btn">+ Add Record</button>
+      <button type="button" id="quickrateBtn" class="btn-secondary" title="Quickly rate your unrated records">
+        <i class="ti ti-stars" aria-hidden="true"></i> Rate unrated
+      </button>
+      <button type="button" id="importBtn" class="btn-secondary">Import from spreadsheet</button>
+      <button type="button" id="shareCollectionBtn" class="btn-secondary">
+        <i class="ti ti-share" aria-hidden="true"></i> Share
+      </button>
+    </div>
+  </div>
+  <div id="activeFiltersBar" class="active-filters-bar" hidden></div>
+  </div>
+
   <section id="cardSectionHeader" class="card-section-header" hidden>
     <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;">
       <h2>Your Collection in Detail</h2>
@@ -4873,11 +4964,14 @@
       <div class="wishlist-suggestions-header">
         <div>
           <h3 class="wishlist-suggestions-title">Suggested For You</h3>
-          <p class="field-hint">Based on the albums you've rated "Love" and "Like."</p>
+          <p class="field-hint" id="wishlistSuggestionsHint">Based on the albums you've rated "Love" and "Like."</p>
         </div>
         <div class="wishlist-suggestions-actions">
           <button type="button" id="quickrateBtnWishlist" class="btn-secondary wishlist-suggestions-btn">
             <i class="ti ti-stars" aria-hidden="true"></i> Rate unrated
+          </button>
+          <button type="button" id="takeTasteQuizBtn" class="btn-secondary wishlist-suggestions-btn">
+            <i class="ti ti-list-details" aria-hidden="true"></i> Take the Taste Quiz
           </button>
           <button type="button" id="wishlistGetRecommendationsBtn" class="btn-primary wishlist-suggestions-btn">Get suggestions</button>
           <button type="button" id="clearDismissedSuggestionsBtn" class="btn-text">Clear dismissed</button>
@@ -4885,6 +4979,83 @@
       </div>
       <div id="wishlistRecommendationsStatus" class="form-status"></div>
       <div id="wishlistRecommendationsList" class="recommendations-list"></div>
+    </div>
+
+    <!-- Taste Quiz modal — for new users with nothing rated yet, "Get
+         suggestions" has nothing to work from. The quiz cross-references a
+         curated pool of well-known albums against a few quick answers
+         instead, similar in spirit to the Listening Room's Pick an Album. -->
+    <div id="tasteQuizOverlay" class="modal-overlay" hidden>
+      <div class="modal taste-quiz-card" role="dialog" aria-modal="true" aria-labelledby="tasteQuizTitleMain">
+        <button type="button" id="tasteQuizCloseBtn" class="modal-close" aria-label="Close">&times;</button>
+
+        <div id="tasteQuizQuestions">
+          <h2 class="taste-quiz-title">Find your next favorites</h2>
+          <p class="field-hint">A few quick questions — we'll suggest albums to add to your wishlist.</p>
+
+          <div class="taste-quiz-question">
+            <p class="taste-quiz-label">Which genres are you drawn to? <span class="home-survey-sub">(pick up to 3)</span></p>
+            <div class="home-survey-chips" id="quizGenreChips">
+              <button type="button" class="survey-chip" data-genre="Jazz">Jazz</button>
+              <button type="button" class="survey-chip" data-genre="Rock">Rock</button>
+              <button type="button" class="survey-chip" data-genre="Soul">Soul</button>
+              <button type="button" class="survey-chip" data-genre="Blues">Blues</button>
+              <button type="button" class="survey-chip" data-genre="Electronic">Electronic</button>
+              <button type="button" class="survey-chip" data-genre="Classical">Classical</button>
+              <button type="button" class="survey-chip" data-genre="Folk">Folk</button>
+              <button type="button" class="survey-chip" data-genre="Hip-Hop">Hip-Hop</button>
+              <button type="button" class="survey-chip" data-genre="Reggae">Reggae</button>
+              <button type="button" class="survey-chip" data-genre="Pop">Pop</button>
+              <button type="button" class="survey-chip" data-genre="Country">Country</button>
+              <button type="button" class="survey-chip" data-genre="Ambient">Ambient</button>
+            </div>
+          </div>
+
+          <div class="taste-quiz-question">
+            <p class="taste-quiz-label">What era speaks to you?</p>
+            <div class="home-survey-chips" id="quizEraChips">
+              <button type="button" class="survey-chip" data-era="pre1970">'50s &ndash; '60s</button>
+              <button type="button" class="survey-chip" data-era="1970s">'70s</button>
+              <button type="button" class="survey-chip" data-era="1980s90s">'80s &ndash; '90s</button>
+              <button type="button" class="survey-chip" data-era="2000s">2000s+</button>
+              <button type="button" class="survey-chip" data-era="any">No preference</button>
+            </div>
+          </div>
+
+          <div class="taste-quiz-question">
+            <p class="taste-quiz-label">What's the vibe you're after?</p>
+            <div class="home-survey-chips" id="quizMoodChips">
+              <button type="button" class="survey-chip" data-mood="mellow">Mellow &amp; atmospheric</button>
+              <button type="button" class="survey-chip" data-mood="upbeat">Upbeat &amp; danceable</button>
+              <button type="button" class="survey-chip" data-mood="raw">Raw &amp; energetic</button>
+              <button type="button" class="survey-chip" data-mood="introspective">Deep &amp; introspective</button>
+              <button type="button" class="survey-chip" data-mood="eclectic">Surprise me</button>
+            </div>
+          </div>
+
+          <div class="taste-quiz-question">
+            <p class="taste-quiz-label">How familiar do you want to be?</p>
+            <div class="home-survey-chips" id="quizFamiliarityChips">
+              <button type="button" class="survey-chip" data-familiarity="classic">Classics everyone should own</button>
+              <button type="button" class="survey-chip" data-familiarity="deepcut">Deep cuts &amp; hidden gems</button>
+              <button type="button" class="survey-chip" data-familiarity="mix">A mix of both</button>
+            </div>
+          </div>
+
+          <div class="home-survey-actions">
+            <button type="button" id="tasteQuizSubmitBtn" class="btn-primary">Show my matches</button>
+          </div>
+        </div>
+
+        <div id="tasteQuizResults" hidden>
+          <h2 class="taste-quiz-title">Your matches</h2>
+          <p class="field-hint">Tap any album to add it to your wishlist.</p>
+          <div id="tasteQuizResultsGrid" class="starter-grid"></div>
+          <div class="home-survey-actions">
+            <button type="button" id="tasteQuizRetakeBtn" class="btn-secondary">Retake quiz</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="page-toolbar">
@@ -6945,7 +7116,6 @@
           body.classList.toggle('expanded', !expanded);
         });
       }
-      wireToggle('collectionDnaToggle',  'collectionDnaBody');
       wireToggle('atAGlanceToggle',      'atAGlanceBody');
     })();
 
