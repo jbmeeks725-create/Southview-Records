@@ -408,6 +408,7 @@
     font-size: 13px;
     color: rgba(255,255,255,0.75);
   }
+  .missing-details-banner[hidden] { display: none !important; }
   .missing-details-banner i { color: #c9a84c; }
   .missing-details-banner .btn-text {
     margin-left: auto;
@@ -839,6 +840,7 @@
     font-size: 13px;
     color: rgba(255,255,255,0.75);
   }
+  .starter-remove-banner[hidden] { display: none !important; }
   .starter-remove-banner .btn-text {
     margin-left: auto;
     background: none;
@@ -1218,6 +1220,9 @@
         height: 48px !important;
         border-radius: 14px !important;
         font-size: 14px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
       }
 
       /* Keywords */
@@ -3106,6 +3111,13 @@
     .collection-collapsible-body.expanded {
       display: block;
     }
+    /* Collection DNA is no longer a collapsible (its toggle was removed in
+       favor of a plain always-visible heading) — this mobile-only collapse
+       rule was still applying to it since it shares the class, silently
+       hiding its content on mobile only. */
+    #collectionDnaBody {
+      display: block !important;
+    }
   }
 
   /* ── Modals must sit above bottom nav (z-900) and FAB (z-905) on mobile ── */
@@ -3702,9 +3714,9 @@
           <p>Cover art, ratings, genre breakdown, and estimated collection value — all in one place.</p>
         </div>
         <div class="landing-feature">
-          <i class="ti ti-armchair" aria-hidden="true"></i>
-          <h3>Your own Listening Room</h3>
-          <p>Hang your favorite album art on the wall and play straight from your Spotify library.</p>
+          <i class="ti ti-barcode" aria-hidden="true"></i>
+          <h3>Scan to add, right in the shop</h3>
+          <p>Point your phone at a barcode or a cover — add it to your collection or wishlist in seconds, no typing required.</p>
         </div>
         <div class="landing-feature">
           <i class="ti ti-share" aria-hidden="true"></i>
