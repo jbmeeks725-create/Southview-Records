@@ -1241,10 +1241,33 @@
 
   /* ── Record Value tab ── */
   .value-tab-intro { margin-bottom: 16px; }
-  .record-value-divider {
-    height: 1px;
-    background: rgba(255,255,255,0.08);
-    margin: 20px 0;
+  .record-value-section {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+    background: rgba(255,255,255,0.015);
+  }
+  .record-value-section-title {
+    font-family: Jost, sans-serif;
+    color: #c9a84c;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px;
+  }
+  .record-value-section-title i { font-size: 15px; }
+  .record-value-section-discogs {
+    border-color: rgba(201,168,76,0.25);
+    background: rgba(201,168,76,0.04);
+  }
+  .record-value-section .pressing-section {
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
   }
   .record-value-discogs-display {
     padding: 12px 14px;
@@ -7022,89 +7045,93 @@
             Pressing details, what you paid, and what you think it's worth. Separate from any Discogs market estimate below, which is just for reference.
           </p>
 
-          <p class="journal-quick-add-label">Pressing</p>
+          <div class="record-value-section">
+            <p class="record-value-section-title"><i class="ti ti-disc" aria-hidden="true"></i> Pressing</p>
 
-          <div class="form-row form-row-split">
-            <div>
-              <label for="valueVinylGrade">Vinyl grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a vinyl grade?">?</button></label>
-              <input type="text" id="valueVinylGrade" list="gradeOptions" placeholder="e.g. VG+" />
-            </div>
-            <div>
-              <label for="valueSleeveGrade">Sleeve grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a sleeve grade?">?</button></label>
-              <input type="text" id="valueSleeveGrade" list="gradeOptions" placeholder="e.g. VG+" />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <label for="valuePressingCountry">Pressing country <button type="button" class="field-tooltip-icon" data-tooltip="pressingCountry" aria-label="What's pressing country?">?</button></label>
-            <input type="text" id="valuePressingCountry" placeholder="e.g. US, UK, Germany" />
-          </div>
-
-          <div class="form-row">
-            <label for="valuePressingNotes">Pressing notes <span class="field-hint" style="display:inline;">(matrix/runout numbers, mastering info, etc.)</span></label>
-            <input type="text" id="valuePressingNotes" placeholder="e.g. Matrix: STERLING RL / hand-etched RL" />
-          </div>
-
-          <!-- ── Pressing identifier (moved from Details) ── -->
-          <div class="pressing-section">
-            <div class="pressing-section-header">
-              <label class="pressing-section-label">
-                Discogs Pressing
-                <span class="pressing-tip" tabindex="0" aria-label="Why this matters">
-                  <i class="ti ti-info-circle" aria-hidden="true"></i>
-                  <span class="pressing-tip-text">Different pressings of the same album have different values. Identifying your exact pressing lets Spin Vinyl look up an accurate Discogs median below.</span>
-                </span>
-              </label>
-              <span id="detailPressingId" class="pressing-id-badge" hidden></span>
-            </div>
-            <div id="detailPressingLinked" class="pressing-linked" hidden>
-              <div class="pressing-linked-info">
-                <i class="ti ti-check" style="color:#6bcf8a"></i>
-                <span id="detailPressingLinkedText" class="pressing-linked-text"></span>
+            <div class="form-row form-row-split">
+              <div>
+                <label for="valueVinylGrade">Vinyl grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a vinyl grade?">?</button></label>
+                <input type="text" id="valueVinylGrade" list="gradeOptions" placeholder="e.g. VG+" />
               </div>
-              <div class="pressing-linked-actions">
-                <a id="detailPressingDiscogsLink" href="#" target="_blank" rel="noopener" class="btn-text pressing-discogs-link">
-                  <i class="ti ti-external-link"></i> View on Discogs
-                </a>
-                <button type="button" id="detailPressingClearBtn" class="btn-text pressing-clear-btn">Clear</button>
+              <div>
+                <label for="valueSleeveGrade">Sleeve grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a sleeve grade?">?</button></label>
+                <input type="text" id="valueSleeveGrade" list="gradeOptions" placeholder="e.g. VG+" />
               </div>
             </div>
-            <div id="detailPressingSearch" class="pressing-search-wrap">
-              <button type="button" id="detailFindPressingBtn" class="btn-secondary pressing-find-btn">
-                <i class="ti ti-search" aria-hidden="true"></i> Find my exact pressing
+
+            <div class="form-row">
+              <label for="valuePressingCountry">Pressing country <button type="button" class="field-tooltip-icon" data-tooltip="pressingCountry" aria-label="What's pressing country?">?</button></label>
+              <input type="text" id="valuePressingCountry" placeholder="e.g. US, UK, Germany" />
+            </div>
+
+            <div class="form-row">
+              <label for="valuePressingNotes">Pressing notes <span class="field-hint" style="display:inline;">(matrix/runout numbers, mastering info, etc.)</span></label>
+              <input type="text" id="valuePressingNotes" placeholder="e.g. Matrix: STERLING RL / hand-etched RL" />
+            </div>
+          </div>
+
+          <div class="record-value-section">
+            <p class="record-value-section-title"><i class="ti ti-tag" aria-hidden="true"></i> Your Value</p>
+
+            <div class="form-row form-row-split">
+              <div>
+                <label for="valuePricePaid">What you paid (USD)</label>
+                <input type="number" id="valuePricePaid" step="0.01" min="0" placeholder="e.g. 25.00" />
+              </div>
+              <div>
+                <label for="valueYourWorth">What you think it's worth (USD)</label>
+                <input type="number" id="valueYourWorth" step="0.01" min="0" placeholder="e.g. 45.00" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label for="valueYourWorthNote">Note <span class="field-hint" style="display:inline;">(optional)</span></label>
+              <input type="text" id="valueYourWorthNote" placeholder="e.g. Appraised 2024, mint condition" />
+            </div>
+          </div>
+
+          <div class="record-value-section record-value-section-discogs">
+            <p class="record-value-section-title"><i class="ti ti-external-link" aria-hidden="true"></i> Discogs Value <span class="field-hint" style="display:inline;text-transform:none;letter-spacing:normal;font-weight:400;">(reference only — not included in your Collection Value total)</span></p>
+
+            <!-- ── Pressing identifier ── -->
+            <div class="pressing-section">
+              <div class="pressing-section-header">
+                <label class="pressing-section-label">
+                  Discogs Pressing
+                  <span class="pressing-tip" tabindex="0" aria-label="Why this matters">
+                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                    <span class="pressing-tip-text">Different pressings of the same album have different values. Identifying your exact pressing lets Spin Vinyl look up an accurate Discogs median below.</span>
+                  </span>
+                </label>
+                <span id="detailPressingId" class="pressing-id-badge" hidden></span>
+              </div>
+              <div id="detailPressingLinked" class="pressing-linked" hidden>
+                <div class="pressing-linked-info">
+                  <i class="ti ti-check" style="color:#6bcf8a"></i>
+                  <span id="detailPressingLinkedText" class="pressing-linked-text"></span>
+                </div>
+                <div class="pressing-linked-actions">
+                  <a id="detailPressingDiscogsLink" href="#" target="_blank" rel="noopener" class="btn-text pressing-discogs-link">
+                    <i class="ti ti-external-link"></i> View on Discogs
+                  </a>
+                  <button type="button" id="detailPressingClearBtn" class="btn-text pressing-clear-btn">Clear</button>
+                </div>
+              </div>
+              <div id="detailPressingSearch" class="pressing-search-wrap">
+                <button type="button" id="detailFindPressingBtn" class="btn-secondary pressing-find-btn">
+                  <i class="ti ti-search" aria-hidden="true"></i> Find my exact pressing
+                </button>
+                <p class="field-hint">Optional — only needed for accurate market pricing.</p>
+              </div>
+            </div>
+
+            <div id="recordValueDiscogsWrap">
+              <p class="journal-quick-add-label" style="margin-top:16px;">Discogs Median</p>
+              <div id="recordValueDiscogsDisplay" class="record-value-discogs-display"></div>
+              <button type="button" id="recordValueDiscogsRefreshBtn" class="btn-secondary">
+                <i class="ti ti-refresh" aria-hidden="true"></i> Look up Discogs median
               </button>
-              <p class="field-hint">Optional — only needed for accurate market pricing.</p>
             </div>
-          </div>
-
-          <div class="record-value-divider"></div>
-
-          <p class="journal-quick-add-label">Your Value</p>
-
-          <div class="form-row form-row-split">
-            <div>
-              <label for="valuePricePaid">What you paid (USD)</label>
-              <input type="number" id="valuePricePaid" step="0.01" min="0" placeholder="e.g. 25.00" />
-            </div>
-            <div>
-              <label for="valueYourWorth">What you think it's worth (USD)</label>
-              <input type="number" id="valueYourWorth" step="0.01" min="0" placeholder="e.g. 45.00" />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <label for="valueYourWorthNote">Note <span class="field-hint" style="display:inline;">(optional)</span></label>
-            <input type="text" id="valueYourWorthNote" placeholder="e.g. Appraised 2024, mint condition" />
-          </div>
-
-          <div class="record-value-divider"></div>
-
-          <div id="recordValueDiscogsWrap">
-            <p class="journal-quick-add-label">Discogs Median <span class="field-hint" style="display:inline;text-transform:none;letter-spacing:normal;">(reference only — not included in your Collection Value total)</span></p>
-            <div id="recordValueDiscogsDisplay" class="record-value-discogs-display"></div>
-            <button type="button" id="recordValueDiscogsRefreshBtn" class="btn-secondary">
-              <i class="ti ti-refresh" aria-hidden="true"></i> Look up Discogs median
-            </button>
           </div>
 
           <div id="recordValueStatus" class="form-status"></div>
