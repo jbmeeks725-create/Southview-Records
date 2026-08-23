@@ -1128,10 +1128,22 @@
   /* ── Desktop nav: grouped dropdowns mirroring mobile bucketing ── */
   #pageNav .view-btn {
     padding: 12px 22px;
+    color: #b89b5e;
   }
   #pageNav .view-btn:hover {
     color: #c9a84c;
     border-color: rgba(201,168,76,0.4);
+  }
+  /* Home gets a distinct, always-visible soft gold tint so it reads as the
+     anchor item — separate from the solid-gold "currently active" fill,
+     which still applies on top of this when Home actually is the active page. */
+  #homePageBtn:not(.active) {
+    background: rgba(201,168,76,0.14);
+    border: 1px solid rgba(201,168,76,0.35);
+    border-radius: 6px;
+  }
+  #homePageBtn:not(.active):hover {
+    background: rgba(201,168,76,0.22);
   }
   .nav-dropdown {
     position: relative;
@@ -1140,7 +1152,7 @@
   .nav-dropdown-trigger {
     background: transparent;
     border: 1px solid transparent;
-    color: #a89f90;
+    color: #b89b5e;
     font-family: Inter, sans-serif;
     font-size: 14px;
     padding: 12px 22px;
@@ -4523,7 +4535,7 @@
 
         <div class="nav-dropdown" id="navGroupCollection">
           <button type="button" id="navGroupCollectionTrigger" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
-            Collection <i class="ti ti-chevron-down" aria-hidden="true"></i>
+            My Collection <i class="ti ti-chevron-down" aria-hidden="true"></i>
           </button>
           <div class="nav-dropdown-menu" id="navGroupCollectionMenu" role="menu" hidden>
             <button type="button" id="collectionPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Collection</button>
@@ -4534,7 +4546,7 @@
 
         <div class="nav-dropdown" id="navGroupTaste">
           <button type="button" id="navGroupTasteTrigger" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
-            Taste <i class="ti ti-chevron-down" aria-hidden="true"></i>
+            My Taste <i class="ti ti-chevron-down" aria-hidden="true"></i>
           </button>
           <div class="nav-dropdown-menu" id="navGroupTasteMenu" role="menu" hidden>
             <button type="button" id="tasteProfilePageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Taste Profile</button>
@@ -4543,7 +4555,17 @@
           </div>
         </div>
 
-        <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Listening Room</button>
+        <div class="nav-dropdown" id="navGroupListeningJournal">
+          <button type="button" id="navGroupListeningJournalTrigger" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
+            My Listening Journal <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+          <div class="nav-dropdown-menu" id="navGroupListeningJournalMenu" role="menu" hidden>
+            <button type="button" id="roomPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Listening Room</button>
+            <button type="button" id="journalPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Journal</button>
+          </div>
+        </div>
+
+        <button type="button" id="communityPageBtn" class="view-btn" aria-pressed="false">My Community</button>
 
         <div class="nav-dropdown" id="navGroupMore">
           <button type="button" id="navGroupMoreTrigger" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
@@ -4551,8 +4573,6 @@
           </button>
           <div class="nav-dropdown-menu" id="navGroupMoreMenu" role="menu" hidden>
             <button type="button" id="trophiesPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Trophies</button>
-            <button type="button" id="journalPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Journal</button>
-            <button type="button" id="communityPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Community</button>
           </div>
         </div>
       </nav>
