@@ -15804,15 +15804,13 @@ let cvOverrideRecordId = null;
 
 // Get the effective value for a record
 function cvGetValue(record) {
-  // User override always wins regardless of pressing
+  // Collection Value is self-identified only, per the value-model decision:
+  // Discogs market data (market_value_cached) is reference-only and must
+  // never feed the total, sorting, or "valued" counts on this page. It still
+  // displays elsewhere (Record Value tab) as a clearly-labeled reference.
   if (record.market_value_override != null) {
     const v = parseFloat(record.market_value_override);
     if (!isNaN(v)) return { value: v, type: "user", note: record.market_value_override_note };
-  }
-  // Only show cached prices if the exact pressing is identified
-  if (record.discogs_release_id && record.market_value_cached != null) {
-    const v = parseFloat(record.market_value_cached);
-    if (!isNaN(v) && v > 0) return { value: v, type: "exact" };
   }
   return null;
 }
@@ -15896,9 +15894,9 @@ function renderCvStats() {
   const top    = sorted[0]?._cv?.value ?? null;
 
   document.getElementById("cvTotalAmount").textContent = cvFormatPrice(total) ?? "$0";
-  document.getElementById("cvTotalSub").textContent    = `across ${valued.length} linked pressing${valued.length !== 1 ? "s" : ""}`;
+  document.getElementById("cvTotalSub").textContent    = `based on ${valued.length} self-identified value${valued.length !== 1 ? "s" : ""}`;
   document.getElementById("cvValuedCount").textContent = `${valued.length} / ${allRecords.length}`;
-  document.getElementById("cvValuedSub").textContent   = `${Math.round((valued.length / allRecords.length) * 100)}% of collection with linked pressings`;
+  document.getElementById("cvValuedSub").textContent   = `${Math.round((valued.length / allRecords.length) * 100)}% of collection with a value you've set`;
   document.getElementById("cvHighestValue").textContent = top ? cvFormatPrice(top) : "—";
   const topRecord = sorted[0];
   document.getElementById("cvHighestSub").textContent  = topRecord?._cv ? `${topRecord.artist} — ${topRecord.album}` : "Link pressings to see values";
@@ -15909,7 +15907,7 @@ function renderCvTop5(records) {
   grid.innerHTML = "";
 
   if (!records.length) {
-    grid.innerHTML = '<p class="cv-empty">No values yet — click "Refresh all prices" to get started.</p>';
+    grid.innerHTML = '<p class="cv-empty">No values set yet — open a record\'s Record Value tab to add what you paid or think it\'s worth.</p>';
     return;
   }
 
@@ -15940,8 +15938,8 @@ function renderCvTop5(records) {
     // Value badge
     if (val) {
       const badge = document.createElement("span");
-      badge.className = `cv-top5-badge ${val.type === "user" ? "cv-badge-user" : val.type === "exact" ? "cv-badge-exact" : "cv-badge-estimate"}`;
-      badge.textContent = val.type === "user" ? "Your value" : val.type === "exact" ? "Exact" : "Est. avg.";
+      badge.className = "cv-top5-badge cv-badge-user";
+      badge.textContent = "Your value";
       card.appendChild(badge);
     }
 
@@ -16059,23 +16057,17 @@ function renderCvTable(records) {
       valWrap.appendChild(amt);
       const badge = document.createElement("div");
       badge.className = "cv-value-note";
-      badge.textContent = val.type === "user"
-        ? `Your valuation${val.note ? ` · ${val.note}` : ""}`
-        : val.type === "exact"
-          ? "Exact pressing · Discogs"
-          : "Estimated average · Discogs";
+      badge.textContent = `Your valuation${val.note ? ` · ${val.note}` : ""}`;
       valWrap.appendChild(badge);
     } else {
       const amt = document.createElement("div");
       amt.className = "cv-value-amount unvalued";
-      amt.textContent = record.discogs_release_id ? "Fetching…" : "Link a pressing to value";
+      amt.textContent = "Not valued yet";
       valWrap.appendChild(amt);
-      if (!record.discogs_release_id) {
-        const hint = document.createElement("div");
-        hint.className = "cv-value-note";
-        hint.textContent = "Use 'Find exact pressing' to get an accurate price";
-        valWrap.appendChild(hint);
-      }
+      const hint = document.createElement("div");
+      hint.className = "cv-value-note";
+      hint.textContent = "Set your own valuation to include it here";
+      valWrap.appendChild(hint);
     }
     tdValue.appendChild(valWrap);
     tr.appendChild(tdValue);
