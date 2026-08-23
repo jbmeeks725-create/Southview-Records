@@ -2150,15 +2150,48 @@ async function logListen(recordId) {
   }
 }
 
-function openJournalQuickAdd(entryId) {
+async function deleteListeningLogEntry(entryId, recordId) {
+  const confirmed = window.confirm("Delete this logged listen? This can't be undone.");
+  if (!confirmed) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from("listening_log")
+      .delete()
+      .eq("id", entryId);
+    if (error) throw error;
+
+    listeningLog = listeningLog.filter((l) => l.id !== entryId);
+    showToast("Listen deleted.");
+
+    if (currentPage === "journal") renderJournal();
+    if (activeDetailRecordId === recordId) {
+      renderRecordListensHistory(recordId);
+      updateLastListenedText(recordId);
+    }
+    renderRecentlyPlayed();
+    renderOnThisDay();
+  } catch (e) {
+    console.error("Failed to delete listen:", e);
+    showToast("Couldn't delete that — try again.");
+  }
+}
+
+function openJournalQuickAdd(entryId, existingEntry = null) {
   const panel = document.getElementById("journalQuickAdd");
   if (!panel) return;
   journalQuickAddEntryId = entryId;
-  journalQuickAddMood = null;
-  journalQuickAddOccasion = null;
-  panel.querySelectorAll(".survey-chip").forEach((chip) => chip.classList.remove("selected"));
+  journalQuickAddMood = existingEntry?.mood || null;
+  journalQuickAddOccasion = existingEntry?.occasion || null;
+
+  panel.querySelectorAll(".survey-chip").forEach((chip) => {
+    const isMoodMatch = chip.dataset.mood && chip.dataset.mood === journalQuickAddMood;
+    const isOccasionMatch = chip.dataset.occasion && chip.dataset.occasion === journalQuickAddOccasion;
+    chip.classList.toggle("selected", Boolean(isMoodMatch || isOccasionMatch));
+  });
+
   const notes = document.getElementById("journalQuickNotes");
-  if (notes) notes.value = "";
+  if (notes) notes.value = existingEntry?.notes || "";
   panel.hidden = false;
 }
 
@@ -2352,6 +2385,39 @@ function buildJournalEntryEl(entry, record, { clickable = true } = {}) {
     notesEl.textContent = entry.notes;
     body.appendChild(notesEl);
   }
+
+  const actions = document.createElement("div");
+  actions.className = "journal-entry-actions";
+
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "journal-entry-action-btn";
+  editBtn.setAttribute("aria-label", "Edit this listen");
+  editBtn.innerHTML = '<i class="ti ti-pencil" aria-hidden="true"></i> Edit';
+  editBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (clickable) {
+      // Editing from the main Journal page (all records) — no modal is open
+      // for this specific record yet, so open it straight to My Listens.
+      openRecordDetailModal(record.id, "listens");
+    }
+    openJournalQuickAdd(entry.id, entry);
+    document.getElementById("journalQuickAdd")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "journal-entry-action-btn journal-entry-action-btn-danger";
+  deleteBtn.setAttribute("aria-label", "Delete this listen");
+  deleteBtn.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i> Delete';
+  deleteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    deleteListeningLogEntry(entry.id, record.id);
+  });
+
+  actions.appendChild(editBtn);
+  actions.appendChild(deleteBtn);
+  body.appendChild(actions);
 
   item.appendChild(body);
   if (clickable) item.addEventListener("click", () => openRecordDetailModal(record.id));
@@ -16777,17 +16843,21 @@ function renderCiHeatmap(quality) {
 
 // ── 6. Artist Connections (force-directed network graph) ───────────────────
 let ciNetworkSimulation = null;
+let ciNetworkSelectedId = null;
 
 function renderCiNetwork(quality) {
   const card = document.getElementById("ciNetworkCard");
   const wrap = document.getElementById("ciNetworkWrap");
   const empty = document.getElementById("ciNetworkEmpty");
+  const caption = document.getElementById("ciNetworkCaption");
   if (!card) return;
 
   if (!isInsightEnabled("network")) { card.hidden = true; return; }
   card.hidden = false;
 
   if (ciNetworkSimulation) { ciNetworkSimulation.stop(); ciNetworkSimulation = null; }
+  ciNetworkSelectedId = null;
+  if (caption) caption.hidden = true;
 
   if (typeof d3 === "undefined") {
     wrap.hidden = true;
@@ -16806,9 +16876,9 @@ function renderCiNetwork(quality) {
   const artistData = {};
   allRecords.forEach((r) => {
     if (!r.artist) return;
-    if (!artistData[r.artist]) artistData[r.artist] = { genres: new Set(), labels: new Set(), count: 0 };
-    if (r.genre_id) artistData[r.artist].genres.add(r.genre_id);
-    if (r.label) artistData[r.artist].labels.add(r.label.trim().toLowerCase());
+    if (!artistData[r.artist]) artistData[r.artist] = { genreIds: new Set(), labels: new Set(), count: 0 };
+    if (r.genre_id) artistData[r.artist].genreIds.add(r.genre_id);
+    if (r.label) artistData[r.artist].labels.add(r.label.trim());
     artistData[r.artist].count++;
   });
 
@@ -16817,14 +16887,24 @@ function renderCiNetwork(quality) {
     .slice(0, 40)
     .map(([name]) => name);
 
+  // Capture *what* is shared, not just a weight, so a click can tell the
+  // story of why two artists are connected rather than just showing a line.
   const links = [];
   for (let i = 0; i < topArtists.length; i++) {
     for (let j = i + 1; j < topArtists.length; j++) {
       const a = artistData[topArtists[i]], b = artistData[topArtists[j]];
-      const sharedGenres = [...a.genres].filter((g) => b.genres.has(g)).length;
-      const sharedLabels = [...a.labels].filter((l) => b.labels.has(l)).length;
-      const weight = sharedGenres + sharedLabels * 2;
-      if (weight > 0) links.push({ source: topArtists[i], target: topArtists[j], weight });
+      const sharedGenreIds = [...a.genreIds].filter((g) => b.genreIds.has(g));
+      const sharedLabels = [...a.labels].filter((l) => b.labels.has(l));
+      const weight = sharedGenreIds.length + sharedLabels.length * 2;
+      if (weight > 0) {
+        links.push({
+          source: topArtists[i],
+          target: topArtists[j],
+          weight,
+          sharedGenreNames: sharedGenreIds.map((id) => genreNameById(id)).filter(Boolean),
+          sharedLabels,
+        });
+      }
     }
   }
 
@@ -16846,9 +16926,18 @@ function renderCiNetwork(quality) {
   const width = wrap.clientWidth || 600;
   const height = 420;
 
+  // Only the biggest few nodes get an always-on label — with up to 40 nodes,
+  // labeling everything by default is what made this unreadable. Clicking
+  // any node reveals full labels for just its own connections.
+  const hubThreshold = [...nodes].sort((a, b) => b.count - a.count)[Math.min(7, nodes.length - 1)]?.count ?? 0;
+  const isHub = (d) => d.count >= hubThreshold;
+
   const svg = d3.select(wrap).append("svg").attr("viewBox", `0 0 ${width} ${height}`);
   const g = svg.append("g");
   svg.call(d3.zoom().scaleExtent([0.4, 3]).on("zoom", (event) => g.attr("transform", event.transform)));
+
+  // Clicking empty space clears the current selection.
+  svg.on("click", () => setCiNetworkSelection(null));
 
   const link = g.append("g").selectAll("line").data(links).join("line")
     .attr("stroke", "rgba(201,168,76,0.35)")
@@ -16859,6 +16948,10 @@ function renderCiNetwork(quality) {
     .attr("fill", "#c9a84c")
     .attr("stroke", "#14120e")
     .attr("stroke-width", 1.5)
+    .on("click", (event, d) => {
+      event.stopPropagation();
+      setCiNetworkSelection(d.id === ciNetworkSelectedId ? null : d.id);
+    })
     .call(
       d3.drag()
         .on("start", (event, d) => { if (!event.active) ciNetworkSimulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
@@ -16866,11 +16959,56 @@ function renderCiNetwork(quality) {
         .on("end", (event, d) => { if (!event.active) ciNetworkSimulation.alphaTarget(0); d.fx = null; d.fy = null; })
     );
 
+  node.append("title").text((d) => `${d.id} — ${d.count} record${d.count === 1 ? "" : "s"} in your collection`);
+
   const label = g.append("g").selectAll("text").data(nodes).join("text")
-    .attr("class", "ci-network-node-label")
+    .attr("class", (d) => `ci-network-node-label${isHub(d) ? " ci-network-node-label-hub" : ""}`)
     .attr("text-anchor", "middle")
     .attr("dy", (d) => -(8 + Math.min(10, d.count)))
+    .attr("opacity", (d) => (isHub(d) ? 1 : 0))
     .text((d) => d.id);
+
+  function setCiNetworkSelection(artistId) {
+    ciNetworkSelectedId = artistId;
+
+    if (!artistId) {
+      link.attr("opacity", 1).attr("stroke", "rgba(201,168,76,0.35)");
+      node.attr("opacity", 1);
+      label.attr("opacity", (d) => (isHub(d) ? 1 : 0));
+      if (caption) caption.hidden = true;
+      return;
+    }
+
+    const neighborIds = new Set([artistId]);
+    const touchingLinks = links.filter((l) => {
+      const sid = typeof l.source === "object" ? l.source.id : l.source;
+      const tid = typeof l.target === "object" ? l.target.id : l.target;
+      const touches = sid === artistId || tid === artistId;
+      if (touches) neighborIds.add(sid === artistId ? tid : sid);
+      return touches;
+    });
+
+    link
+      .attr("opacity", (d) => touchingLinks.includes(d) ? 1 : 0.06)
+      .attr("stroke", (d) => touchingLinks.includes(d) ? "#c9a84c" : "rgba(201,168,76,0.35)");
+    node.attr("opacity", (d) => neighborIds.has(d.id) ? 1 : 0.15);
+    label.attr("opacity", (d) => neighborIds.has(d.id) ? 1 : 0);
+
+    if (caption) {
+      const otherCount = neighborIds.size - 1;
+      const example = touchingLinks[0];
+      let reasonText = "";
+      if (example) {
+        const bits = [];
+        if (example.sharedGenreNames?.length) bits.push(`the genre ${example.sharedGenreNames[0]}`);
+        if (example.sharedLabels?.length) bits.push(`the label ${example.sharedLabels[0]}`);
+        if (bits.length) reasonText = ` — e.g. shares ${bits.join(" and ")} with ${example.source === artistId || example.source?.id === artistId ? (example.target.id || example.target) : (example.source.id || example.source)}`;
+      }
+      caption.innerHTML = `<span><strong>${artistId}</strong> connects to ${otherCount} other artist${otherCount === 1 ? "" : "s"} in your collection${reasonText}.</span><button type="button" class="ci-network-caption-clear" id="ciNetworkClearBtn">Show all</button>`;
+      caption.hidden = false;
+      document.getElementById("ciNetworkClearBtn")?.addEventListener("click", () => setCiNetworkSelection(null));
+    }
+  }
 
   ciNetworkSimulation = d3.forceSimulation(nodes)
     .force("link", d3.forceLink(links).id((d) => d.id).distance(70).strength(0.3))

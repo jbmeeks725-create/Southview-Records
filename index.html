@@ -1122,6 +1122,31 @@
     color: #c9a84c;
   }
   .journal-entry-notes { margin-top: 6px; color: #a89f90; font-size: 13px; line-height: 1.5; }
+  .journal-entry-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .journal-entry-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #a89f90;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .journal-entry-action-btn:hover {
+    border-color: rgba(201,168,76,0.4);
+    color: #c9a84c;
+  }
+  .journal-entry-action-btn-danger:hover {
+    border-color: rgba(220,90,90,0.5);
+    color: #e08080;
+  }
 
   .home-on-this-day .mini-list { margin-top: 8px; }
 
@@ -1236,6 +1261,50 @@
     font-size: 16px;
     font-weight: 600;
   }
+
+  /* ── Artist Connections graph ── */
+  .ci-network-legend {
+    color: #8a8290;
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin: 8px 0 4px;
+  }
+  .ci-network-legend strong { color: #c9a84c; font-weight: 600; }
+  .ci-network-caption {
+    margin: 10px 0 4px;
+    padding: 10px 14px;
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 8px;
+    background: rgba(201,168,76,0.06);
+    color: #e8e0d0;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .ci-network-caption strong { color: #c9a84c; }
+  .ci-network-caption-clear {
+    background: transparent;
+    border: none;
+    color: #8a8290;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: underline;
+    white-space: nowrap;
+  }
+  .ci-network-node-label {
+    fill: #a89f90;
+    font-size: 10px;
+    font-family: Inter, sans-serif;
+    pointer-events: none;
+  }
+  .ci-network-node-label-hub {
+    fill: #c9a84c;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .ci-network-wrap circle { cursor: pointer; }
   </style>
 
   <!-- ── Mobile UX overrides (max-width: 768px) — desktop untouched ── -->
@@ -5970,6 +6039,11 @@
             <p class="ci-card-sub">Artists in your collection linked by shared genres and labels.</p>
           </div>
         </div>
+        <p class="ci-network-legend">
+          <strong>Bigger circle</strong> = more records by that artist. <strong>Thicker line</strong> = more shared genres/labels.
+          Click an artist to see their connections — drag to rearrange, scroll to zoom.
+        </p>
+        <div id="ciNetworkCaption" class="ci-network-caption" hidden></div>
         <div id="ciNetworkWrap" class="ci-network-wrap"></div>
         <div id="ciNetworkEmpty" class="empty-hint" hidden></div>
       </div>
