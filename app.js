@@ -7651,9 +7651,13 @@ function setPage(page, { skipPersist = false } = {}) {
     "has-active-child",
     isTasteProfile || isGenreEvolution || isCollectionInsights
   );
+  document.getElementById("navGroupListeningJournalTrigger")?.classList.toggle(
+    "has-active-child",
+    isRoom || isJournal
+  );
   document.getElementById("navGroupMoreTrigger")?.classList.toggle(
     "has-active-child",
-    isTrophies || isJournal || isCommunity
+    isTrophies
   );
 
   if (isProfile) {
@@ -7710,8 +7714,14 @@ function setPage(page, { skipPersist = false } = {}) {
 }
 
 // ── Desktop nav: grouped dropdowns (Collection / Taste / More) ──────────
+// Menus use position:fixed (see CSS) rather than absolute, because #pageNav
+// and its parent section both have `overflow` rules (for mobile scroll
+// safety) that would otherwise clip an absolutely-positioned menu — it would
+// toggle open/closed correctly but never actually be visible. Fixed
+// positioning escapes that clipping, so we compute the menu's location from
+// the trigger's bounding box each time it opens.
 function setupDesktopNavDropdowns() {
-  const groups = ["navGroupCollection", "navGroupTaste", "navGroupMore"];
+  const groups = ["navGroupCollection", "navGroupTaste", "navGroupListeningJournal", "navGroupMore"];
 
   function closeAllNavDropdowns() {
     groups.forEach((id) => {
@@ -7725,6 +7735,12 @@ function setupDesktopNavDropdowns() {
     });
   }
 
+  function positionMenu(trigger, menu) {
+    const rect = trigger.getBoundingClientRect();
+    menu.style.top = `${rect.bottom + 8}px`;
+    menu.style.left = `${rect.left}px`;
+  }
+
   groups.forEach((id) => {
     const wrap = document.getElementById(id);
     const trigger = document.getElementById(`${id}Trigger`);
@@ -7736,6 +7752,7 @@ function setupDesktopNavDropdowns() {
       const isOpen = !menu.hidden;
       closeAllNavDropdowns();
       if (!isOpen) {
+        positionMenu(trigger, menu);
         wrap.classList.add("open");
         trigger.setAttribute("aria-expanded", "true");
         menu.hidden = false;
@@ -7754,6 +7771,11 @@ function setupDesktopNavDropdowns() {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closeAllNavDropdowns();
   });
+  // Fixed-position menus don't move with the page, so if the nav row itself
+  // scrolls (it's horizontally scrollable on narrower widths) or the window
+  // resizes, just close rather than trying to track the trigger.
+  document.getElementById("pageNav")?.addEventListener("scroll", () => closeAllNavDropdowns());
+  window.addEventListener("resize", () => closeAllNavDropdowns());
 }
 
 // ------------ Grid density ------------
