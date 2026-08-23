@@ -5,7 +5,7 @@
 //   • CDN assets (Chart.js, Tabler icons, etc.) → Stale While Revalidate
 //   • Everything else → Network First with offline fallback
 
-const CACHE_VERSION = 'spinvinyl-v6';
+const CACHE_VERSION = 'spinvinyl-v7';
 const SHELL_CACHE   = `${CACHE_VERSION}-shell`;
 const CDN_CACHE     = `${CACHE_VERSION}-cdn`;
 
@@ -142,9 +142,13 @@ async function cacheFirstWithFallback(request) {
 }
 
 // Network First: try network, fall back to cache
+// cache: 'no-store' ensures this actually hits the network rather than the
+// browser's own HTTP cache silently serving a stale response underneath us —
+// otherwise a GitHub Pages cache-control header could mask fresh deploys
+// even though this function is "trying" the network first.
 async function networkFirst(request) {
   try {
-    const response = await fetch(request);
+    const response = await fetch(request, { cache: 'no-store' });
     if (response.ok) {
       const cache = await caches.open(SHELL_CACHE);
       cache.put(request, response.clone());
