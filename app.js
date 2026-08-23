@@ -11736,6 +11736,14 @@ const AVATAR_PRESETS = [
 ];
 let authMode = "signin"; // "signin" | "signup"
 
+// ── DIAGNOSTIC ONLY (iOS login bug investigation) ──────────────────────────
+// Tracks the timestamp of the most recent successful sign-in so we can tell,
+// in onAuthStateChange below, whether a SIGNED_OUT event is a real user
+// action or a spurious event firing right after login (suspected iOS Safari
+// Web Locks API issue). Does NOT change any auth behavior — logging only.
+// Safe to remove once the bug is confirmed/fixed.
+let __diagLastSignInAt = null;
+
 function showAuthOverlay(show) {
   console.log("[AUTH] showAuthOverlay:", show, new Date().toISOString(), new Error().stack?.split('\n')[2]?.trim());
   const overlay = document.getElementById("authOverlay");
@@ -12028,6 +12036,7 @@ function onSignedIn(user) {
 
 async function onSignedInInternal(user) {
   console.log("[AUTH] onSignedIn called, currentUser was:", currentUser?.email, "new user:", user.email);
+  __diagLastSignInAt = Date.now(); // DIAGNOSTIC ONLY — see note near authMode declaration
   const isFirstLoad = !currentUser;
   currentUser = user;
 
@@ -14018,6 +14027,21 @@ function setupAuth() {
 
   supabaseClient.auth.onAuthStateChange((event, session) => {
     console.log("[AUTH]", event, session ? "has session" : "no session", new Date().toISOString());
+
+    // DIAGNOSTIC ONLY — see note near authMode declaration. Does not change
+    // behavior; onSignedOut() still runs exactly as before on SIGNED_OUT.
+    if (event === "SIGNED_OUT") {
+      const msSinceSignIn = __diagLastSignInAt ? Date.now() - __diagLastSignInAt : null;
+      if (msSinceSignIn !== null && msSinceSignIn < 5000) {
+        console.warn(
+          "[AUTH][DIAG] SUSPICIOUS: SIGNED_OUT fired", msSinceSignIn,
+          "ms after a successful sign-in. This may be a spurious event rather than a real sign-out — investigate before trusting it."
+        );
+      } else {
+        console.log("[AUTH][DIAG] SIGNED_OUT — ms since last sign-in:", msSinceSignIn);
+      }
+    }
+
     if (session?.user) {
       onSignedIn(session.user);
     } else if (event === "SIGNED_OUT") {
