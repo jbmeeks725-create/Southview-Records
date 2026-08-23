@@ -2106,6 +2106,25 @@ function renderRecentlyAdded() {
 // T14: Listening log — one-tap "I listened to this" with optional history.
 let listeningLog = [];
 
+// ── Wall of Fame data ────────────────────────────────────────────────────
+let wallOfFameEntries = [];
+
+async function loadWallOfFameEntries() {
+  if (!currentUser) { wallOfFameEntries = []; return; }
+  try {
+    const { data, error } = await supabaseClient
+      .from("wall_of_fame_entries")
+      .select("id, record_id, position, snippet, superlative_tags")
+      .eq("user_id", currentUser.id)
+      .order("position", { ascending: true });
+    if (error) throw error;
+    wallOfFameEntries = data || [];
+  } catch (e) {
+    console.error("Failed to load Wall of Fame:", e);
+    wallOfFameEntries = [];
+  }
+}
+
 async function loadListeningLog() {
   if (!currentUser) return;
   try {
@@ -3552,6 +3571,324 @@ function renderAlbumSpotlightPickerList(query) {
   });
 }
 
+// ── Wall of Fame: view, story modal, and editor ──────────────────────────
+
+function buildWallOfFameTagChips(tagIds, { tooltip = true } = {}) {
+  const wrap = document.createElement("div");
+  wrap.className = "wall-of-fame-tags";
+  (tagIds || []).forEach((tagId) => {
+    const tag = SUPERLATIVE_TAG_MAP[tagId];
+    if (!tag) return;
+    const chip = document.createElement("span");
+    chip.className = "journal-tag-chip";
+    chip.textContent = tag.label;
+    wrap.appendChild(chip);
+    if (tooltip) {
+      const icon = document.createElement("button");
+      icon.type = "button";
+      icon.className = "field-tooltip-icon";
+      icon.dataset.tooltip = `wof_${tag.id}`;
+      icon.setAttribute("aria-label", `What does ${tag.label} mean?`);
+      icon.textContent = "?";
+      wrap.appendChild(icon);
+    }
+  });
+  return wrap;
+}
+
+function buildWallOfFameTile(entry, record) {
+  const tile = document.createElement("div");
+  tile.className = "wall-of-fame-tile";
+
+  const cover = document.createElement("img");
+  cover.className = "wall-of-fame-cover";
+  cover.src = record.cover_url || "icon-512.png";
+  cover.alt = `${record.album} cover`;
+  tile.appendChild(cover);
+
+  const title = document.createElement("p");
+  title.className = "wall-of-fame-title";
+  title.textContent = `${record.artist} — ${record.album}`;
+  tile.appendChild(title);
+
+  if (record.genre_name) {
+    const genre = document.createElement("p");
+    genre.className = "wall-of-fame-genre";
+    genre.textContent = record.genre_name;
+    tile.appendChild(genre);
+  }
+
+  if (entry.snippet) {
+    const snippet = document.createElement("p");
+    snippet.className = "wall-of-fame-snippet";
+    snippet.textContent = entry.snippet;
+    tile.appendChild(snippet);
+  }
+
+  if (entry.superlative_tags?.length) {
+    tile.appendChild(buildWallOfFameTagChips(entry.superlative_tags));
+  }
+
+  tile.addEventListener("click", (e) => {
+    if (e.target.closest(".field-tooltip-icon")) return; // let the tooltip handle its own click
+    openWallOfFameStoryModal(entry, record);
+  });
+
+  return tile;
+}
+
+function renderWallOfFame() {
+  const view = document.getElementById("wallOfFameView");
+  const empty = document.getElementById("wallOfFameEmpty");
+  if (!view || !empty) return;
+
+  view.innerHTML = "";
+
+  if (!wallOfFameEntries.length) {
+    empty.hidden = false;
+    return;
+  }
+  empty.hidden = true;
+
+  wallOfFameEntries.forEach((entry) => {
+    const record = allRecords.find((r) => r.id === entry.record_id);
+    if (!record) return;
+    view.appendChild(buildWallOfFameTile(entry, record));
+  });
+}
+
+function openWallOfFameStoryModal(entry, record) {
+  document.getElementById("wallOfFameStoryCover").src = record.cover_url || "icon-512.png";
+  document.getElementById("wallOfFameStoryAlbum").textContent = record.album || "";
+  document.getElementById("wallOfFameStoryArtist").textContent = record.artist || "";
+
+  const tagsWrap = document.getElementById("wallOfFameStoryTags");
+  tagsWrap.innerHTML = "";
+  if (entry.superlative_tags?.length) {
+    tagsWrap.appendChild(buildWallOfFameTagChips(entry.superlative_tags));
+  }
+
+  document.getElementById("wallOfFameStoryText").textContent =
+    record.personal_story?.trim() || "No story added yet for this record.";
+
+  document.getElementById("wallOfFameStoryOverlay").hidden = false;
+}
+
+function closeWallOfFameStoryModal() {
+  document.getElementById("wallOfFameStoryOverlay").hidden = true;
+}
+
+// ── Editor ────────────────────────────────────────────────────────────
+// In-progress state while the picker is open: { record_id, snippet, tags[] }
+let wallOfFameDraft = [];
+
+function getWallOfFameDraftFor(recordId) {
+  return wallOfFameDraft.find((d) => d.record_id === recordId) || null;
+}
+
+function updateWallOfFameCountHint() {
+  const hint = document.getElementById("wallOfFameCountHint");
+  if (hint) hint.textContent = `${wallOfFameDraft.length} / 10 selected`;
+}
+
+function openWallOfFameEditor() {
+  const picker = document.getElementById("wallOfFamePicker");
+  const view = document.getElementById("wallOfFameView");
+  const empty = document.getElementById("wallOfFameEmpty");
+  picker.hidden = false;
+  view.hidden = true;
+  empty.hidden = true;
+
+  wallOfFameDraft = wallOfFameEntries.map((e) => ({
+    record_id: e.record_id,
+    snippet: e.snippet || "",
+    tags: [...(e.superlative_tags || [])],
+  }));
+
+  document.getElementById("wallOfFameSearch").value = "";
+  document.getElementById("wallOfFameStatus").textContent = "";
+  updateWallOfFameCountHint();
+  renderWallOfFamePickerList("");
+}
+
+function closeWallOfFameEditor() {
+  document.getElementById("wallOfFamePicker").hidden = true;
+  document.getElementById("wallOfFameView").hidden = false;
+  document.getElementById("wallOfFameEmpty").hidden = wallOfFameEntries.length > 0;
+  wallOfFameDraft = [];
+}
+
+function renderWallOfFamePickerConfig(row, draft) {
+  let config = row.querySelector(".wall-of-fame-pick-config");
+  if (config) config.remove();
+  if (!draft) return;
+
+  config = document.createElement("div");
+  config.className = "wall-of-fame-pick-config";
+
+  const snippetInput = document.createElement("input");
+  snippetInput.type = "text";
+  snippetInput.maxLength = 120;
+  snippetInput.placeholder = "Short snippet — what does this record mean to you? (max 120 chars)";
+  snippetInput.value = draft.snippet;
+  snippetInput.addEventListener("click", (e) => e.stopPropagation());
+  snippetInput.addEventListener("input", () => { draft.snippet = snippetInput.value; });
+  config.appendChild(snippetInput);
+
+  const tagWrap = document.createElement("div");
+  tagWrap.className = "wall-of-fame-tag-options";
+  SUPERLATIVE_TAGS.forEach((tag) => {
+    const option = document.createElement("span");
+    option.className = "wall-of-fame-tag-option";
+
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "survey-chip" + (draft.tags.includes(tag.id) ? " selected" : "");
+    chip.textContent = tag.label;
+    chip.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = draft.tags.indexOf(tag.id);
+      if (idx !== -1) {
+        draft.tags.splice(idx, 1);
+        chip.classList.remove("selected");
+      } else {
+        if (draft.tags.length >= 2) {
+          document.getElementById("wallOfFameStatus").textContent = "Max 2 tags per record — remove one first.";
+          return;
+        }
+        draft.tags.push(tag.id);
+        chip.classList.add("selected");
+      }
+      document.getElementById("wallOfFameStatus").textContent = "";
+    });
+
+    const info = document.createElement("button");
+    info.type = "button";
+    info.className = "field-tooltip-icon";
+    info.dataset.tooltip = `wof_${tag.id}`;
+    info.setAttribute("aria-label", `What does ${tag.label} mean?`);
+    info.textContent = "?";
+    info.addEventListener("click", (e) => e.stopPropagation());
+
+    option.appendChild(chip);
+    option.appendChild(info);
+    tagWrap.appendChild(option);
+  });
+  config.appendChild(tagWrap);
+
+  row.appendChild(config);
+}
+
+function renderWallOfFamePickerList(query) {
+  const list = document.getElementById("wallOfFamePickerList");
+  list.innerHTML = "";
+  const q = query.toLowerCase();
+
+  const filtered = allRecords
+    .filter((r) => !q || (r.artist + " " + r.album).toLowerCase().includes(q))
+    .slice(0, 60);
+
+  filtered.forEach((r) => {
+    const row = document.createElement("div");
+    const draft = getWallOfFameDraftFor(r.id);
+    row.className = "wall-of-fame-pick-row" + (draft ? " selected" : "");
+
+    const main = document.createElement("div");
+    main.className = "wall-of-fame-pick-main";
+
+    const cover = document.createElement("img");
+    cover.className = "wall-of-fame-pick-cover";
+    cover.src = r.cover_url || "icon-512.png";
+    cover.alt = "";
+    main.appendChild(cover);
+
+    const info = document.createElement("div");
+    info.className = "wall-of-fame-pick-info";
+    info.innerHTML = `<p class="wall-of-fame-pick-album">${r.album || ""}</p><p class="wall-of-fame-pick-artist">${r.artist || ""}</p>`;
+    main.appendChild(info);
+
+    const check = document.createElement("div");
+    check.className = "wall-of-fame-pick-check";
+    check.innerHTML = '<i class="ti ti-check"></i>';
+    main.appendChild(check);
+
+    main.addEventListener("click", () => {
+      const existing = getWallOfFameDraftFor(r.id);
+      if (existing) {
+        wallOfFameDraft = wallOfFameDraft.filter((d) => d.record_id !== r.id);
+        row.classList.remove("selected");
+        renderWallOfFamePickerConfig(row, null);
+      } else {
+        if (wallOfFameDraft.length >= 10) {
+          document.getElementById("wallOfFameStatus").textContent = "Max 10 records — deselect one first.";
+          return;
+        }
+        const newDraft = { record_id: r.id, snippet: "", tags: [] };
+        wallOfFameDraft.push(newDraft);
+        row.classList.add("selected");
+        renderWallOfFamePickerConfig(row, newDraft);
+      }
+      document.getElementById("wallOfFameStatus").textContent = "";
+      updateWallOfFameCountHint();
+    });
+
+    row.appendChild(main);
+    if (draft) renderWallOfFamePickerConfig(row, draft);
+    list.appendChild(row);
+  });
+}
+
+async function saveWallOfFame() {
+  const statusEl = document.getElementById("wallOfFameStatus");
+  const saveBtn = document.getElementById("saveWallOfFameBtn");
+  saveBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    const { error: deleteError } = await supabaseClient
+      .from("wall_of_fame_entries")
+      .delete()
+      .eq("user_id", currentUser.id);
+    if (deleteError) throw deleteError;
+
+    if (wallOfFameDraft.length) {
+      const rows = wallOfFameDraft.map((d, idx) => ({
+        user_id: currentUser.id,
+        record_id: d.record_id,
+        position: idx + 1,
+        snippet: d.snippet.trim() || null,
+        superlative_tags: d.tags,
+      }));
+      const { error: insertError } = await supabaseClient
+        .from("wall_of_fame_entries")
+        .insert(rows);
+      if (insertError) throw insertError;
+    }
+
+    await loadWallOfFameEntries();
+    renderWallOfFame();
+    closeWallOfFameEditor();
+  } catch (err) {
+    console.error("Failed to save Wall of Fame:", err);
+    statusEl.textContent = "Couldn't save. Has migration_wall_of_fame.sql been run in Supabase?";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+function setupWallOfFame() {
+  document.getElementById("editWallOfFameBtn")?.addEventListener("click", () => openWallOfFameEditor());
+  document.getElementById("cancelWallOfFameBtn")?.addEventListener("click", () => closeWallOfFameEditor());
+  document.getElementById("saveWallOfFameBtn")?.addEventListener("click", () => saveWallOfFame());
+  document.getElementById("wallOfFameSearch")?.addEventListener("input", (e) => renderWallOfFamePickerList(e.target.value));
+  document.getElementById("wallOfFameStoryCloseBtn")?.addEventListener("click", () => closeWallOfFameStoryModal());
+  document.getElementById("wallOfFameStoryOverlay")?.addEventListener("click", (e) => {
+    if (e.target.id === "wallOfFameStoryOverlay") closeWallOfFameStoryModal();
+  });
+}
+
 function setupProfileSpotlights() {
   // Trophy spotlight
   document.getElementById("editTrophySpotlightBtn")?.addEventListener("click", () => openTrophySpotlightPicker());
@@ -3686,6 +4023,7 @@ function renderProfile() {
   renderSystemView();
   renderTrophySpotlight();
   renderAlbumSpotlight();
+  renderWallOfFame();
 }
 
 // ------------ Profile editing ------------
@@ -4031,6 +4369,7 @@ async function handleAvatarFileChange(event) {
 
 function setupProfile() {
   setupProfileSpotlights();
+  setupWallOfFame();
   setupShopsEditor();
   document.getElementById("editBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", true));
   document.getElementById("cancelBasicsBtn").addEventListener("click", () => toggleProfileEdit("basics", false));
@@ -10203,7 +10542,7 @@ function getSharedViewParams() {
   const share = params.get("share");
   const uid = params.get("uid");
   console.log("[SPIN] share:", share, "uid:", uid);
-  if ((share === "wishlist" || share === "collection" || share === "trophies") && uid) {
+  if ((share === "wishlist" || share === "collection" || share === "trophies" || share === "wallOfFame") && uid) {
     return { share, uid };
   }
   return null;
@@ -10234,6 +10573,12 @@ async function maybeShowSharedWishlist() {
   if (params.share === "trophies") {
     document.getElementById("sharedTrophiesView").hidden = false;
     await renderSharedTrophies(params.uid);
+    return true;
+  }
+
+  if (params.share === "wallOfFame") {
+    document.getElementById("sharedWallOfFameView").hidden = false;
+    await renderSharedWallOfFame(params.uid);
     return true;
   }
 
@@ -10429,6 +10774,56 @@ async function renderSharedCollection(uid) {
   } catch (err) {
     console.error("Failed to load shared collection:", err);
     document.getElementById("sharedCollectionError").hidden = false;
+  }
+}
+
+async function renderSharedWallOfFame(uid) {
+  try {
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("preferred_name, username, collection_public")
+      .eq("user_id", uid)
+      .maybeSingle();
+
+    if (profileError || !profile || !profile.collection_public) {
+      document.getElementById("sharedWallOfFameError").hidden = false;
+      return;
+    }
+
+    const ownerName =
+      profile.preferred_name ||
+      (profile.username ? `@${profile.username}` : "Someone's");
+    document.getElementById("sharedWallOfFameOwnerName").textContent =
+      `${ownerName}'s Wall of Fame`;
+    document.title = `${ownerName}'s Wall of Fame — SPIN VINYL`;
+
+    const { data: entries, error: entriesError } = await supabaseClient
+      .from("wall_of_fame_entries")
+      .select("id, position, snippet, superlative_tags, records ( id, artist, album, cover_url, personal_story, genres ( name ) )")
+      .eq("user_id", uid)
+      .order("position", { ascending: true });
+
+    if (entriesError) throw entriesError;
+
+    const grid = document.getElementById("sharedWallOfFameGrid");
+    const emptyEl = document.getElementById("sharedWallOfFameEmpty");
+    grid.innerHTML = "";
+
+    if (!entries || entries.length === 0) {
+      emptyEl.hidden = false;
+      return;
+    }
+
+    entries.forEach((entry) => {
+      const record = entry.records;
+      if (!record) return;
+      const normalizedRecord = { ...record, genre_name: record.genres?.name || "" };
+      const normalizedEntry = { snippet: entry.snippet, superlative_tags: entry.superlative_tags };
+      grid.appendChild(buildWallOfFameTile(normalizedEntry, normalizedRecord));
+    });
+  } catch (err) {
+    console.error("Failed to load shared Wall of Fame:", err);
+    document.getElementById("sharedWallOfFameError").hidden = false;
   }
 }
 
@@ -11827,6 +12222,11 @@ async function loadData() {
     // T14: listening log — non-blocking, doesn't need to hold up the rest
     // of the app rendering
     loadListeningLog();
+
+    // Wall of Fame — non-blocking, refreshes the Profile card once loaded
+    loadWallOfFameEntries().then(() => {
+      if (currentPage === "profile") renderWallOfFame();
+    });
 
   } catch (err) {
     console.error(err);
@@ -17323,6 +17723,29 @@ function setupCareHub() {
 }
 
 // ── T5: field education tooltips ────────────────────────────────────────────
+// ── Wall of Fame: superlative tag vocabulary ────────────────────────────
+// Fixed set, not free text, so the grid stays visually consistent — capped
+// at 2 per entry in the editor. Each has a short exposition shown via the
+// existing field-tooltip-icon popover system.
+const SUPERLATIVE_TAGS = [
+  { id: "hiddenGem", label: "Hidden Gem", exposition: "Most folks just don't know." },
+  { id: "deepCutDelight", label: "Deep Cut Delight", exposition: "Have you heard side B?" },
+  { id: "underrated", label: "Underrated", exposition: "The critics are WRONG." },
+  { id: "holyGrail", label: "Holy Grail", exposition: "Hard-to-find pressing or long hunt." },
+  { id: "sonicMarvel", label: "Sonic Marvel", exposition: "Can you believe how good this sounds?" },
+  { id: "studioMagic", label: "Studio Magic", exposition: "The mix really makes it." },
+  { id: "allTheFeels", label: "All the Feels", exposition: "Straight to the heart." },
+  { id: "comfortRecord", label: "Comfort Record", exposition: "Sometimes you just need a sonic hug." },
+  { id: "passedDown", label: "Passed Down", exposition: "Inherited/gifted with love." },
+  { id: "nostalgiaTrip", label: "Nostalgia Trip", exposition: "A walk down memory lane." },
+  { id: "lifeSoundtrack", label: "Life Soundtrack", exposition: "My movie OST." },
+  { id: "gatewayAlbum", label: "Gateway Album", exposition: "Introduced them to a genre/artist." },
+  { id: "trueFansOnly", label: "True Fans Only", exposition: "You really need to love this artist." },
+  { id: "turnItUp", label: "Turn It Up", exposition: "Must be played LOUD." },
+  { id: "rainyDayRecord", label: "Rainy Day Record", exposition: "Best when skies are grey." },
+];
+const SUPERLATIVE_TAG_MAP = Object.fromEntries(SUPERLATIVE_TAGS.map((t) => [t.id, t]));
+
 const FIELD_TOOLTIP_CONTENT = {
   grade: `
     <strong>Condition grading</strong><br>
@@ -17354,6 +17777,10 @@ const FIELD_TOOLTIP_CONTENT = {
     of showing everything on the day you imported.
   `,
 };
+
+SUPERLATIVE_TAGS.forEach((t) => {
+  FIELD_TOOLTIP_CONTENT[`wof_${t.id}`] = `<strong>${t.label}</strong><br>${t.exposition}`;
+});
 
 function setupFieldTooltips() {
   const popover = document.getElementById("fieldTooltipPopover");
