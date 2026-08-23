@@ -2260,13 +2260,20 @@ function maybeShowWelcomeBanner() {
   }, 4000);
 }
 
-// ── Spotlight auto-rotation: cycles ambiently through a few recently
-// added records with a cross-fade, so the home page doesn't sit static.
-// Pauses on hover, and skips entirely once the Home page is off-screen. ──
+// ── Spotlight auto-rotation: cycles ambiently through the collection with
+// a cross-fade, so the home page doesn't sit static. Pauses on hover, and
+// skips entirely once the Home page is off-screen. ──
+//
+// Pool was previously capped at the 5 most-recently-added records, which
+// made the rotation feel repetitive for anyone who hadn't added new records
+// lately (or whose recent adds included "dislike"-rated ones that get
+// filtered out, shrinking the effective pool further). Widened to draw from
+// a much larger slice of the collection. Interval slowed from 9s to 16s to
+// give people time to actually read the story/description before it fades.
 let spotlightAutoTimer = null;
 
 function getSpotlightRotationPool() {
-  const recent = [...allRecords].sort((a, b) => b.id - a.id).slice(0, 5);
+  const recent = [...allRecords].sort((a, b) => b.id - a.id).slice(0, 25);
   const eligible = recent.filter((r) => r.rating !== "dislike");
   return (eligible.length > 1 ? eligible : recent).map((r) => r.id);
 }
@@ -2297,7 +2304,7 @@ function startSpotlightAutoRotate() {
       renderSpotlight();
       content.classList.remove("spotlight-fading");
     }, 260);
-  }, 9000);
+  }, 16000);
 }
 
 // ------------ Profile data ------------
