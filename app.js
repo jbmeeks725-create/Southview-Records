@@ -2111,7 +2111,7 @@ async function loadListeningLog() {
   try {
     const { data, error } = await supabaseClient
       .from("listening_log")
-      .select("id, record_id, listened_at")
+      .select("id, record_id, listened_at, mood, occasion, notes")
       .eq("user_id", currentUser.id)
       .order("listened_at", { ascending: false })
       .limit(200);
@@ -2123,23 +2123,107 @@ async function loadListeningLog() {
   }
 }
 
+// Story/Journal layer: id of the most recently created listening_log entry,
+// so the optional mood/occasion/notes quick-add panel knows what to update.
+let journalQuickAddEntryId = null;
+let journalQuickAddMood = null;
+let journalQuickAddOccasion = null;
+
 async function logListen(recordId) {
   if (!currentUser) return;
   try {
     const { data, error } = await supabaseClient
       .from("listening_log")
       .insert({ user_id: currentUser.id, record_id: recordId })
-      .select("id, record_id, listened_at")
+      .select("id, record_id, listened_at, mood, occasion, notes")
       .single();
     if (error) throw error;
     listeningLog.unshift(data);
     showToast("Logged — enjoy the record!");
     updateLastListenedText(recordId);
     renderRecentlyPlayed();
+    openJournalQuickAdd(data.id);
   } catch (e) {
     console.error("Failed to log listen:", e);
     showToast("Couldn't log that — try again.");
   }
+}
+
+function openJournalQuickAdd(entryId) {
+  const panel = document.getElementById("journalQuickAdd");
+  if (!panel) return;
+  journalQuickAddEntryId = entryId;
+  journalQuickAddMood = null;
+  journalQuickAddOccasion = null;
+  panel.querySelectorAll(".survey-chip").forEach((chip) => chip.classList.remove("selected"));
+  const notes = document.getElementById("journalQuickNotes");
+  if (notes) notes.value = "";
+  panel.hidden = false;
+}
+
+function closeJournalQuickAdd() {
+  const panel = document.getElementById("journalQuickAdd");
+  if (panel) panel.hidden = true;
+  journalQuickAddEntryId = null;
+}
+
+function setupJournalQuickAdd() {
+  const panel = document.getElementById("journalQuickAdd");
+  if (!panel) return;
+
+  document.getElementById("journalMoodChips")?.querySelectorAll(".survey-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const alreadySelected = chip.classList.contains("selected");
+      document.getElementById("journalMoodChips").querySelectorAll(".survey-chip").forEach((c) => c.classList.remove("selected"));
+      if (!alreadySelected) {
+        chip.classList.add("selected");
+        journalQuickAddMood = chip.dataset.mood;
+      } else {
+        journalQuickAddMood = null;
+      }
+    });
+  });
+
+  document.getElementById("journalOccasionChips")?.querySelectorAll(".survey-chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      const alreadySelected = chip.classList.contains("selected");
+      document.getElementById("journalOccasionChips").querySelectorAll(".survey-chip").forEach((c) => c.classList.remove("selected"));
+      if (!alreadySelected) {
+        chip.classList.add("selected");
+        journalQuickAddOccasion = chip.dataset.occasion;
+      } else {
+        journalQuickAddOccasion = null;
+      }
+    });
+  });
+
+  document.getElementById("journalQuickSkipBtn")?.addEventListener("click", () => closeJournalQuickAdd());
+
+  document.getElementById("journalQuickSaveBtn")?.addEventListener("click", async () => {
+    if (!journalQuickAddEntryId) {
+      closeJournalQuickAdd();
+      return;
+    }
+    const notes = document.getElementById("journalQuickNotes")?.value.trim() || null;
+    const updates = { mood: journalQuickAddMood, occasion: journalQuickAddOccasion, notes };
+    try {
+      const { error } = await supabaseClient
+        .from("listening_log")
+        .update(updates)
+        .eq("id", journalQuickAddEntryId);
+      if (error) throw error;
+      const entry = listeningLog.find((l) => l.id === journalQuickAddEntryId);
+      if (entry) Object.assign(entry, updates);
+      showToast("Details saved to your journal.");
+      if (currentPage === "journal") renderJournal();
+      renderOnThisDay();
+    } catch (e) {
+      console.error("Failed to save journal details:", e);
+      showToast("Couldn't save those details — try again.");
+    } finally {
+      closeJournalQuickAdd();
+    }
+  });
 }
 
 function updateLastListenedText(recordId) {
@@ -2194,6 +2278,211 @@ function renderRecentlyPlayed() {
   });
 }
 
+// ── Journal display labels ──────────────────────────────────────────────
+const JOURNAL_MOOD_LABELS = {
+  comfort: "Comfort Listen",
+  nostalgic: "Nostalgic",
+  energized: "Energized",
+  reflective: "Reflective",
+  celebratory: "Celebratory",
+};
+const JOURNAL_OCCASION_LABELS = {
+  alone: "On My Own",
+  withpeople: "With Friends/Family",
+  rainyday: "Rainy Day",
+  latenight: "Late Night",
+  background: "Background",
+};
+
+function buildJournalEntryEl(entry, record) {
+  const item = document.createElement("div");
+  item.className = "journal-entry";
+
+  const cover = document.createElement("img");
+  cover.className = "journal-entry-cover";
+  cover.src = record.cover_url || "icon-512.png";
+  cover.alt = `${record.album} cover`;
+  item.appendChild(cover);
+
+  const body = document.createElement("div");
+  body.className = "journal-entry-body";
+
+  const header = document.createElement("div");
+  header.className = "journal-entry-header";
+  const titleWrap = document.createElement("div");
+  const artistEl = document.createElement("div");
+  artistEl.className = "journal-entry-artist";
+  artistEl.textContent = record.artist;
+  const albumEl = document.createElement("div");
+  albumEl.className = "journal-entry-album";
+  albumEl.textContent = record.album;
+  titleWrap.appendChild(artistEl);
+  titleWrap.appendChild(albumEl);
+  const dateEl = document.createElement("div");
+  dateEl.className = "journal-entry-date";
+  dateEl.textContent = new Date(entry.listened_at).toLocaleDateString();
+  header.appendChild(titleWrap);
+  header.appendChild(dateEl);
+  body.appendChild(header);
+
+  if (entry.mood || entry.occasion) {
+    const tags = document.createElement("div");
+    tags.className = "journal-entry-tags";
+    if (entry.mood) {
+      const chip = document.createElement("span");
+      chip.className = "journal-tag-chip";
+      chip.textContent = JOURNAL_MOOD_LABELS[entry.mood] || entry.mood;
+      tags.appendChild(chip);
+    }
+    if (entry.occasion) {
+      const chip = document.createElement("span");
+      chip.className = "journal-tag-chip";
+      chip.textContent = JOURNAL_OCCASION_LABELS[entry.occasion] || entry.occasion;
+      tags.appendChild(chip);
+    }
+    body.appendChild(tags);
+  }
+
+  if (entry.notes) {
+    const notesEl = document.createElement("p");
+    notesEl.className = "journal-entry-notes";
+    notesEl.textContent = entry.notes;
+    body.appendChild(notesEl);
+  }
+
+  item.appendChild(body);
+  item.addEventListener("click", () => openRecordDetailModal(record.id));
+  return item;
+}
+
+function renderJournal() {
+  const timeline = document.getElementById("journalTimeline");
+  const empty = document.getElementById("journalEmptyState");
+  if (!timeline || !empty) return;
+
+  if (!listeningLog.length) {
+    empty.hidden = false;
+    timeline.innerHTML = "";
+    renderJournalOnThisDay();
+    return;
+  }
+  empty.hidden = true;
+
+  const moodFilter = document.getElementById("journalMoodFilter")?.value || "";
+  const occasionFilter = document.getElementById("journalOccasionFilter")?.value || "";
+
+  const filtered = listeningLog.filter((entry) => {
+    if (moodFilter && entry.mood !== moodFilter) return false;
+    if (occasionFilter && entry.occasion !== occasionFilter) return false;
+    return true;
+  });
+
+  timeline.innerHTML = "";
+  filtered.forEach((entry) => {
+    const record = allRecords.find((r) => r.id === entry.record_id);
+    if (!record) return;
+    timeline.appendChild(buildJournalEntryEl(entry, record));
+  });
+
+  if (!filtered.length) {
+    const noMatch = document.createElement("p");
+    noMatch.className = "empty-hint";
+    noMatch.textContent = "No journal entries match those filters.";
+    timeline.appendChild(noMatch);
+  }
+
+  renderJournalOnThisDay();
+}
+
+function setupJournalFilters() {
+  document.getElementById("journalMoodFilter")?.addEventListener("change", renderJournal);
+  document.getElementById("journalOccasionFilter")?.addEventListener("change", renderJournal);
+}
+
+// ── On This Day ──────────────────────────────────────────────────────────
+// Surfaces listening_log entries whose logged date matches today's month/day
+// in a prior year — a lightweight nudge that a record meant something to you
+// before, without needing a separate table or query.
+function getOnThisDayEntries() {
+  const today = new Date();
+  const todayMonth = today.getMonth();
+  const todayDate = today.getDate();
+  const thisYear = today.getFullYear();
+
+  const seen = new Set();
+  const matches = [];
+  for (const entry of listeningLog) {
+    const d = new Date(entry.listened_at);
+    if (d.getMonth() !== todayMonth || d.getDate() !== todayDate) continue;
+    if (d.getFullYear() === thisYear) continue; // only prior years, not today's own log
+    if (seen.has(entry.record_id)) continue; // one card per album, most recent match
+    seen.add(entry.record_id);
+    matches.push({ entry, yearsAgo: thisYear - d.getFullYear() });
+  }
+  return matches;
+}
+
+function buildOnThisDayItem(match) {
+  const record = allRecords.find((r) => r.id === match.entry.record_id);
+  if (!record) return null;
+
+  const item = document.createElement("div");
+  item.className = "mini-list-item";
+  item.appendChild(buildMiniCover(record.cover_url, `${record.album} cover`));
+
+  const info = document.createElement("div");
+  info.className = "mini-info";
+  const artistEl = document.createElement("div");
+  artistEl.className = "mini-artist";
+  artistEl.textContent = record.artist;
+  const albumEl = document.createElement("div");
+  albumEl.className = "mini-album";
+  const yearWord = match.yearsAgo === 1 ? "1 year ago" : `${match.yearsAgo} years ago`;
+  albumEl.textContent = `${record.album} — you listened ${yearWord} today`;
+  info.appendChild(artistEl);
+  info.appendChild(albumEl);
+  item.appendChild(info);
+
+  item.addEventListener("click", () => openRecordDetailModal(record.id));
+  return item;
+}
+
+function renderOnThisDay() {
+  const card = document.getElementById("homeOnThisDayCard");
+  const list = document.getElementById("homeOnThisDayList");
+  if (!card || !list) return;
+
+  const matches = getOnThisDayEntries();
+  if (!matches.length) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  list.innerHTML = "";
+  matches.slice(0, 5).forEach((m) => {
+    const el = buildOnThisDayItem(m);
+    if (el) list.appendChild(el);
+  });
+}
+
+function renderJournalOnThisDay() {
+  const wrap = document.getElementById("journalOnThisDayWrap");
+  const list = document.getElementById("journalOnThisDayList");
+  if (!wrap || !list) return;
+
+  const matches = getOnThisDayEntries();
+  if (!matches.length) {
+    wrap.hidden = true;
+    return;
+  }
+  wrap.hidden = false;
+  list.innerHTML = "";
+  matches.forEach((m) => {
+    const el = buildOnThisDayItem(m);
+    if (el) list.appendChild(el);
+  });
+}
+
 function renderWishlistHighlights() {
   const list = document.getElementById("wishlistHighlightList");
   list.innerHTML = "";
@@ -2237,6 +2526,7 @@ function renderHome() {
   renderStats();
   renderHomeHero();
   renderSpotlight();
+  renderOnThisDay();
   renderRecentlyAdded();
   renderRecentlyPlayed();
   renderWishlistHighlights();
@@ -7237,6 +7527,7 @@ function setPage(page, { skipPersist = false } = {}) {
   const tasteProfileBtn = document.getElementById("tasteProfilePageBtn");
   const genreEvolutionBtn = document.getElementById("genreEvolutionPageBtn");
   const trophiesBtn = document.getElementById("trophiesPageBtn");
+  const journalBtn = document.getElementById("journalPageBtn");
   const collectionValueBtn = document.getElementById("collectionValuePageBtn");
   const collectionInsightsBtn = document.getElementById("collectionInsightsPageBtn");
   const communityBtn = document.getElementById("communityPageBtn");
@@ -7248,6 +7539,7 @@ function setPage(page, { skipPersist = false } = {}) {
   const tasteProfileSection = document.getElementById("tasteProfileSection");
   const genreEvolutionSection = document.getElementById("genreEvolutionSection");
   const trophiesSection = document.getElementById("trophiesSection");
+  const journalSection = document.getElementById("journalSection");
   const collectionDnaSection = document.getElementById("collectionDnaSection");
   const atAGlanceSection = document.getElementById("atAGlanceSection");
   const cardSection = document.getElementById("cardSection");
@@ -7267,6 +7559,7 @@ function setPage(page, { skipPersist = false } = {}) {
   const isTasteProfile = page === "tasteProfile";
   const isGenreEvolution = page === "genreEvolution";
   const isTrophies = page === "trophies";
+  const isJournal = page === "journal";
   const isAdmin = page === "admin";
   const isCollectionValue = page === "collectionValue";
   const isCollectionInsights = page === "collectionInsights";
@@ -7280,6 +7573,7 @@ function setPage(page, { skipPersist = false } = {}) {
     [tasteProfileBtn, isTasteProfile],
     [genreEvolutionBtn, isGenreEvolution],
     [trophiesBtn, isTrophies],
+    [journalBtn, isJournal],
     [collectionValueBtn, isCollectionValue],
     [collectionInsightsBtn, isCollectionInsights],
     [communityBtn, isCommunity],
@@ -7296,6 +7590,7 @@ function setPage(page, { skipPersist = false } = {}) {
   tasteProfileSection.hidden = !isTasteProfile;
   genreEvolutionSection.hidden = !isGenreEvolution;
   trophiesSection.hidden = !isTrophies;
+  if (journalSection) journalSection.hidden = !isJournal;
   collectionDnaSection.hidden = !isCollection;
   atAGlanceSection.hidden = !isCollection;
   const collectionToolbarWrap = document.getElementById("collectionToolbarWrap");
@@ -7321,7 +7616,7 @@ function setPage(page, { skipPersist = false } = {}) {
   if (communitySection) communitySection.hidden = !isCommunity;
   const adminSection = document.getElementById("adminSection");
   if (adminSection) adminSection.hidden = !isAdmin;
-  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isCollectionValue || isCollectionInsights || isCommunity;
+  statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isJournal || isCollectionValue || isCollectionInsights || isCommunity;
   pageNav.hidden = isProfile || isSettings || isAdmin;
 
   if (isProfile) {
@@ -7351,6 +7646,11 @@ function setPage(page, { skipPersist = false } = {}) {
 
   if (isTrophies) {
     renderTrophies();
+    return;
+  }
+
+  if (isJournal) {
+    renderJournal();
     return;
   }
 
@@ -11398,6 +11698,10 @@ function setupEvents() {
     .addEventListener("click", () => setPage("trophies"));
 
   document
+    .getElementById("journalPageBtn")
+    ?.addEventListener("click", () => setPage("journal"));
+
+  document
     .getElementById("genreEvolutionArtistSelect")
     .addEventListener("change", (e) => {
       setGenreEvolutionFocus(e.target.value || null);
@@ -14806,6 +15110,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupCareHub();
   setupUpgradePrompt();
   setupBulkEdit();
+  setupJournalQuickAdd();
+  setupJournalFilters();
   document.getElementById("exportCsvBtn")?.addEventListener("click", exportCollectionToCsv);
   document.getElementById("logListenBtn")?.addEventListener("click", () => {
     if (activeDetailRecordId) logListen(activeDetailRecordId);
