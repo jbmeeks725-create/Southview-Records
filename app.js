@@ -2142,6 +2142,7 @@ async function logListen(recordId) {
     showToast("Logged — enjoy the record!");
     updateLastListenedText(recordId);
     renderRecentlyPlayed();
+    if (activeDetailRecordId === recordId) renderRecordListensHistory(recordId);
     openJournalQuickAdd(data.id);
   } catch (e) {
     console.error("Failed to log listen:", e);
@@ -2216,6 +2217,7 @@ function setupJournalQuickAdd() {
       if (entry) Object.assign(entry, updates);
       showToast("Details saved to your journal.");
       if (currentPage === "journal") renderJournal();
+      if (activeDetailRecordId !== null) renderRecordListensHistory(activeDetailRecordId);
       renderOnThisDay();
     } catch (e) {
       console.error("Failed to save journal details:", e);
@@ -2294,9 +2296,10 @@ const JOURNAL_OCCASION_LABELS = {
   background: "Background",
 };
 
-function buildJournalEntryEl(entry, record) {
+function buildJournalEntryEl(entry, record, { clickable = true } = {}) {
   const item = document.createElement("div");
   item.className = "journal-entry";
+  if (!clickable) item.classList.add("journal-entry-static");
 
   const cover = document.createElement("img");
   cover.className = "journal-entry-cover";
@@ -2351,7 +2354,7 @@ function buildJournalEntryEl(entry, record) {
   }
 
   item.appendChild(body);
-  item.addEventListener("click", () => openRecordDetailModal(record.id));
+  if (clickable) item.addEventListener("click", () => openRecordDetailModal(record.id));
   return item;
 }
 
@@ -2480,6 +2483,27 @@ function renderJournalOnThisDay() {
   matches.forEach((m) => {
     const el = buildOnThisDayItem(m);
     if (el) list.appendChild(el);
+  });
+}
+
+function renderRecordListensHistory(recordId) {
+  const wrap = document.getElementById("recordListensHistory");
+  const empty = document.getElementById("recordListensHistoryEmpty");
+  if (!wrap || !empty) return;
+
+  const record = allRecords.find((r) => r.id === recordId);
+  if (!record) return;
+
+  const entries = listeningLog.filter((l) => l.record_id === recordId);
+  if (!entries.length) {
+    empty.hidden = false;
+    wrap.innerHTML = "";
+    return;
+  }
+  empty.hidden = true;
+  wrap.innerHTML = "";
+  entries.forEach((entry) => {
+    wrap.appendChild(buildJournalEntryEl(entry, record, { clickable: false }));
   });
 }
 
@@ -11226,25 +11250,35 @@ function setupPressingPicker() {
 function switchDetailTab(tab) {
   const detailsBtn = document.getElementById("detailTabDetailsBtn");
   const storyBtn = document.getElementById("detailTabStoryBtn");
+  const listensBtn = document.getElementById("detailTabListensBtn");
   const moreBtn = document.getElementById("detailTabMoreBtn");
   const detailsPanel = document.getElementById("detailTabDetailsPanel");
   const storyPanel = document.getElementById("detailTabStoryPanel");
+  const listensPanel = document.getElementById("detailTabListensPanel");
   const morePanel = document.getElementById("detailTabMorePanel");
 
   const showDetails = tab === "details";
   const showStory = tab === "story";
+  const showListens = tab === "listens";
   const showMore = tab === "more";
 
   detailsBtn.classList.toggle("active", showDetails);
   detailsBtn.setAttribute("aria-selected", String(showDetails));
   storyBtn.classList.toggle("active", showStory);
   storyBtn.setAttribute("aria-selected", String(showStory));
+  listensBtn.classList.toggle("active", showListens);
+  listensBtn.setAttribute("aria-selected", String(showListens));
   moreBtn.classList.toggle("active", showMore);
   moreBtn.setAttribute("aria-selected", String(showMore));
 
   detailsPanel.hidden = !showDetails;
   storyPanel.hidden = !showStory;
+  listensPanel.hidden = !showListens;
   morePanel.hidden = !showMore;
+
+  if (showListens && activeDetailRecordId !== null) {
+    renderRecordListensHistory(activeDetailRecordId);
+  }
 }
 
 async function handleRecordStorySubmit(event) {
@@ -11978,6 +12012,10 @@ function setupEvents() {
   document
     .getElementById("detailTabStoryBtn")
     .addEventListener("click", () => switchDetailTab("story"));
+
+  document
+    .getElementById("detailTabListensBtn")
+    .addEventListener("click", () => switchDetailTab("listens"));
 
   document
     .getElementById("detailTabMoreBtn")

@@ -1018,19 +1018,54 @@
 
   /* ── Story/Journal layer ── */
   .journal-quick-add {
-    margin-top: 10px;
-    padding: 14px;
+    margin-top: 14px;
+    padding: 16px;
     border: 1px solid rgba(201,168,76,0.25);
     border-radius: 10px;
     background: rgba(201,168,76,0.05);
   }
-  .journal-quick-add .home-survey-chips { margin: 8px 0; }
+  .journal-quick-add-heading {
+    font-family: Jost, sans-serif;
+    color: #e8e0d0;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 14px;
+  }
+  .journal-quick-add-group {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .journal-quick-add-group:last-of-type {
+    border-bottom: none;
+    margin-bottom: 4px;
+    padding-bottom: 0;
+  }
+  .journal-quick-add-label {
+    font-family: Inter, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    color: #8a8290;
+    margin: 0 0 8px;
+  }
+  .journal-quick-add .home-survey-chips {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .journal-quick-add .home-survey-chips .survey-chip {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
   .journal-quick-add textarea {
     width: 100%;
     box-sizing: border-box;
-    margin-top: 8px;
     resize: vertical;
   }
+  .listens-tab-intro { margin-bottom: 12px; }
+  .record-listens-history-wrap { margin-top: 24px; }
 
   .journal-filter-bar {
     display: flex;
@@ -1070,6 +1105,8 @@
     cursor: pointer;
   }
   .journal-entry:hover { border-color: rgba(201,168,76,0.4); }
+  .journal-entry-static { cursor: default; }
+  .journal-entry-static:hover { border-color: rgba(201,168,76,0.15); }
   .journal-entry-cover { width: 56px; height: 56px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
   .journal-entry-body { flex: 1; min-width: 0; }
   .journal-entry-header { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
@@ -6637,6 +6674,7 @@
       <div class="detail-tabs" role="tablist" aria-label="Record sections">
         <button type="button" id="detailTabDetailsBtn" class="detail-tab active" role="tab" aria-selected="true">Details</button>
         <button type="button" id="detailTabStoryBtn" class="detail-tab" role="tab" aria-selected="false">Your Story</button>
+        <button type="button" id="detailTabListensBtn" class="detail-tab" role="tab" aria-selected="false">My Listens</button>
         <button type="button" id="detailTabMoreBtn" class="detail-tab" role="tab" aria-selected="false">More Like This</button>
       </div>
 
@@ -6658,43 +6696,6 @@
         <div id="recordSpotifyControls" class="record-spotify-controls" hidden></div>
 
         <div id="detailRatingControls" class="detail-rating-controls"></div>
-
-        <div class="listening-log-row">
-          <button type="button" id="logListenBtn" class="btn-secondary">
-            <i class="ti ti-headphones" aria-hidden="true"></i> I listened to this
-          </button>
-          <span id="lastListenedText" class="field-hint"></span>
-        </div>
-
-        <!-- Story/Journal layer: appears right after a listen is logged.
-             Fully optional — logging itself already happened above with a
-             single tap; this just offers to enrich that entry. -->
-        <div id="journalQuickAdd" class="journal-quick-add" hidden>
-          <p class="field-hint">Add a mood or occasion to this listen? (optional)</p>
-
-          <div class="home-survey-chips" id="journalMoodChips">
-            <button type="button" class="survey-chip" data-mood="comfort">Comfort Listen</button>
-            <button type="button" class="survey-chip" data-mood="nostalgic">Nostalgic</button>
-            <button type="button" class="survey-chip" data-mood="energized">Energized</button>
-            <button type="button" class="survey-chip" data-mood="reflective">Reflective</button>
-            <button type="button" class="survey-chip" data-mood="celebratory">Celebratory</button>
-          </div>
-
-          <div class="home-survey-chips" id="journalOccasionChips">
-            <button type="button" class="survey-chip" data-occasion="alone">On My Own</button>
-            <button type="button" class="survey-chip" data-occasion="withpeople">With Friends/Family</button>
-            <button type="button" class="survey-chip" data-occasion="rainyday">Rainy Day</button>
-            <button type="button" class="survey-chip" data-occasion="latenight">Late Night</button>
-            <button type="button" class="survey-chip" data-occasion="background">Background While Doing Something Else</button>
-          </div>
-
-          <textarea id="journalQuickNotes" rows="2" placeholder="Anything else about this listen? (optional)"></textarea>
-
-          <div class="form-actions">
-            <button type="button" id="journalQuickSkipBtn" class="btn-secondary">Skip</button>
-            <button type="button" id="journalQuickSaveBtn" class="btn-primary">Save details</button>
-          </div>
-        </div>
 
         <form id="recordDetailForm">
           <div class="form-row">
@@ -6846,6 +6847,64 @@
             <button type="submit" id="saveRecordStoryBtn" class="btn-primary">Save your story</button>
           </div>
         </form>
+      </div>
+
+      <div id="detailTabListensPanel" class="detail-tab-panel" hidden>
+        <p class="field-hint listens-tab-intro">
+          Log every time you spin this record, and tag how it felt.
+        </p>
+
+        <div class="listening-log-row">
+          <button type="button" id="logListenBtn" class="btn-secondary">
+            <i class="ti ti-headphones" aria-hidden="true"></i> Log a new listening session
+          </button>
+          <span id="lastListenedText" class="field-hint"></span>
+        </div>
+
+        <!-- Story/Journal layer: appears right after a listen is logged.
+             Fully optional — logging itself already happened above with a
+             single tap; this just offers to enrich that entry. -->
+        <div id="journalQuickAdd" class="journal-quick-add" hidden>
+          <p class="journal-quick-add-heading">How was this listen? <span class="field-hint">(optional)</span></p>
+
+          <div class="journal-quick-add-group">
+            <p class="journal-quick-add-label">Mood</p>
+            <div class="home-survey-chips" id="journalMoodChips">
+              <button type="button" class="survey-chip" data-mood="comfort">Comfort Listen</button>
+              <button type="button" class="survey-chip" data-mood="nostalgic">Nostalgic</button>
+              <button type="button" class="survey-chip" data-mood="energized">Energized</button>
+              <button type="button" class="survey-chip" data-mood="reflective">Reflective</button>
+              <button type="button" class="survey-chip" data-mood="celebratory">Celebratory</button>
+            </div>
+          </div>
+
+          <div class="journal-quick-add-group">
+            <p class="journal-quick-add-label">Occasion</p>
+            <div class="home-survey-chips" id="journalOccasionChips">
+              <button type="button" class="survey-chip" data-occasion="alone">On My Own</button>
+              <button type="button" class="survey-chip" data-occasion="withpeople">With Friends/Family</button>
+              <button type="button" class="survey-chip" data-occasion="rainyday">Rainy Day</button>
+              <button type="button" class="survey-chip" data-occasion="latenight">Late Night</button>
+              <button type="button" class="survey-chip" data-occasion="background">Background</button>
+            </div>
+          </div>
+
+          <div class="journal-quick-add-group">
+            <p class="journal-quick-add-label">Notes</p>
+            <textarea id="journalQuickNotes" rows="2" placeholder="Anything else about this listen?"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="journalQuickSkipBtn" class="btn-secondary">Skip</button>
+            <button type="button" id="journalQuickSaveBtn" class="btn-primary">Save details</button>
+          </div>
+        </div>
+
+        <div id="recordListensHistoryWrap" class="record-listens-history-wrap">
+          <p class="journal-section-heading">Past Listens</p>
+          <div id="recordListensHistoryEmpty" class="empty-hint" hidden>No listens logged yet — tap the button above to start.</div>
+          <div id="recordListensHistory" class="journal-timeline"></div>
+        </div>
       </div>
 
       <div id="detailTabMorePanel" class="detail-tab-panel" hidden>
