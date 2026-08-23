@@ -1124,6 +1124,109 @@
   .journal-entry-notes { margin-top: 6px; color: #a89f90; font-size: 13px; line-height: 1.5; }
 
   .home-on-this-day .mini-list { margin-top: 8px; }
+
+  /* ── Desktop nav: grouped dropdowns mirroring mobile bucketing ── */
+  #pageNav .view-btn {
+    padding: 12px 22px;
+  }
+  #pageNav .view-btn:hover {
+    color: #c9a84c;
+    border-color: rgba(201,168,76,0.4);
+  }
+  .nav-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+  .nav-dropdown-trigger {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #a89f90;
+    font-family: Inter, sans-serif;
+    font-size: 14px;
+    padding: 12px 22px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .nav-dropdown-trigger:hover {
+    color: #c9a84c;
+    border-color: rgba(201,168,76,0.4);
+  }
+  .nav-dropdown-trigger.has-active-child {
+    color: #c9a84c;
+    border-color: rgba(201,168,76,0.5);
+    background: rgba(201,168,76,0.08);
+  }
+  .nav-dropdown-trigger i {
+    font-size: 13px;
+    transition: transform 0.15s ease;
+  }
+  .nav-dropdown.open .nav-dropdown-trigger i {
+    transform: rotate(180deg);
+  }
+  .nav-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 8px;
+    background: #14120e;
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 10px;
+    padding: 6px;
+    min-width: 220px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 60;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+  }
+  .nav-dropdown-menu[hidden] { display: none; }
+  .nav-dropdown-item {
+    text-align: left;
+    padding: 10px 14px !important;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: #e8e0d0;
+    font-family: Inter, sans-serif;
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .nav-dropdown-item:hover {
+    background: rgba(201,168,76,0.1);
+    color: #c9a84c;
+  }
+  .nav-dropdown-item.active {
+    background: #c9a84c;
+    color: #14120e;
+    font-weight: 600;
+  }
+
+  /* ── Record Value tab ── */
+  .value-tab-intro { margin-bottom: 16px; }
+  .record-value-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 20px 0;
+  }
+  .record-value-discogs-display {
+    padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.02);
+    color: #a89f90;
+    font-size: 13px;
+    margin: 8px 0 12px;
+  }
+  .record-value-discogs-display .discogs-median-amount {
+    color: #c9a84c;
+    font-family: Jost, sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+  }
   </style>
 
   <!-- ── Mobile UX overrides (max-width: 768px) — desktop untouched ── -->
@@ -4417,16 +4520,41 @@
   </nav>
     <nav id="pageNav" role="group" aria-label="Page">
         <button type="button" id="homePageBtn" class="view-btn" aria-pressed="false">Home</button>
-        <button type="button" id="collectionPageBtn" class="view-btn" aria-pressed="false">My Collection</button>
-        <button type="button" id="wishlistPageBtn" class="view-btn" aria-pressed="false">My Wishlist</button>
-        <button type="button" id="collectionValuePageBtn" class="view-btn" aria-pressed="false">My Collection Value</button>
-        <button type="button" id="tasteProfilePageBtn" class="view-btn" aria-pressed="false">My Taste Profile</button>
-        <button type="button" id="genreEvolutionPageBtn" class="view-btn" aria-pressed="false">My Taste Evolution</button>
-        <button type="button" id="collectionInsightsPageBtn" class="view-btn" aria-pressed="false">My Collection Insights</button>
+
+        <div class="nav-dropdown" id="navGroupCollection">
+          <button type="button" id="navGroupCollectionTrigger" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
+            Collection <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+          <div class="nav-dropdown-menu" id="navGroupCollectionMenu" role="menu" hidden>
+            <button type="button" id="collectionPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Collection</button>
+            <button type="button" id="wishlistPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Wishlist</button>
+            <button type="button" id="collectionValuePageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Collection Value</button>
+          </div>
+        </div>
+
+        <div class="nav-dropdown" id="navGroupTaste">
+          <button type="button" id="navGroupTasteTrigger" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
+            Taste <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+          <div class="nav-dropdown-menu" id="navGroupTasteMenu" role="menu" hidden>
+            <button type="button" id="tasteProfilePageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Taste Profile</button>
+            <button type="button" id="genreEvolutionPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Taste Evolution</button>
+            <button type="button" id="collectionInsightsPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Collection Insights</button>
+          </div>
+        </div>
+
         <button type="button" id="roomPageBtn" class="view-btn" aria-pressed="false">My Listening Room</button>
-        <button type="button" id="trophiesPageBtn" class="view-btn" aria-pressed="false">My Trophies</button>
-        <button type="button" id="journalPageBtn" class="view-btn" aria-pressed="false">My Journal</button>
-        <button type="button" id="communityPageBtn" class="view-btn" aria-pressed="false">My Community</button>
+
+        <div class="nav-dropdown" id="navGroupMore">
+          <button type="button" id="navGroupMoreTrigger" class="nav-dropdown-trigger" aria-expanded="false" aria-haspopup="true">
+            More <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          </button>
+          <div class="nav-dropdown-menu" id="navGroupMoreMenu" role="menu" hidden>
+            <button type="button" id="trophiesPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Trophies</button>
+            <button type="button" id="journalPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Journal</button>
+            <button type="button" id="communityPageBtn" class="view-btn nav-dropdown-item" aria-pressed="false">My Community</button>
+          </div>
+        </div>
       </nav>
   </section>
   <section id="status" hidden>
@@ -6674,6 +6802,7 @@
       <div class="detail-tabs" role="tablist" aria-label="Record sections">
         <button type="button" id="detailTabDetailsBtn" class="detail-tab active" role="tab" aria-selected="true">Details</button>
         <button type="button" id="detailTabStoryBtn" class="detail-tab" role="tab" aria-selected="false">Your Story</button>
+        <button type="button" id="detailTabValueBtn" class="detail-tab" role="tab" aria-selected="false">Record Value</button>
         <button type="button" id="detailTabListensBtn" class="detail-tab" role="tab" aria-selected="false">My Listens</button>
         <button type="button" id="detailTabMoreBtn" class="detail-tab" role="tab" aria-selected="false">More Like This</button>
       </div>
@@ -6738,27 +6867,6 @@
             Pick from the list or type a new one — new genres/subgenres will be created automatically.
           </p>
 
-          <div class="form-row form-row-split">
-            <div>
-              <label for="detailVinylGrade">Vinyl grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a vinyl grade?">?</button></label>
-              <input type="text" id="detailVinylGrade" list="gradeOptions" placeholder="e.g. VG+" />
-            </div>
-            <div>
-              <label for="detailSleeveGrade">Sleeve grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a sleeve grade?">?</button></label>
-              <input type="text" id="detailSleeveGrade" list="gradeOptions" placeholder="e.g. VG+" />
-            </div>
-          </div>
-
-          <div class="form-row">
-            <label for="detailPressingCountry">Pressing country <button type="button" class="field-tooltip-icon" data-tooltip="pressingCountry" aria-label="What's pressing country?">?</button></label>
-            <input type="text" id="detailPressingCountry" placeholder="e.g. US, UK, Germany" />
-          </div>
-
-          <div class="form-row">
-            <label for="detailPressingNotes">Pressing notes <span class="field-hint" style="display:inline;">(matrix/runout numbers, mastering info, etc.)</span></label>
-            <input type="text" id="detailPressingNotes" placeholder="e.g. Matrix: STERLING RL / hand-etched RL" />
-          </div>
-
           <div class="form-row">
             <label for="detailDescription">Description</label>
             <textarea id="detailDescription" rows="2"></textarea>
@@ -6770,38 +6878,6 @@
           </div>
 
           <div id="recordDetailStatus" class="form-status"></div>
-
-          <!-- ── Pressing identifier ── -->
-          <div class="pressing-section">
-            <div class="pressing-section-header">
-              <label class="pressing-section-label">
-                Discogs Pressing
-                <span class="pressing-tip" tabindex="0" aria-label="Why this matters">
-                  <i class="ti ti-info-circle" aria-hidden="true"></i>
-                  <span class="pressing-tip-text">Different pressings of the same album have different values. Identifying your exact pressing lets Spin Vinyl show you an accurate market price in My Collection Value.</span>
-                </span>
-              </label>
-              <span id="detailPressingId" class="pressing-id-badge" hidden></span>
-            </div>
-            <div id="detailPressingLinked" class="pressing-linked" hidden>
-              <div class="pressing-linked-info">
-                <i class="ti ti-check" style="color:#6bcf8a"></i>
-                <span id="detailPressingLinkedText" class="pressing-linked-text"></span>
-              </div>
-              <div class="pressing-linked-actions">
-                <a id="detailPressingDiscogsLink" href="#" target="_blank" rel="noopener" class="btn-text pressing-discogs-link">
-                  <i class="ti ti-external-link"></i> View on Discogs
-                </a>
-                <button type="button" id="detailPressingClearBtn" class="btn-text pressing-clear-btn">Clear</button>
-              </div>
-            </div>
-            <div id="detailPressingSearch" class="pressing-search-wrap">
-              <button type="button" id="detailFindPressingBtn" class="btn-secondary pressing-find-btn">
-                <i class="ti ti-search" aria-hidden="true"></i> Find my exact pressing
-              </button>
-              <p class="field-hint">Optional — only needed for accurate market pricing.</p>
-            </div>
-          </div>
 
           <div class="form-actions form-actions-split">
             <button type="button" id="deleteRecordBtn" class="btn-danger">Delete record</button>
@@ -6845,6 +6921,106 @@
           <div class="form-actions">
             <button type="button" id="cancelRecordStoryBtn" class="btn-secondary">Cancel</button>
             <button type="submit" id="saveRecordStoryBtn" class="btn-primary">Save your story</button>
+          </div>
+        </form>
+      </div>
+
+      <div id="detailTabValuePanel" class="detail-tab-panel" hidden>
+        <form id="recordValueForm">
+          <p class="field-hint value-tab-intro">
+            Pressing details, what you paid, and what you think it's worth. Separate from any Discogs market estimate below, which is just for reference.
+          </p>
+
+          <p class="journal-quick-add-label">Pressing</p>
+
+          <div class="form-row form-row-split">
+            <div>
+              <label for="valueVinylGrade">Vinyl grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a vinyl grade?">?</button></label>
+              <input type="text" id="valueVinylGrade" list="gradeOptions" placeholder="e.g. VG+" />
+            </div>
+            <div>
+              <label for="valueSleeveGrade">Sleeve grade <button type="button" class="field-tooltip-icon" data-tooltip="grade" aria-label="What's a sleeve grade?">?</button></label>
+              <input type="text" id="valueSleeveGrade" list="gradeOptions" placeholder="e.g. VG+" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label for="valuePressingCountry">Pressing country <button type="button" class="field-tooltip-icon" data-tooltip="pressingCountry" aria-label="What's pressing country?">?</button></label>
+            <input type="text" id="valuePressingCountry" placeholder="e.g. US, UK, Germany" />
+          </div>
+
+          <div class="form-row">
+            <label for="valuePressingNotes">Pressing notes <span class="field-hint" style="display:inline;">(matrix/runout numbers, mastering info, etc.)</span></label>
+            <input type="text" id="valuePressingNotes" placeholder="e.g. Matrix: STERLING RL / hand-etched RL" />
+          </div>
+
+          <!-- ── Pressing identifier (moved from Details) ── -->
+          <div class="pressing-section">
+            <div class="pressing-section-header">
+              <label class="pressing-section-label">
+                Discogs Pressing
+                <span class="pressing-tip" tabindex="0" aria-label="Why this matters">
+                  <i class="ti ti-info-circle" aria-hidden="true"></i>
+                  <span class="pressing-tip-text">Different pressings of the same album have different values. Identifying your exact pressing lets Spin Vinyl look up an accurate Discogs median below.</span>
+                </span>
+              </label>
+              <span id="detailPressingId" class="pressing-id-badge" hidden></span>
+            </div>
+            <div id="detailPressingLinked" class="pressing-linked" hidden>
+              <div class="pressing-linked-info">
+                <i class="ti ti-check" style="color:#6bcf8a"></i>
+                <span id="detailPressingLinkedText" class="pressing-linked-text"></span>
+              </div>
+              <div class="pressing-linked-actions">
+                <a id="detailPressingDiscogsLink" href="#" target="_blank" rel="noopener" class="btn-text pressing-discogs-link">
+                  <i class="ti ti-external-link"></i> View on Discogs
+                </a>
+                <button type="button" id="detailPressingClearBtn" class="btn-text pressing-clear-btn">Clear</button>
+              </div>
+            </div>
+            <div id="detailPressingSearch" class="pressing-search-wrap">
+              <button type="button" id="detailFindPressingBtn" class="btn-secondary pressing-find-btn">
+                <i class="ti ti-search" aria-hidden="true"></i> Find my exact pressing
+              </button>
+              <p class="field-hint">Optional — only needed for accurate market pricing.</p>
+            </div>
+          </div>
+
+          <div class="record-value-divider"></div>
+
+          <p class="journal-quick-add-label">Your Value</p>
+
+          <div class="form-row form-row-split">
+            <div>
+              <label for="valuePricePaid">What you paid (USD)</label>
+              <input type="number" id="valuePricePaid" step="0.01" min="0" placeholder="e.g. 25.00" />
+            </div>
+            <div>
+              <label for="valueYourWorth">What you think it's worth (USD)</label>
+              <input type="number" id="valueYourWorth" step="0.01" min="0" placeholder="e.g. 45.00" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label for="valueYourWorthNote">Note <span class="field-hint" style="display:inline;">(optional)</span></label>
+            <input type="text" id="valueYourWorthNote" placeholder="e.g. Appraised 2024, mint condition" />
+          </div>
+
+          <div class="record-value-divider"></div>
+
+          <div id="recordValueDiscogsWrap">
+            <p class="journal-quick-add-label">Discogs Median <span class="field-hint" style="display:inline;text-transform:none;letter-spacing:normal;">(reference only — not included in your Collection Value total)</span></p>
+            <div id="recordValueDiscogsDisplay" class="record-value-discogs-display"></div>
+            <button type="button" id="recordValueDiscogsRefreshBtn" class="btn-secondary">
+              <i class="ti ti-refresh" aria-hidden="true"></i> Look up Discogs median
+            </button>
+          </div>
+
+          <div id="recordValueStatus" class="form-status"></div>
+
+          <div class="form-actions">
+            <button type="button" id="cancelRecordValueBtn" class="btn-secondary">Cancel</button>
+            <button type="submit" id="saveRecordValueBtn" class="btn-primary">Save value details</button>
           </div>
         </form>
       </div>

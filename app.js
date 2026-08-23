@@ -7643,6 +7643,19 @@ function setPage(page, { skipPersist = false } = {}) {
   statusSection.hidden = isHome || isProfile || isSettings || isRoom || isTasteProfile || isGenreEvolution || isTrophies || isJournal || isCollectionValue || isCollectionInsights || isCommunity;
   pageNav.hidden = isProfile || isSettings || isAdmin;
 
+  document.getElementById("navGroupCollectionTrigger")?.classList.toggle(
+    "has-active-child",
+    isCollection || isWishlist || isCollectionValue
+  );
+  document.getElementById("navGroupTasteTrigger")?.classList.toggle(
+    "has-active-child",
+    isTasteProfile || isGenreEvolution || isCollectionInsights
+  );
+  document.getElementById("navGroupMoreTrigger")?.classList.toggle(
+    "has-active-child",
+    isTrophies || isJournal || isCommunity
+  );
+
   if (isProfile) {
     renderProfile();
     return;
@@ -7694,6 +7707,53 @@ function setPage(page, { skipPersist = false } = {}) {
   }
 
   render();
+}
+
+// ── Desktop nav: grouped dropdowns (Collection / Taste / More) ──────────
+function setupDesktopNavDropdowns() {
+  const groups = ["navGroupCollection", "navGroupTaste", "navGroupMore"];
+
+  function closeAllNavDropdowns() {
+    groups.forEach((id) => {
+      const wrap = document.getElementById(id);
+      const trigger = document.getElementById(`${id}Trigger`);
+      const menu = document.getElementById(`${id}Menu`);
+      if (!wrap || !trigger || !menu) return;
+      wrap.classList.remove("open");
+      trigger.setAttribute("aria-expanded", "false");
+      menu.hidden = true;
+    });
+  }
+
+  groups.forEach((id) => {
+    const wrap = document.getElementById(id);
+    const trigger = document.getElementById(`${id}Trigger`);
+    const menu = document.getElementById(`${id}Menu`);
+    if (!wrap || !trigger || !menu) return;
+
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = !menu.hidden;
+      closeAllNavDropdowns();
+      if (!isOpen) {
+        wrap.classList.add("open");
+        trigger.setAttribute("aria-expanded", "true");
+        menu.hidden = false;
+      }
+    });
+
+    // Any real page selection inside the menu closes the dropdown —
+    // the individual buttons already have their own setPage() listeners
+    // wired elsewhere; this just handles the menu chrome.
+    menu.querySelectorAll(".nav-dropdown-item").forEach((item) => {
+      item.addEventListener("click", () => closeAllNavDropdowns());
+    });
+  });
+
+  document.addEventListener("click", () => closeAllNavDropdowns());
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeAllNavDropdowns();
+  });
 }
 
 // ------------ Grid density ------------
@@ -10902,12 +10962,19 @@ function openRecordDetailModal(recordId, startTab = "details") {
   document.getElementById("detailGenre").value = record.genre_name || "";
   document.getElementById("detailSubgenre").value = record.subgenre_name || "";
   populateSubgenreOptionsForGenre(record.genre_name || "");
-  document.getElementById("detailVinylGrade").value = record.vinyl_grade || "";
-  document.getElementById("detailPressingCountry").value = record.pressing_country || "";
-  document.getElementById("detailPressingNotes").value = record.pressing_notes || "";
-  document.getElementById("detailSleeveGrade").value = record.sleeve_grade || "";
   document.getElementById("detailDescription").value = record.description || "";
   document.getElementById("detailNotes").value = record.notes || "";
+
+  document.getElementById("valueVinylGrade").value = record.vinyl_grade || "";
+  document.getElementById("valueSleeveGrade").value = record.sleeve_grade || "";
+  document.getElementById("valuePressingCountry").value = record.pressing_country || "";
+  document.getElementById("valuePressingNotes").value = record.pressing_notes || "";
+  document.getElementById("valuePricePaid").value = record.price_paid ?? "";
+  document.getElementById("valueYourWorth").value = record.market_value_override ?? "";
+  document.getElementById("valueYourWorthNote").value = record.market_value_override_note || "";
+  document.getElementById("recordValueStatus").textContent = "";
+  document.getElementById("recordValueStatus").className = "form-status";
+  renderRecordValueDiscogsDisplay(record);
 
   document.getElementById("storyAcquiredDate").value = record.acquired_date ? record.acquired_date.slice(0, 7) : "";
   document.getElementById("storyAcquiredLocation").value = record.acquired_location || "";
@@ -11250,15 +11317,18 @@ function setupPressingPicker() {
 function switchDetailTab(tab) {
   const detailsBtn = document.getElementById("detailTabDetailsBtn");
   const storyBtn = document.getElementById("detailTabStoryBtn");
+  const valueBtn = document.getElementById("detailTabValueBtn");
   const listensBtn = document.getElementById("detailTabListensBtn");
   const moreBtn = document.getElementById("detailTabMoreBtn");
   const detailsPanel = document.getElementById("detailTabDetailsPanel");
   const storyPanel = document.getElementById("detailTabStoryPanel");
+  const valuePanel = document.getElementById("detailTabValuePanel");
   const listensPanel = document.getElementById("detailTabListensPanel");
   const morePanel = document.getElementById("detailTabMorePanel");
 
   const showDetails = tab === "details";
   const showStory = tab === "story";
+  const showValue = tab === "value";
   const showListens = tab === "listens";
   const showMore = tab === "more";
 
@@ -11266,6 +11336,8 @@ function switchDetailTab(tab) {
   detailsBtn.setAttribute("aria-selected", String(showDetails));
   storyBtn.classList.toggle("active", showStory);
   storyBtn.setAttribute("aria-selected", String(showStory));
+  valueBtn.classList.toggle("active", showValue);
+  valueBtn.setAttribute("aria-selected", String(showValue));
   listensBtn.classList.toggle("active", showListens);
   listensBtn.setAttribute("aria-selected", String(showListens));
   moreBtn.classList.toggle("active", showMore);
@@ -11273,6 +11345,7 @@ function switchDetailTab(tab) {
 
   detailsPanel.hidden = !showDetails;
   storyPanel.hidden = !showStory;
+  valuePanel.hidden = !showValue;
   listensPanel.hidden = !showListens;
   morePanel.hidden = !showMore;
 
@@ -11333,6 +11406,100 @@ async function handleRecordStorySubmit(event) {
   }
 }
 
+// ── Record Value tab ──────────────────────────────────────────────────
+// Pressing details + user-identified value, kept separate from Discogs
+// market data: market_value_cached is reference-only and never rolled
+// into the Collection Value total (see cvGetValue — override or nothing).
+function renderRecordValueDiscogsDisplay(record) {
+  const wrap = document.getElementById("recordValueDiscogsDisplay");
+  if (!wrap) return;
+
+  if (record.market_value_cached != null) {
+    const amount = cvFormatPrice(parseFloat(record.market_value_cached));
+    const typeLabel = record.market_value_type === "exact" ? "your exact pressing" : "similar pressings";
+    const dateStr = record.market_value_cached_at
+      ? new Date(record.market_value_cached_at).toLocaleDateString()
+      : null;
+    wrap.innerHTML = `<span class="discogs-median-amount">${amount}</span> — based on ${typeLabel}${dateStr ? `, last checked ${dateStr}` : ""}`;
+  } else {
+    wrap.innerHTML = record.discogs_release_id
+      ? "No Discogs median looked up yet."
+      : "Link a pressing above for a more accurate median, or look up a general estimate now.";
+  }
+}
+
+async function handleRecordValueSubmit(event) {
+  event.preventDefault();
+  if (activeDetailRecordId === null) return;
+
+  const statusEl = document.getElementById("recordValueStatus");
+  const saveBtn = document.getElementById("saveRecordValueBtn");
+
+  const vinylGrade = document.getElementById("valueVinylGrade").value.trim() || null;
+  const sleeveGrade = document.getElementById("valueSleeveGrade").value.trim() || null;
+  const pressingCountry = document.getElementById("valuePressingCountry").value.trim() || null;
+  const pressingNotes = document.getElementById("valuePressingNotes").value.trim() || null;
+  const pricePaidRaw = document.getElementById("valuePricePaid").value;
+  const yourWorthRaw = document.getElementById("valueYourWorth").value;
+  const yourWorthNote = document.getElementById("valueYourWorthNote").value.trim() || null;
+
+  const pricePaid = pricePaidRaw === "" ? null : parseFloat(pricePaidRaw);
+  const yourWorth = yourWorthRaw === "" ? null : parseFloat(yourWorthRaw);
+
+  saveBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "form-status";
+
+  try {
+    const updates = {
+      vinyl_grade: vinylGrade,
+      sleeve_grade: sleeveGrade,
+      pressing_country: pressingCountry,
+      pressing_notes: pressingNotes,
+      price_paid: pricePaid !== null && !isNaN(pricePaid) ? pricePaid : null,
+      market_value_override: yourWorth !== null && !isNaN(yourWorth) ? yourWorth : null,
+      market_value_override_note: yourWorthNote,
+    };
+
+    const { error } = await supabaseClient
+      .from("records")
+      .update(updates)
+      .eq("id", activeDetailRecordId);
+
+    if (error) throw error;
+
+    const record = allRecords.find((r) => r.id === activeDetailRecordId);
+    if (record) Object.assign(record, updates);
+
+    if (currentPage === "collectionValue") renderCollectionValue();
+
+    statusEl.textContent = "Saved.";
+    statusEl.className = "form-status form-status-success";
+
+    setTimeout(() => {
+      closeRecordDetailModal();
+    }, 700);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Couldn't save value details. Check console for details.";
+    statusEl.className = "form-status form-status-error";
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+async function handleRecordValueDiscogsRefresh() {
+  if (activeDetailRecordId === null) return;
+  const record = allRecords.find((r) => r.id === activeDetailRecordId);
+  if (!record) return;
+
+  const btn = document.getElementById("recordValueDiscogsRefreshBtn");
+  await cvFetchSinglePrice(record, btn, /* silent */ true);
+
+  const updated = allRecords.find((r) => r.id === activeDetailRecordId);
+  if (updated) renderRecordValueDiscogsDisplay(updated);
+}
+
 async function handleRecordDetailSubmit(event) {
   event.preventDefault();
   if (activeDetailRecordId === null) return;
@@ -11354,10 +11521,6 @@ async function handleRecordDetailSubmit(event) {
   const label = document.getElementById("detailLabel").value.trim() || null;
   const genreInput = document.getElementById("detailGenre").value.trim();
   const subgenreInput = document.getElementById("detailSubgenre").value.trim();
-  const vinylGrade = document.getElementById("detailVinylGrade").value.trim() || null;
-  const sleeveGrade = document.getElementById("detailSleeveGrade").value.trim() || null;
-  const pressingCountry = document.getElementById("detailPressingCountry").value.trim() || null;
-  const pressingNotes = document.getElementById("detailPressingNotes").value.trim() || null;
   const description = document.getElementById("detailDescription").value.trim() || null;
   const notes = document.getElementById("detailNotes").value.trim() || null;
 
@@ -11380,10 +11543,6 @@ async function handleRecordDetailSubmit(event) {
       genre_id: genreId,
       subgenre_id: subgenreId,
       description,
-      vinyl_grade: vinylGrade,
-      sleeve_grade: sleeveGrade,
-      pressing_country: pressingCountry,
-      pressing_notes: pressingNotes,
       notes,
       quantity: quantityVal,
     };
@@ -12018,6 +12177,10 @@ function setupEvents() {
     .addEventListener("click", () => switchDetailTab("listens"));
 
   document
+    .getElementById("detailTabValueBtn")
+    .addEventListener("click", () => switchDetailTab("value"));
+
+  document
     .getElementById("detailTabMoreBtn")
     .addEventListener("click", () => switchDetailTab("more"));
 
@@ -12028,6 +12191,18 @@ function setupEvents() {
   document
     .getElementById("cancelRecordStoryBtn")
     .addEventListener("click", () => closeRecordDetailModal());
+
+  document
+    .getElementById("recordValueForm")
+    .addEventListener("submit", handleRecordValueSubmit);
+
+  document
+    .getElementById("cancelRecordValueBtn")
+    .addEventListener("click", () => closeRecordDetailModal());
+
+  document
+    .getElementById("recordValueDiscogsRefreshBtn")
+    .addEventListener("click", () => handleRecordValueDiscogsRefresh());
 
   document
     .getElementById("recordDetailOverlay")
@@ -15150,6 +15325,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupBulkEdit();
   setupJournalQuickAdd();
   setupJournalFilters();
+  setupDesktopNavDropdowns();
   document.getElementById("exportCsvBtn")?.addEventListener("click", exportCollectionToCsv);
   document.getElementById("logListenBtn")?.addEventListener("click", () => {
     if (activeDetailRecordId) logListen(activeDetailRecordId);
