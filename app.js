@@ -3668,6 +3668,14 @@ function openWallOfFameStoryModal(entry, record) {
     tagsWrap.appendChild(buildWallOfFameTagChips(entry.superlative_tags));
   }
 
+  const snippetEl = document.getElementById("wallOfFameStorySnippet");
+  if (entry.snippet?.trim()) {
+    snippetEl.textContent = entry.snippet.trim();
+    snippetEl.hidden = false;
+  } else {
+    snippetEl.hidden = true;
+  }
+
   document.getElementById("wallOfFameStoryText").textContent =
     record.personal_story?.trim() || "No story added yet for this record.";
 
@@ -3688,7 +3696,7 @@ function getWallOfFameDraftFor(recordId) {
 
 function updateWallOfFameCountHint() {
   const hint = document.getElementById("wallOfFameCountHint");
-  if (hint) hint.textContent = `${wallOfFameDraft.length} / 10 selected`;
+  if (hint) hint.textContent = `${wallOfFameDraft.length} / 12 selected`;
 }
 
 function openWallOfFameEditor() {
@@ -3776,6 +3784,20 @@ function renderWallOfFamePickerConfig(row, draft) {
   });
   config.appendChild(tagWrap);
 
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "journal-entry-action-btn journal-entry-action-btn-danger wall-of-fame-remove-btn";
+  removeBtn.innerHTML = '<i class="ti ti-trash" aria-hidden="true"></i> Remove from Wall of Fame';
+  removeBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    wallOfFameDraft = wallOfFameDraft.filter((d) => d.record_id !== draft.record_id);
+    row.classList.remove("selected");
+    renderWallOfFamePickerConfig(row, null);
+    document.getElementById("wallOfFameStatus").textContent = "";
+    updateWallOfFameCountHint();
+  });
+  config.appendChild(removeBtn);
+
   row.appendChild(config);
 }
 
@@ -3784,9 +3806,14 @@ function renderWallOfFamePickerList(query) {
   list.innerHTML = "";
   const q = query.toLowerCase();
 
-  const filtered = allRecords
-    .filter((r) => !q || (r.artist + " " + r.album).toLowerCase().includes(q))
-    .slice(0, 60);
+  const allMatching = allRecords.filter((r) => !q || (r.artist + " " + r.album).toLowerCase().includes(q));
+
+  // Already-selected records must always be reachable here, regardless of
+  // the display cap below — otherwise anyone with more than a screenful of
+  // records can lose access to editing/removing entries they've already set.
+  const selected = allMatching.filter((r) => getWallOfFameDraftFor(r.id));
+  const unselected = allMatching.filter((r) => !getWallOfFameDraftFor(r.id));
+  const filtered = [...selected, ...unselected].slice(0, Math.max(60, selected.length));
 
   filtered.forEach((r) => {
     const row = document.createElement("div");
@@ -3819,8 +3846,8 @@ function renderWallOfFamePickerList(query) {
         row.classList.remove("selected");
         renderWallOfFamePickerConfig(row, null);
       } else {
-        if (wallOfFameDraft.length >= 10) {
-          document.getElementById("wallOfFameStatus").textContent = "Max 10 records — deselect one first.";
+        if (wallOfFameDraft.length >= 12) {
+          document.getElementById("wallOfFameStatus").textContent = "Max 12 records — deselect one first.";
           return;
         }
         const newDraft = { record_id: r.id, snippet: "", tags: [] };
@@ -4022,7 +4049,6 @@ function renderProfile() {
   renderTasteView();
   renderSystemView();
   renderTrophySpotlight();
-  renderAlbumSpotlight();
   renderWallOfFame();
 }
 
@@ -8239,6 +8265,7 @@ function buildRatingControls(record) {
     btn.type = "button";
     btn.className = `rating-btn rating-${opt.value}`;
     btn.textContent = opt.label;
+    btn.dataset.ratingValue = opt.value;
     btn.setAttribute("aria-pressed", record.rating === opt.value ? "true" : "false");
     if (record.rating === opt.value) {
       btn.classList.add("active");
@@ -8246,6 +8273,17 @@ function buildRatingControls(record) {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       updateRating(record.id, opt.value);
+      // updateRating() mutates record.rating synchronously (before its async
+      // save call) and then calls the global render() — but render() only
+      // refreshes whichever page sits behind an open modal (Collection grid,
+      // Home, Wishlist); it never touches this modal's own buttons. Without
+      // this, clicking a rating here saves correctly but looks like nothing
+      // happened, since these buttons never show the new active state.
+      wrap.querySelectorAll(".rating-btn").forEach((b) => {
+        const isActive = record.rating === b.dataset.ratingValue;
+        b.classList.toggle("active", isActive);
+        b.setAttribute("aria-pressed", String(isActive));
+      });
     });
     wrap.appendChild(btn);
   });

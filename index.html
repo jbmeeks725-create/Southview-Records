@@ -1279,6 +1279,7 @@
     height: 16px;
     font-size: 10px;
   }
+  .wall-of-fame-remove-btn { margin-top: 12px; }
 
   .wall-of-fame-story-card { max-width: 480px; }
   .wall-of-fame-story-cover {
@@ -1290,6 +1291,23 @@
   .wall-of-fame-story-body { padding: 16px 0 4px; }
   .wall-of-fame-story-artist { color: #a89f90; font-size: 13px; margin: -6px 0 10px; }
   .wall-of-fame-story-tags { margin-bottom: 10px; }
+  .wall-of-fame-story-snippet {
+    color: #c9a84c;
+    font-family: Jost, sans-serif;
+    font-size: 15px;
+    font-style: italic;
+    line-height: 1.5;
+    margin: 0 0 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .wall-of-fame-story-full-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    color: #8a8290;
+    margin: 0 0 8px;
+  }
   .wall-of-fame-story-text { color: #e8e0d0; font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
 
   .shared-wall-of-fame-grid { margin-top: 20px; }
@@ -4177,6 +4195,8 @@
       <div class="wall-of-fame-story-body">
         <p id="wallOfFameStoryArtist" class="wall-of-fame-story-artist"></p>
         <div id="wallOfFameStoryTags" class="journal-entry-tags wall-of-fame-story-tags"></div>
+        <p id="wallOfFameStorySnippet" class="wall-of-fame-story-snippet" hidden></p>
+        <p class="wall-of-fame-story-full-label">The full story</p>
         <p id="wallOfFameStoryText" class="wall-of-fame-story-text"></p>
       </div>
     </div>
@@ -4812,11 +4832,15 @@
       <i class="ti ti-chart-radar mob-nav-icon"></i>
       <span class="mob-nav-label">Taste</span>
     </button>
-    <button type="button" class="mob-nav-item" id="mobNavRoom" aria-label="My Listening Room">
-      <i class="ti ti-armchair mob-nav-icon"></i>
-      <span class="mob-nav-label">Room</span>
+    <button type="button" class="mob-nav-item" id="mobNavListeningJournal" aria-label="Listening Journal group: My Listening Room, My Journal" aria-haspopup="true">
+      <i class="ti ti-notebook mob-nav-icon"></i>
+      <span class="mob-nav-label">Journal</span>
     </button>
-    <button type="button" class="mob-nav-item" id="mobNavMore" aria-label="More: Trophies, Community" aria-haspopup="true">
+    <button type="button" class="mob-nav-item" id="mobNavCommunity" aria-label="My Community">
+      <i class="ti ti-users mob-nav-icon"></i>
+      <span class="mob-nav-label">Community</span>
+    </button>
+    <button type="button" class="mob-nav-item" id="mobNavMore" aria-label="More: Trophies" aria-haspopup="true">
       <i class="ti ti-dots-circle-horizontal mob-nav-icon"></i>
       <span class="mob-nav-label">More</span>
     </button>
@@ -5165,27 +5189,6 @@
           </div>
         </div>
 
-        <!-- Favorite Albums Spotlight -->
-        <div class="profile-card profile-spotlight-card">
-          <div class="profile-card-header">
-            <h2>Favorite Albums</h2>
-            <button type="button" id="editAlbumSpotlightBtn" class="icon-btn" aria-label="Edit favorite albums" title="Edit">
-              <i class="ti ti-pencil" aria-hidden="true"></i>
-            </button>
-          </div>
-          <p class="field-hint">Showcase up to 6 records from your collection.</p>
-          <div id="albumSpotlightView" class="album-spotlight-view"></div>
-          <div id="albumSpotlightPicker" class="album-spotlight-picker" hidden>
-            <input type="text" id="albumSpotlightSearch" class="album-spotlight-search" placeholder="Search your collection…" autocomplete="off" />
-            <div id="albumSpotlightPickerList" class="album-spotlight-picker-list"></div>
-            <div class="form-actions">
-              <button type="button" id="saveAlbumSpotlightBtn" class="btn-primary">Save</button>
-              <button type="button" id="cancelAlbumSpotlightBtn" class="btn-secondary">Cancel</button>
-            </div>
-            <p id="albumSpotlightStatus" class="form-status"></p>
-          </div>
-        </div>
-
         <!-- Wall of Fame -->
         <div class="profile-card profile-spotlight-card">
           <div class="profile-card-header">
@@ -5194,13 +5197,13 @@
               <i class="ti ti-pencil" aria-hidden="true"></i>
             </button>
           </div>
-          <p class="field-hint">Your 10 most meaningful records — with the story behind each one.</p>
+          <p class="field-hint">Your 12 most meaningful records — with the story behind each one.</p>
           <div id="wallOfFameView" class="wall-of-fame-grid"></div>
-          <div id="wallOfFameEmpty" class="field-hint" style="font-style:italic" hidden>No records featured yet — click the pencil to choose up to 10.</div>
+          <div id="wallOfFameEmpty" class="field-hint" style="font-style:italic" hidden>No records featured yet — click the pencil to choose up to 12.</div>
 
           <div id="wallOfFamePicker" class="wall-of-fame-picker" hidden>
             <input type="text" id="wallOfFameSearch" class="album-spotlight-search" placeholder="Search your collection…" autocomplete="off" />
-            <p class="field-hint" id="wallOfFameCountHint">0 / 10 selected</p>
+            <p class="field-hint" id="wallOfFameCountHint">0 / 12 selected</p>
             <div id="wallOfFamePickerList" class="wall-of-fame-picker-list"></div>
             <div class="form-actions">
               <button type="button" id="saveWallOfFameBtn" class="btn-primary">Save</button>
@@ -7887,7 +7890,7 @@
     // ── Single-page nav buttons: mobile button ID → desktop button ID ──
     const NAV_SINGLE = {
       mobNavHome: 'homePageBtn',
-      mobNavRoom: 'roomPageBtn',
+      mobNavCommunity: 'communityPageBtn',
     };
 
     // ── Grouped nav buttons: each opens a bottom sheet listing its pages ──
@@ -7908,12 +7911,17 @@
           { desktopId: 'collectionInsightsPageBtn', icon: 'ti-chart-bar', label: 'My Collection Insights' },
         ],
       },
+      mobNavListeningJournal: {
+        title: 'Listening Journal',
+        items: [
+          { desktopId: 'roomPageBtn', icon: 'ti-armchair', label: 'My Listening Room' },
+          { desktopId: 'journalPageBtn', icon: 'ti-notebook', label: 'My Journal' },
+        ],
+      },
       mobNavMore: {
         title: 'More',
         items: [
           { desktopId: 'trophiesPageBtn', icon: 'ti-trophy', label: 'My Trophies' },
-          { desktopId: 'journalPageBtn', icon: 'ti-notebook', label: 'My Journal' },
-          { desktopId: 'communityPageBtn', icon: 'ti-users', label: 'My Community' },
         ],
       },
     };
