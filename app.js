@@ -10401,6 +10401,42 @@ function getTrophiesShareUrl() {
   );
 }
 
+function getWallOfFameShareUrl() {
+  return (
+    window.location.origin +
+    window.location.pathname +
+    "#share=wallOfFame&uid=" +
+    (currentUser?.id || "")
+  );
+}
+
+function getProfileShareUrl() {
+  return (
+    window.location.origin +
+    window.location.pathname +
+    "#share=profile&uid=" +
+    (currentUser?.id || "")
+  );
+}
+
+function getCollectionValueShareUrl() {
+  return (
+    window.location.origin +
+    window.location.pathname +
+    "#share=collectionValue&uid=" +
+    (currentUser?.id || "")
+  );
+}
+
+function getListeningJournalShareUrl() {
+  return (
+    window.location.origin +
+    window.location.pathname +
+    "#share=listeningJournal&uid=" +
+    (currentUser?.id || "")
+  );
+}
+
 async function handleShareCollection() {
   await handleSharePublicToggle(
     "collection_public",
@@ -10497,12 +10533,15 @@ function syncWishlistPublicToggle() {
 function syncPrivacySettings() {
   const collectionPublic = !!currentProfile?.collection_public;
   const wishlistPublic = !!currentProfile?.wishlist_public;
+  const listeningJournalPublic = !!currentProfile?.listening_journal_public;
 
   // Settings page toggles
   const collectionToggle = document.getElementById("settingsCollectionPublicToggle");
   const wishlistToggle = document.getElementById("settingsWishlistPublicToggle");
+  const listeningJournalToggle = document.getElementById("settingsListeningJournalPublicToggle");
   if (collectionToggle) collectionToggle.checked = collectionPublic;
   if (wishlistToggle) wishlistToggle.checked = wishlistPublic;
+  if (listeningJournalToggle) listeningJournalToggle.checked = listeningJournalPublic;
 
   // Wishlist toolbar checkbox
   const toolbarWishlistToggle = document.getElementById("wishlistPublicToggle");
@@ -10512,11 +10551,25 @@ function syncPrivacySettings() {
   const copyCollectionBtn = document.getElementById("settingsCopyCollectionUrlBtn");
   const copyTrophiesBtn = document.getElementById("settingsCopyTrophiesUrlBtn");
   const trophiesLinkedBadge = document.getElementById("settingsTrophiesLinkedBadge");
+  const copyWallOfFameBtn = document.getElementById("settingsCopyWallOfFameUrlBtn");
+  const wallOfFameLinkedBadge = document.getElementById("settingsWallOfFameLinkedBadge");
+  const copyProfileBtn = document.getElementById("settingsCopyProfileUrlBtn");
+  const profileLinkedBadge = document.getElementById("settingsProfileLinkedBadge");
+  const copyCollectionValueBtn = document.getElementById("settingsCopyCollectionValueUrlBtn");
+  const collectionValueLinkedBadge = document.getElementById("settingsCollectionValueLinkedBadge");
   const copyWishlistBtn = document.getElementById("settingsCopyWishlistUrlBtn");
+  const copyListeningJournalBtn = document.getElementById("settingsCopyListeningJournalUrlBtn");
   if (copyCollectionBtn) copyCollectionBtn.hidden = !collectionPublic;
   if (copyTrophiesBtn) copyTrophiesBtn.hidden = !collectionPublic;
   if (trophiesLinkedBadge) trophiesLinkedBadge.hidden = !collectionPublic;
+  if (copyWallOfFameBtn) copyWallOfFameBtn.hidden = !collectionPublic;
+  if (wallOfFameLinkedBadge) wallOfFameLinkedBadge.hidden = !collectionPublic;
+  if (copyProfileBtn) copyProfileBtn.hidden = !collectionPublic;
+  if (profileLinkedBadge) profileLinkedBadge.hidden = !collectionPublic;
+  if (copyCollectionValueBtn) copyCollectionValueBtn.hidden = !collectionPublic;
+  if (collectionValueLinkedBadge) collectionValueLinkedBadge.hidden = !collectionPublic;
   if (copyWishlistBtn) copyWishlistBtn.hidden = !wishlistPublic;
+  if (copyListeningJournalBtn) copyListeningJournalBtn.hidden = !listeningJournalPublic;
 }
 
 async function handleShareWishlist() {
@@ -10580,7 +10633,7 @@ function getSharedViewParams() {
   const share = params.get("share");
   const uid = params.get("uid");
   console.log("[SPIN] share:", share, "uid:", uid);
-  if ((share === "wishlist" || share === "collection" || share === "trophies" || share === "wallOfFame") && uid) {
+  if ((share === "wishlist" || share === "collection" || share === "trophies" || share === "wallOfFame" || share === "profile" || share === "collectionValue" || share === "listeningJournal") && uid) {
     return { share, uid };
   }
   return null;
@@ -10628,6 +10681,24 @@ async function maybeShowSharedWishlist() {
   if (params.share === "wallOfFame") {
     document.getElementById("sharedWallOfFameView").hidden = false;
     await renderSharedWallOfFame(params.uid);
+    return true;
+  }
+
+  if (params.share === "profile") {
+    document.getElementById("sharedProfileView").hidden = false;
+    await renderSharedProfile(params.uid);
+    return true;
+  }
+
+  if (params.share === "collectionValue") {
+    document.getElementById("sharedCollectionValueView").hidden = false;
+    await renderSharedCollectionValueShare(params.uid);
+    return true;
+  }
+
+  if (params.share === "listeningJournal") {
+    document.getElementById("sharedListeningJournalView").hidden = false;
+    await renderSharedListeningJournal(params.uid);
     return true;
   }
 
@@ -10897,6 +10968,297 @@ async function renderSharedCollection(uid) {
   } catch (err) {
     console.error("Failed to load shared collection:", err);
     document.getElementById("sharedCollectionError").hidden = false;
+  }
+}
+
+async function renderSharedListeningJournal(uid) {
+  try {
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("preferred_name, username, listening_journal_public")
+      .eq("user_id", uid)
+      .maybeSingle();
+
+    if (profileError || !profile || !profile.listening_journal_public) {
+      document.getElementById("sharedListeningJournalError").hidden = false;
+      return;
+    }
+
+    const ownerName =
+      profile.preferred_name ||
+      (profile.username ? `@${profile.username}` : "Someone's");
+    document.getElementById("sharedListeningJournalOwnerName").textContent = `${ownerName}'s Listening Journal`;
+    document.title = `${ownerName}'s Listening Journal — SPIN VINYL`;
+
+    // Aggregate stats only — mood, occasion, and record_id/listened_at for
+    // counting. Deliberately never select `notes`, so raw journal text can
+    // never end up on this page even by accident.
+    const { data: entries, error: entriesError } = await supabaseClient
+      .from("listening_log")
+      .select("record_id, mood, occasion, listened_at")
+      .eq("user_id", uid);
+
+    if (entriesError) throw entriesError;
+
+    document.getElementById("sharedLjTotalListens").textContent = (entries || []).length;
+
+    const moodCounts = {};
+    const occasionCounts = {};
+    const recordCounts = {};
+    (entries || []).forEach((e) => {
+      if (e.mood) moodCounts[e.mood] = (moodCounts[e.mood] || 0) + 1;
+      if (e.occasion) occasionCounts[e.occasion] = (occasionCounts[e.occasion] || 0) + 1;
+      if (e.record_id) recordCounts[e.record_id] = (recordCounts[e.record_id] || 0) + 1;
+    });
+
+    const renderBreakdown = (elId, counts, labelMap) => {
+      const el = document.getElementById(elId);
+      el.innerHTML = "";
+      const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      if (!top.length) {
+        el.innerHTML = '<p class="field-hint">Not enough data yet.</p>';
+        return;
+      }
+      top.forEach(([key, count]) => {
+        const row = document.createElement("div");
+        row.className = "shared-stat-list-item";
+        row.innerHTML = `<span>${labelMap[key] || key}</span><span>${count}</span>`;
+        el.appendChild(row);
+      });
+    };
+
+    renderBreakdown("sharedLjMoodBreakdown", moodCounts, JOURNAL_MOOD_LABELS);
+    renderBreakdown("sharedLjOccasionBreakdown", occasionCounts, JOURNAL_OCCASION_LABELS);
+
+    const topRecordIds = Object.entries(recordCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id]) => Number(id));
+
+    const grid = document.getElementById("sharedLjMostListenedGrid");
+    const emptyEl = document.getElementById("sharedLjEmpty");
+    grid.innerHTML = "";
+
+    if (!topRecordIds.length) {
+      emptyEl.hidden = false;
+      return;
+    }
+
+    const { data: records } = await supabaseClient
+      .from("records")
+      .select("id, artist, album, cover_url")
+      .in("id", topRecordIds);
+
+    topRecordIds.forEach((id) => {
+      const record = (records || []).find((r) => r.id === id);
+      if (!record) return;
+      const tile = document.createElement("div");
+      tile.className = "wall-of-fame-tile";
+      const cover = document.createElement("img");
+      cover.className = "wall-of-fame-cover";
+      cover.src = record.cover_url || "icon-512.png";
+      cover.alt = `${record.album} cover`;
+      tile.appendChild(cover);
+      const title = document.createElement("p");
+      title.className = "wall-of-fame-title";
+      title.textContent = `${record.artist} — ${record.album}`;
+      tile.appendChild(title);
+      const count = document.createElement("p");
+      count.className = "wall-of-fame-genre";
+      count.textContent = `${recordCounts[id]} listen${recordCounts[id] === 1 ? "" : "s"}`;
+      tile.appendChild(count);
+      grid.appendChild(tile);
+    });
+  } catch (err) {
+    console.error("Failed to load shared listening journal:", err);
+    document.getElementById("sharedListeningJournalError").hidden = false;
+  }
+}
+
+async function renderSharedProfile(uid) {
+  try {
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("preferred_name, username, collection_public, favorite_genres, favorite_subgenres, favorite_artists, favorite_albums, favorite_albums_meta")
+      .eq("user_id", uid)
+      .maybeSingle();
+
+    if (profileError || !profile || !profile.collection_public) {
+      document.getElementById("sharedProfileError").hidden = false;
+      return;
+    }
+
+    const ownerName =
+      profile.preferred_name ||
+      (profile.username ? `@${profile.username}` : "Someone's");
+    document.getElementById("sharedProfileOwnerName").textContent = `${ownerName}'s Profile`;
+    document.title = `${ownerName}'s Profile — SPIN VINYL`;
+
+    let somethingShown = false;
+
+    // Trophy Spotlight — pinned trophies, computed against this user's
+    // records/wishlist rather than the viewer's own global state.
+    const pinnedIds = Array.isArray(profile.favorite_albums_meta?.pinned_trophies)
+      ? profile.favorite_albums_meta.pinned_trophies
+      : [];
+    if (pinnedIds.length) {
+      const { data: records } = await supabaseClient
+        .from("records")
+        .select("id, artist, album, year, genre_id, rating, cover_url, personal_story, genres ( name ), subgenres ( name )")
+        .eq("user_id", uid);
+      const { data: wl } = await supabaseClient
+        .from("wishlist")
+        .select("id")
+        .eq("user_id", uid);
+
+      const fetchedRecords = (records || []).map((r) => ({
+        ...r,
+        genre_name: r.genres?.name || null,
+        subgenre_name: r.subgenres?.name || null,
+      }));
+      const fetchedWishlist = wl || [];
+
+      const trophyWrap = document.getElementById("sharedProfileTrophyWrap");
+      const trophyRow = document.getElementById("sharedProfileTrophyRow");
+      trophyRow.innerHTML = "";
+      let anyPinnedShown = false;
+      pinnedIds.forEach((id) => {
+        const def = TROPHY_DEFS.find((t) => t.id === id);
+        if (!def) return;
+        const earned = def.check(fetchedRecords, fetchedWishlist, profile);
+        if (!earned) return;
+        const item = document.createElement("div");
+        item.className = "trophy-spotlight-item";
+        item.innerHTML = buildTrophyLabelSvg(def, true, 120);
+        const label = document.createElement("p");
+        label.className = "trophy-spotlight-label";
+        label.textContent = def.name;
+        item.appendChild(label);
+        trophyRow.appendChild(item);
+        anyPinnedShown = true;
+      });
+      if (anyPinnedShown) {
+        trophyWrap.hidden = false;
+        somethingShown = true;
+      }
+    }
+
+    // Wall of Fame
+    const { data: wofEntries } = await supabaseClient
+      .from("wall_of_fame_entries")
+      .select("id, position, snippet, superlative_tags, records ( id, artist, album, cover_url, personal_story, genres ( name ) )")
+      .eq("user_id", uid)
+      .order("position", { ascending: true });
+
+    if (wofEntries?.length) {
+      const wofWrap = document.getElementById("sharedProfileWallOfFameWrap");
+      const wofGrid = document.getElementById("sharedProfileWallOfFameGrid");
+      wofGrid.innerHTML = "";
+      wofEntries.forEach((entry) => {
+        const record = entry.records;
+        if (!record) return;
+        const normalizedRecord = { ...record, genre_name: record.genres?.name || "" };
+        const normalizedEntry = { snippet: entry.snippet, superlative_tags: entry.superlative_tags };
+        wofGrid.appendChild(buildWallOfFameTile(normalizedEntry, normalizedRecord));
+      });
+      wofWrap.hidden = false;
+      somethingShown = true;
+    }
+
+    // Music Taste
+    const hasTaste =
+      (profile.favorite_genres?.length) ||
+      (profile.favorite_subgenres?.length) ||
+      (profile.favorite_artists?.length) ||
+      (profile.favorite_albums?.length);
+    if (hasTaste) {
+      const tasteWrap = document.getElementById("sharedProfileTasteWrap");
+      const tasteView = document.getElementById("sharedProfileTaste");
+      tasteView.innerHTML = "";
+      tasteView.appendChild(buildProfileTagRow("Favorite genres", profile.favorite_genres));
+      tasteView.appendChild(buildProfileTagRow("Favorite subgenres", profile.favorite_subgenres));
+      tasteView.appendChild(buildProfileTagRow("Favorite artists", profile.favorite_artists, { stacked: true }));
+      tasteView.appendChild(buildAlbumGridRow("Favorite albums", profile.favorite_albums, profile.favorite_albums_meta));
+      tasteWrap.hidden = false;
+      somethingShown = true;
+    }
+
+    if (!somethingShown) {
+      document.getElementById("sharedProfileEmpty").hidden = false;
+    }
+  } catch (err) {
+    console.error("Failed to load shared profile:", err);
+    document.getElementById("sharedProfileError").hidden = false;
+  }
+}
+
+async function renderSharedCollectionValueShare(uid) {
+  try {
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("preferred_name, username, collection_public")
+      .eq("user_id", uid)
+      .maybeSingle();
+
+    if (profileError || !profile || !profile.collection_public) {
+      document.getElementById("sharedCollectionValueError").hidden = false;
+      return;
+    }
+
+    const ownerName =
+      profile.preferred_name ||
+      (profile.username ? `@${profile.username}` : "Someone's");
+    document.getElementById("sharedCollectionValueOwnerName").textContent = `${ownerName}'s Collection Value`;
+    document.title = `${ownerName}'s Collection Value — SPIN VINYL`;
+
+    const { data: records, error: recordsError } = await supabaseClient
+      .from("records")
+      .select("id, artist, album, cover_url, market_value_override, market_value_override_note")
+      .eq("user_id", uid);
+
+    if (recordsError) throw recordsError;
+
+    // Self-identified values only — same rule as the in-app Collection
+    // Value page: Discogs data is never part of this total.
+    const valued = (records || [])
+      .filter((r) => r.market_value_override != null && !isNaN(parseFloat(r.market_value_override)))
+      .map((r) => ({ ...r, value: parseFloat(r.market_value_override) }))
+      .sort((a, b) => b.value - a.value);
+
+    const total = valued.reduce((sum, r) => sum + r.value, 0);
+    document.getElementById("sharedCvTotalAmount").textContent = cvFormatPrice(total) ?? "$0";
+    document.getElementById("sharedCvValuedCount").textContent = `${valued.length} / ${(records || []).length}`;
+
+    const grid = document.getElementById("sharedCvTop5Grid");
+    const emptyEl = document.getElementById("sharedCvEmpty");
+    grid.innerHTML = "";
+
+    if (!valued.length) {
+      emptyEl.hidden = false;
+      return;
+    }
+
+    valued.slice(0, 5).forEach((record) => {
+      const tile = document.createElement("div");
+      tile.className = "wall-of-fame-tile";
+      const cover = document.createElement("img");
+      cover.className = "wall-of-fame-cover";
+      cover.src = record.cover_url || "icon-512.png";
+      cover.alt = `${record.album} cover`;
+      tile.appendChild(cover);
+      const title = document.createElement("p");
+      title.className = "wall-of-fame-title";
+      title.textContent = `${record.artist} — ${record.album}`;
+      tile.appendChild(title);
+      const value = document.createElement("p");
+      value.className = "wall-of-fame-genre";
+      value.textContent = cvFormatPrice(record.value);
+      tile.appendChild(value);
+      grid.appendChild(tile);
+    });
+  } catch (err) {
+    console.error("Failed to load shared collection value:", err);
+    document.getElementById("sharedCollectionValueError").hidden = false;
   }
 }
 
@@ -12587,6 +12949,27 @@ function setupEvents() {
       }
     });
 
+  document
+    .getElementById("settingsListeningJournalPublicToggle")
+    ?.addEventListener("change", async (e) => {
+      const isPublic = e.target.checked;
+      const statusEl = document.getElementById("settingsPrivacyStatus");
+      try {
+        await saveProfileFields({ listening_journal_public: isPublic });
+        syncPrivacySettings();
+        statusEl.textContent = isPublic
+          ? "Listening Journal stats are now public."
+          : "Listening Journal stats are now private.";
+        statusEl.className = "form-status form-status-success";
+        setTimeout(() => { statusEl.textContent = ""; }, 2500);
+      } catch (err) {
+        console.error("Failed to save listening_journal_public:", err);
+        e.target.checked = !isPublic;
+        statusEl.textContent = "Couldn't save. Has migration_listening_journal_share.sql been run in Supabase?";
+        statusEl.className = "form-status form-status-error";
+      }
+    });
+
   // Settings: copy link buttons
   document
     .getElementById("settingsCopyCollectionUrlBtn")
@@ -12595,6 +12978,22 @@ function setupEvents() {
   document
     .getElementById("settingsCopyTrophiesUrlBtn")
     ?.addEventListener("click", (e) => copyShareUrl(getTrophiesShareUrl(), e.currentTarget));
+
+  document
+    .getElementById("settingsCopyWallOfFameUrlBtn")
+    ?.addEventListener("click", (e) => copyShareUrl(getWallOfFameShareUrl(), e.currentTarget));
+
+  document
+    .getElementById("settingsCopyProfileUrlBtn")
+    ?.addEventListener("click", (e) => copyShareUrl(getProfileShareUrl(), e.currentTarget));
+
+  document
+    .getElementById("settingsCopyCollectionValueUrlBtn")
+    ?.addEventListener("click", (e) => copyShareUrl(getCollectionValueShareUrl(), e.currentTarget));
+
+  document
+    .getElementById("settingsCopyListeningJournalUrlBtn")
+    ?.addEventListener("click", (e) => copyShareUrl(getListeningJournalShareUrl(), e.currentTarget));
 
   document
     .getElementById("settingsCopyWishlistUrlBtn")

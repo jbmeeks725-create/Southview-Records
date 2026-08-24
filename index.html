@@ -4244,6 +4244,111 @@
     </div>
   </div>
 
+  <!-- Shared Profile public view -->
+  <div id="sharedProfileView" class="shared-wishlist-view" hidden>
+    <div class="shared-wishlist-header">
+      <div class="shared-wishlist-brand">
+        <img src="icon-512.png" alt="Spin Vinyl" class="shared-wishlist-logo" />
+        <span class="shared-wishlist-brand-name">Spin Vinyl</span>
+      </div>
+      <div class="shared-wishlist-owner">
+        <h1 id="sharedProfileOwnerName" class="shared-wishlist-owner-name"></h1>
+        <p class="shared-wishlist-subtitle">Profile</p>
+      </div>
+    </div>
+
+    <div id="sharedProfileTrophyWrap" class="community-wall-of-fame-wrap" hidden>
+      <h3 class="journal-section-heading"><i class="ti ti-trophy" aria-hidden="true"></i> Trophy Spotlight</h3>
+      <div id="sharedProfileTrophyRow" class="trophy-spotlight-row"></div>
+    </div>
+
+    <div id="sharedProfileWallOfFameWrap" class="community-wall-of-fame-wrap" hidden>
+      <h3 class="journal-section-heading"><i class="ti ti-award" aria-hidden="true"></i> Wall of Fame</h3>
+      <div id="sharedProfileWallOfFameGrid" class="wall-of-fame-grid"></div>
+    </div>
+
+    <div id="sharedProfileTasteWrap" class="community-wall-of-fame-wrap" hidden>
+      <h3 class="journal-section-heading"><i class="ti ti-music" aria-hidden="true"></i> Music Taste</h3>
+      <div id="sharedProfileTaste"></div>
+    </div>
+
+    <p id="sharedProfileEmpty" class="shared-wishlist-empty" hidden>Nothing to show here yet.</p>
+    <p id="sharedProfileError" class="shared-wishlist-error" hidden>This profile isn't available publicly.</p>
+    <div class="shared-wishlist-footer">
+      <a href="/" class="shared-wishlist-cta">Build your own vinyl collection on Spin Vinyl</a>
+    </div>
+  </div>
+
+  <!-- Shared Collection Value public view -->
+  <div id="sharedCollectionValueView" class="shared-wishlist-view" hidden>
+    <div class="shared-wishlist-header">
+      <div class="shared-wishlist-brand">
+        <img src="icon-512.png" alt="Spin Vinyl" class="shared-wishlist-logo" />
+        <span class="shared-wishlist-brand-name">Spin Vinyl</span>
+      </div>
+      <div class="shared-wishlist-owner">
+        <h1 id="sharedCollectionValueOwnerName" class="shared-wishlist-owner-name"></h1>
+        <p class="shared-wishlist-subtitle">Collection Value</p>
+      </div>
+    </div>
+
+    <div class="shared-collection-stats">
+      <div class="shared-stat-tile">
+        <span id="sharedCvTotalAmount" class="shared-stat-value">—</span>
+        <span class="shared-stat-label">Total Value</span>
+      </div>
+      <div class="shared-stat-tile">
+        <span id="sharedCvValuedCount" class="shared-stat-value">—</span>
+        <span class="shared-stat-label">Records Valued</span>
+      </div>
+    </div>
+
+    <h3 class="journal-section-heading"><i class="ti ti-star" aria-hidden="true"></i> Top 5 Most Valuable</h3>
+    <div id="sharedCvTop5Grid" class="wall-of-fame-grid"></div>
+    <p id="sharedCvEmpty" class="shared-wishlist-empty" hidden>No self-identified values set yet.</p>
+    <p id="sharedCollectionValueError" class="shared-wishlist-error" hidden>This isn't available publicly.</p>
+    <div class="shared-wishlist-footer">
+      <a href="/" class="shared-wishlist-cta">Build your own vinyl collection on Spin Vinyl</a>
+    </div>
+  </div>
+
+  <!-- Shared Listening Journal public view (aggregate stats only) -->
+  <div id="sharedListeningJournalView" class="shared-wishlist-view" hidden>
+    <div class="shared-wishlist-header">
+      <div class="shared-wishlist-brand">
+        <img src="icon-512.png" alt="Spin Vinyl" class="shared-wishlist-logo" />
+        <span class="shared-wishlist-brand-name">Spin Vinyl</span>
+      </div>
+      <div class="shared-wishlist-owner">
+        <h1 id="sharedListeningJournalOwnerName" class="shared-wishlist-owner-name"></h1>
+        <p class="shared-wishlist-subtitle">Listening Journal</p>
+      </div>
+    </div>
+
+    <div class="shared-collection-stats">
+      <div class="shared-stat-tile">
+        <span id="sharedLjTotalListens" class="shared-stat-value">—</span>
+        <span class="shared-stat-label">Total Listens Logged</span>
+      </div>
+      <div class="shared-stat-tile shared-stat-tile-list">
+        <span class="shared-stat-label">Mood Breakdown</span>
+        <div id="sharedLjMoodBreakdown" class="shared-stat-list"></div>
+      </div>
+      <div class="shared-stat-tile shared-stat-tile-list">
+        <span class="shared-stat-label">Occasion Breakdown</span>
+        <div id="sharedLjOccasionBreakdown" class="shared-stat-list"></div>
+      </div>
+    </div>
+
+    <h3 class="journal-section-heading"><i class="ti ti-headphones" aria-hidden="true"></i> Most Listened</h3>
+    <div id="sharedLjMostListenedGrid" class="wall-of-fame-grid"></div>
+    <p id="sharedLjEmpty" class="shared-wishlist-empty" hidden>No listens logged yet.</p>
+    <p id="sharedListeningJournalError" class="shared-wishlist-error" hidden>This isn't available publicly.</p>
+    <div class="shared-wishlist-footer">
+      <a href="/" class="shared-wishlist-cta">Build your own vinyl collection on Spin Vinyl</a>
+    </div>
+  </div>
+
   <!-- Wall of Fame story modal (used both in-app and on the public share page) -->
   <div id="wallOfFameStoryOverlay" class="modal-overlay" hidden>
     <div class="modal wall-of-fame-story-card" role="dialog" aria-modal="true" aria-labelledby="wallOfFameStoryAlbum">
@@ -5732,6 +5837,67 @@
                 <i class="ti ti-link" aria-hidden="true"></i> Linked to Collection
               </span>
               <button type="button" id="settingsCopyTrophiesUrlBtn" class="btn-text privacy-copy-btn" hidden>
+                <i class="ti ti-copy" aria-hidden="true"></i> Copy link
+              </button>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">My Wall of Fame</span>
+              <span class="privacy-toggle-desc">Share your 12 most meaningful records — uses the same setting as Collection</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <span id="settingsWallOfFameLinkedBadge" class="privacy-linked-badge" hidden>
+                <i class="ti ti-link" aria-hidden="true"></i> Linked to Collection
+              </span>
+              <button type="button" id="settingsCopyWallOfFameUrlBtn" class="btn-text privacy-copy-btn" hidden>
+                <i class="ti ti-copy" aria-hidden="true"></i> Copy link
+              </button>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">My Profile</span>
+              <span class="privacy-toggle-desc">Share your Trophy Spotlight, Wall of Fame, and Music Taste — uses the same setting as Collection</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <span id="settingsProfileLinkedBadge" class="privacy-linked-badge" hidden>
+                <i class="ti ti-link" aria-hidden="true"></i> Linked to Collection
+              </span>
+              <button type="button" id="settingsCopyProfileUrlBtn" class="btn-text privacy-copy-btn" hidden>
+                <i class="ti ti-copy" aria-hidden="true"></i> Copy link
+              </button>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">My Collection Value</span>
+              <span class="privacy-toggle-desc">Share your total value and top records — uses the same setting as Collection</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <span id="settingsCollectionValueLinkedBadge" class="privacy-linked-badge" hidden>
+                <i class="ti ti-link" aria-hidden="true"></i> Linked to Collection
+              </span>
+              <button type="button" id="settingsCopyCollectionValueUrlBtn" class="btn-text privacy-copy-btn" hidden>
+                <i class="ti ti-copy" aria-hidden="true"></i> Copy link
+              </button>
+            </div>
+          </div>
+
+          <div class="privacy-toggle-row">
+            <div class="privacy-toggle-info">
+              <span class="privacy-toggle-label">My Listening Journal</span>
+              <span class="privacy-toggle-desc">Share aggregate stats only — mood/occasion breakdown and most-listened records. Never your written notes.</span>
+            </div>
+            <div class="privacy-toggle-controls">
+              <label class="privacy-switch" aria-label="Make Listening Journal stats public">
+                <input type="checkbox" id="settingsListeningJournalPublicToggle" />
+                <span class="privacy-switch-track"></span>
+              </label>
+              <button type="button" id="settingsCopyListeningJournalUrlBtn" class="btn-text privacy-copy-btn" hidden>
                 <i class="ti ti-copy" aria-hidden="true"></i> Copy link
               </button>
             </div>
