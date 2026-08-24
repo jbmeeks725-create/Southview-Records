@@ -1294,6 +1294,26 @@
 
   .shared-wall-of-fame-grid { margin-top: 20px; }
 
+  /* ── My Community: profile link + Wall of Fame preview ── */
+  .fellow-collectors-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .community-view-profile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #c9a84c;
+    font-size: 13px;
+    white-space: nowrap;
+    margin-top: 4px;
+  }
+  .community-view-profile-link:hover { text-decoration: underline; }
+  .community-wall-of-fame-wrap { margin: 24px 0 32px; }
+
   .home-on-this-day .mini-list { margin-top: 8px; }
 
   /* ── Desktop nav: grouped dropdowns mirroring mobile bucketing ── */
@@ -6326,6 +6346,15 @@
           <h2 class="page-header-title">My Community</h2>
           <p class="page-header-sub">Connect with collectors whose taste you admire.</p>
         </div>
+        <button type="button" id="communityViewProfileBtn" class="btn-text community-view-profile-link">
+          <i class="ti ti-user-circle" aria-hidden="true"></i> View my profile
+        </button>
+      </div>
+
+      <!-- My Wall of Fame preview -->
+      <div id="communityWallOfFameWrap" class="community-wall-of-fame-wrap" hidden>
+        <h3 class="journal-section-heading"><i class="ti ti-award" aria-hidden="true"></i> My Wall of Fame</h3>
+        <div id="communityWallOfFameGrid" class="wall-of-fame-grid"></div>
       </div>
 
       <!-- Top-level community tabs -->

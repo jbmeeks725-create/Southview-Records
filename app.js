@@ -18273,6 +18273,7 @@ async function setupSharedCollectionFollowButton(profileUserId) {
 let communityActiveTab = "collectors"; // "collectors" | "feed"
 
 function renderCommunity() {
+  renderCommunityWallOfFame();
   setCommunityTab(communityActiveTab);
   if (communityActiveTab === "collectors") {
     fcActiveTab = "following";
@@ -18280,6 +18281,24 @@ function renderCommunity() {
   } else {
     renderActivityFeed();
   }
+}
+
+function renderCommunityWallOfFame() {
+  const wrap = document.getElementById("communityWallOfFameWrap");
+  const grid = document.getElementById("communityWallOfFameGrid");
+  if (!wrap || !grid) return;
+
+  if (!wallOfFameEntries.length) {
+    wrap.hidden = true;
+    return;
+  }
+  wrap.hidden = false;
+  grid.innerHTML = "";
+  wallOfFameEntries.forEach((entry) => {
+    const record = allRecords.find((r) => r.id === entry.record_id);
+    if (!record) return;
+    grid.appendChild(buildWallOfFameTile(entry, record));
+  });
 }
 
 function setCommunityTab(tab) {
@@ -18304,6 +18323,9 @@ function setCommunityTab(tab) {
 function setupFellowCollectors() {
   document.getElementById("communityPageBtn")
     ?.addEventListener("click", () => setPage("community"));
+
+  document.getElementById("communityViewProfileBtn")
+    ?.addEventListener("click", () => setPage("profile"));
 
   document.getElementById("communityTabCollectors")
     ?.addEventListener("click", () => {
