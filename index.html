@@ -1312,6 +1312,46 @@
 
   .shared-wall-of-fame-grid { margin-top: 20px; }
 
+  /* ── Shared Collection: stats bar + Wall of Fame preview ── */
+  .shared-collection-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin: 24px 0 32px;
+  }
+  .shared-stat-tile {
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 10px;
+    padding: 16px;
+    background: rgba(255,255,255,0.02);
+  }
+  .shared-stat-value {
+    display: block;
+    font-family: Jost, sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #c9a84c;
+  }
+  .shared-stat-label {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    color: #8a8290;
+    margin-top: 4px;
+  }
+  .shared-stat-tile-list .shared-stat-label { margin: 0 0 10px; }
+  .shared-stat-list { display: flex; flex-direction: column; gap: 6px; }
+  .shared-stat-list-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: #e8e0d0;
+    font-size: 14px;
+  }
+  .shared-stat-list-item span:last-child { color: #8a8290; font-size: 13px; }
+  .shared-wall-of-fame-wrap { margin: 0 0 32px; }
+
   /* ── My Community: profile link + Wall of Fame preview ── */
   .fellow-collectors-header {
     display: flex;
@@ -4135,6 +4175,26 @@
         <i class="ti ti-user-plus" aria-hidden="true"></i> <span>Follow</span>
       </button>
     </div>
+    <div id="sharedCollectionStats" class="shared-collection-stats" hidden>
+      <div class="shared-stat-tile">
+        <span id="sharedStatCount" class="shared-stat-value">—</span>
+        <span class="shared-stat-label">Records</span>
+      </div>
+      <div class="shared-stat-tile shared-stat-tile-list">
+        <span class="shared-stat-label">Top Artists</span>
+        <div id="sharedStatTopArtists" class="shared-stat-list"></div>
+      </div>
+      <div class="shared-stat-tile shared-stat-tile-list">
+        <span class="shared-stat-label">Top Genres</span>
+        <div id="sharedStatTopGenres" class="shared-stat-list"></div>
+      </div>
+    </div>
+
+    <div id="sharedCollectionWallOfFameWrap" class="community-wall-of-fame-wrap shared-wall-of-fame-wrap" hidden>
+      <h3 class="journal-section-heading"><i class="ti ti-award" aria-hidden="true"></i> Wall of Fame</h3>
+      <div id="sharedCollectionWallOfFameGrid" class="wall-of-fame-grid shared-wall-of-fame-grid"></div>
+    </div>
+
     <div id="sharedCollectionGrid" class="shared-collection-grid"></div>
     <p id="sharedCollectionEmpty" class="shared-wishlist-empty" hidden>This collection is empty.</p>
     <p id="sharedCollectionError" class="shared-wishlist-error" hidden>This collection isn't available publicly.</p>

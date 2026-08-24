@@ -10597,9 +10597,20 @@ async function maybeShowSharedWishlist() {
   const params = getSharedViewParams();
   if (!params) return false;
 
-  // Hide the entire normal app shell immediately.
+  // Hide the entire normal app shell immediately. Previously this only
+  // hid the splash/auth overlays and relied on a "shared-wishlist-mode"
+  // body class with no matching CSS rule anywhere findable — meaning the
+  // full authenticated app (header, nav, Home dashboard, etc.) stayed
+  // visible underneath the shared content, showing up when a visitor
+  // scrolled past it. Hiding every top-level header/nav/section directly
+  // is generic and future-proof: any new page section added later is
+  // covered automatically without needing to remember to update a list.
+  // The shared-view containers themselves are <div>s, so they're untouched.
   document.getElementById("splashScreen").hidden = true;
   document.getElementById("authOverlay").hidden = true;
+  document.querySelectorAll("body > header, body > nav, body > section").forEach((el) => {
+    el.hidden = true;
+  });
   document.body.classList.add("shared-wishlist-mode");
 
   if (params.share === "collection") {
@@ -10710,9 +10721,80 @@ async function maybeShowSharedWishlist() {
   return true;
 }
 
+function renderSharedCollectionStats(records) {
+  const wrap = document.getElementById("sharedCollectionStats");
+  if (!wrap) return;
+  wrap.hidden = false;
+
+  document.getElementById("sharedStatCount").textContent = records.length;
+
+  const artistCounts = {};
+  const genreCounts = {};
+  records.forEach((r) => {
+    if (r.artist) artistCounts[r.artist] = (artistCounts[r.artist] || 0) + 1;
+    const genreName = r.genres?.name;
+    if (genreName) genreCounts[genreName] = (genreCounts[genreName] || 0) + 1;
+  });
+
+  const renderList = (elId, counts) => {
+    const el = document.getElementById(elId);
+    el.innerHTML = "";
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    if (!top.length) {
+      el.innerHTML = '<p class="field-hint">Not enough data yet.</p>';
+      return;
+    }
+    top.forEach(([name, count]) => {
+      const row = document.createElement("div");
+      row.className = "shared-stat-list-item";
+      row.innerHTML = `<span>${name}</span><span>${count}</span>`;
+      el.appendChild(row);
+    });
+  };
+
+  renderList("sharedStatTopArtists", artistCounts);
+  renderList("sharedStatTopGenres", genreCounts);
+}
+
+async function renderSharedCollectionWallOfFame(uid) {
+  const wrap = document.getElementById("sharedCollectionWallOfFameWrap");
+  const grid = document.getElementById("sharedCollectionWallOfFameGrid");
+  if (!wrap || !grid) return;
+
+  try {
+    const { data: entries, error } = await supabaseClient
+      .from("wall_of_fame_entries")
+      .select("id, position, snippet, superlative_tags, records ( id, artist, album, cover_url, personal_story, genres ( name ) )")
+      .eq("user_id", uid)
+      .order("position", { ascending: true });
+
+    if (error) throw error;
+    if (!entries || !entries.length) {
+      wrap.hidden = true;
+      return;
+    }
+
+    wrap.hidden = false;
+    grid.innerHTML = "";
+    entries.forEach((entry) => {
+      const record = entry.records;
+      if (!record) return;
+      const normalizedRecord = { ...record, genre_name: record.genres?.name || "" };
+      const normalizedEntry = { snippet: entry.snippet, superlative_tags: entry.superlative_tags };
+      grid.appendChild(buildWallOfFameTile(normalizedEntry, normalizedRecord));
+    });
+  } catch (err) {
+    console.error("Failed to load Wall of Fame for shared collection:", err);
+    wrap.hidden = true;
+  }
+}
+
 async function renderSharedCollection(uid) {
   try {
     console.log("[SPIN] renderSharedCollection called for uid:", uid);
+
+    document.getElementById("sharedCollectionStats").hidden = true;
+    document.getElementById("sharedCollectionWallOfFameWrap").hidden = true;
 
     const { data: profile, error: profileError } = await supabaseClient
       .from("profiles")
@@ -10768,6 +10850,9 @@ async function renderSharedCollection(uid) {
       emptyEl.hidden = false;
       return;
     }
+
+    renderSharedCollectionStats(records);
+    await renderSharedCollectionWallOfFame(uid);
 
     records.forEach((record) => {
       const card = document.createElement("div");
