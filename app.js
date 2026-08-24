@@ -3896,6 +3896,16 @@ function setupWallOfFame() {
   document.getElementById("cancelWallOfFameBtn")?.addEventListener("click", () => closeWallOfFameEditor());
   document.getElementById("saveWallOfFameBtn")?.addEventListener("click", () => saveWallOfFame());
   document.getElementById("wallOfFameSearch")?.addEventListener("input", (e) => renderWallOfFamePickerList(e.target.value));
+}
+
+// Separate from setupWallOfFame() deliberately: this needs to run on BOTH
+// the authenticated app and the public shared pages (Wall of Fame tiles
+// are clickable on shared Profile/Wall of Fame/Collection Value pages
+// too), but setupWallOfFame() itself is skipped entirely on shared pages
+// since maybeShowSharedWishlist() short-circuits the rest of app init.
+// Without this split, the modal could be opened from a shared page but
+// never closed — no close button or click-outside handler would exist.
+function setupWallOfFameStoryModal() {
   document.getElementById("wallOfFameStoryCloseBtn")?.addEventListener("click", () => closeWallOfFameStoryModal());
   document.getElementById("wallOfFameStoryOverlay")?.addEventListener("click", (e) => {
     if (e.target.id === "wallOfFameStoryOverlay") closeWallOfFameStoryModal();
@@ -10646,21 +10656,40 @@ async function maybeShowSharedWishlist() {
   const params = getSharedViewParams();
   if (!params) return false;
 
-  // Hide the entire normal app shell immediately. Previously this only
-  // hid the splash/auth overlays and relied on a "shared-wishlist-mode"
-  // body class with no matching CSS rule anywhere findable — meaning the
-  // full authenticated app (header, nav, Home dashboard, etc.) stayed
-  // visible underneath the shared content, showing up when a visitor
-  // scrolled past it. Hiding every top-level header/nav/section directly
-  // is generic and future-proof: any new page section added later is
-  // covered automatically without needing to remember to update a list.
-  // The shared-view containers themselves are <div>s, so they're untouched.
+  // Hide the entire normal app shell immediately. Previous attempts hid
+  // specific tag types (header/nav/section) or relied on a CSS class with
+  // no matching rule — both left something visible (confirmed: the
+  // header's "Now Playing" bar, which is `hidden` by default in HTML,
+  // was showing real data, meaning some part of the shell wasn't being
+  // hidden at all). Switching to an allowlist instead of a denylist:
+  // hide every direct child of <body> except the one shared view we're
+  // about to show and the story modal — closes the gap regardless of
+  // what exactly was missed before, and stays correct automatically as
+  // new page sections get added later.
   document.getElementById("splashScreen").hidden = true;
   document.getElementById("authOverlay").hidden = true;
-  document.querySelectorAll("body > header, body > nav, body > section").forEach((el) => {
+
+  const sharedViewAllowIds = new Set([
+    "sharedWishlistView",
+    "sharedCollectionView",
+    "sharedTrophiesView",
+    "sharedWallOfFameView",
+    "sharedProfileView",
+    "sharedCollectionValueView",
+    "sharedListeningJournalView",
+    "wallOfFameStoryOverlay",
+    "fieldTooltipPopover",
+  ]);
+  Array.from(document.body.children).forEach((el) => {
+    const tag = el.tagName.toLowerCase();
+    if (tag === "script" || tag === "style") return;
+    if (sharedViewAllowIds.has(el.id)) return;
     el.hidden = true;
   });
+
   document.body.classList.add("shared-wishlist-mode");
+  setupWallOfFameStoryModal();
+  setupFieldTooltips();
 
   if (params.share === "collection") {
     document.getElementById("sharedCollectionView").hidden = false;
@@ -16334,6 +16363,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupJournalQuickAdd();
   setupJournalFilters();
   setupDesktopNavDropdowns();
+  setupWallOfFameStoryModal();
   document.getElementById("exportCsvBtn")?.addEventListener("click", exportCollectionToCsv);
   document.getElementById("logListenBtn")?.addEventListener("click", () => {
     if (activeDetailRecordId) logListen(activeDetailRecordId);
