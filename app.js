@@ -1354,30 +1354,16 @@ function renderStats() {
     }
   }
 
-  // ── My Achievements: median collection value (exact pressings only) ──
-  const medianEl  = document.getElementById("statMedianValue");
-  const medianSub = document.getElementById("statMedianSub");
-  if (medianEl) {
-    const values = allRecords
-      .map(r => {
-        if (r.market_value_override != null) return parseFloat(r.market_value_override);
-        if (r.discogs_release_id && r.market_value_cached != null) return parseFloat(r.market_value_cached);
-        return null;
-      })
-      .filter(v => v !== null && !isNaN(v) && v > 0);
-
-    if (values.length) {
-      const total = values.reduce((sum, v) => sum + v, 0);
-      const currencyFmt = new Intl.NumberFormat("en-US", {
-        style: "currency", currency: "USD",
-        minimumFractionDigits: 0, maximumFractionDigits: 0,
-      });
-      animateStatValue(medianEl, total, { formatter: (v) => currencyFmt.format(v) });
-      if (medianSub) medianSub.textContent = `(${values.length} / ${allRecords.length} records valued)`;
-    } else {
-      medianEl.textContent = "—";
-      if (medianSub) medianSub.textContent = "Link pressings to value";
-    }
+  // ── My Achievements: total listening sessions logged ──
+  // Previously showed "Est. Collection Value" here, but it had its own
+  // separate calculation that still blended in Discogs cached prices —
+  // missed when cvGetValue() was fixed to be self-identified-values-only
+  // elsewhere. Rather than fix a duplicate calculation, replacing this
+  // tile entirely: collection value isn't meant to be a home-page focus,
+  // and this data already exists cleanly via listeningLog.
+  const sessionsEl = document.getElementById("statListeningSessionsCount");
+  if (sessionsEl) {
+    animateStatValue(sessionsEl, listeningLog.length);
   }
 
   // ── My Community: following / followers (async, non-blocking) ──
@@ -7966,6 +7952,16 @@ function render() {
 }
 
 function setPage(page, { skipPersist = false } = {}) {
+  // Premium gate for My Listening Room. Checked here rather than at each
+  // individual click site (nav button, mobile nav, the header "Now
+  // Playing" link, etc.) so every current and future entry point is
+  // covered by one check instead of needing to remember to patch each one.
+  if (page === "room" && !isPremiumUser()) {
+    showUpgradePrompt("My Listening Room");
+    if (currentPage && currentPage !== "room") return; // stay put
+    page = "home"; // fallback if there's nowhere sensible to stay on
+  }
+
   currentPage = page;
 
   // Remember where the user was, so reopening the app (tab/PWA relaunch)
@@ -12815,6 +12811,7 @@ function setupEvents() {
   const statWishlistBox = document.getElementById("statWishlistBox");
   const statLabelsBox   = document.getElementById("statLabelsBox");
   const statTrophiesBox = document.getElementById("statTrophiesBox");
+  const statListeningSessionsBox = document.getElementById("statListeningSessionsBox");
   const statFollowingBox = document.getElementById("statFollowingBox");
   const statFollowersBox = document.getElementById("statFollowersBox");
 
@@ -12824,11 +12821,12 @@ function setupEvents() {
   statWishlistBox?.addEventListener("click", () => setPage("wishlist"));
   statLabelsBox?.addEventListener("click", () => setPage("collectionInsights"));
   statTrophiesBox?.addEventListener("click", () => setPage("trophies"));
+  statListeningSessionsBox?.addEventListener("click", () => setPage("journal"));
   statFollowingBox?.addEventListener("click", () => setPage("community"));
   statFollowersBox?.addEventListener("click", () => setPage("community"));
 
   [statRecordsBox, statGenresBox, statDecadeBox, statWishlistBox,
-   statLabelsBox, statTrophiesBox, statFollowingBox, statFollowersBox]
+   statLabelsBox, statTrophiesBox, statListeningSessionsBox, statFollowingBox, statFollowersBox]
     .filter(Boolean).forEach(makeKeyboardClickable);
 
   document

@@ -1312,6 +1312,28 @@
 
   .shared-wall-of-fame-grid { margin-top: 20px; }
 
+  /* ── Collection Value: de-emphasized Discogs reference tools ── */
+  .cv-discogs-tools {
+    margin: 4px 0 24px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+  }
+  .cv-discogs-tools summary {
+    cursor: pointer;
+    color: #8a8290;
+    font-size: 13px;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .cv-discogs-tools summary::-webkit-details-marker { display: none; }
+  .cv-discogs-tools summary i { transition: transform 0.15s ease; font-size: 12px; }
+  .cv-discogs-tools[open] summary i { transform: rotate(90deg); }
+  .cv-discogs-tools .field-hint { margin: 10px 0 8px; }
+  .cv-discogs-tools-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
   /* ── Shared Collection: stats bar + Wall of Fame preview ── */
   .shared-collection-stats {
     display: grid;
@@ -1797,6 +1819,12 @@
       align-items: stretch;
       /* Safe area: clears the iPhone home indicator + Safari floating URL bar */
       padding-bottom: env(safe-area-inset-bottom, 8px);
+      /* iOS Safari can let position:fixed elements drift/scroll with the
+         page during momentum scrolling unless forced onto their own GPU
+         compositing layer — this is the standard fix for that. */
+      -webkit-transform: translate3d(0, 0, 0);
+      transform: translate3d(0, 0, 0);
+      will-change: transform;
     }
     .mob-nav-item {
       flex: 1;
@@ -1847,12 +1875,13 @@
     .taste-profile-radar-card {
       width: 100% !important;
       box-sizing: border-box !important;
+      padding: 8px !important;
     }
     .taste-profile-canvas-wrap {
       position: relative !important;
       width: 100% !important;
-      height: min(88vw, 380px) !important;
-      max-height: 380px !important;
+      height: min(105vw, 460px) !important;
+      max-height: 460px !important;
       box-sizing: border-box !important;
     }
     .taste-profile-canvas-wrap canvas {
@@ -5179,11 +5208,10 @@
                 <span class="stat-value" id="statTrophyCount">—</span>
                 <span class="stat-label">Trophies</span>
               </div>
-              <div class="stat home-stat-card" id="statValueBox">
-                <i class="ti ti-currency-dollar home-stat-icon" aria-hidden="true"></i>
-                <span class="stat-value stat-value-text" id="statMedianValue">—</span>
-                <span class="stat-label">Est. Collection Value</span>
-                <span class="stat-sub" id="statMedianSub"></span>
+              <div class="stat home-stat-card" id="statListeningSessionsBox" tabindex="0" role="button" aria-label="View listening journal">
+                <i class="ti ti-headphones home-stat-icon" aria-hidden="true"></i>
+                <span class="stat-value" id="statListeningSessionsCount">—</span>
+                <span class="stat-label">Listening Sessions</span>
               </div>
             </div>
           </div>
@@ -7843,14 +7871,6 @@
         <h1 class="page-header-title">My Collection Value</h1>
         <p class="page-header-sub">The value of your collection is in the joy the music brings… but sometimes it's nice to know the market price as well.</p>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <button type="button" id="refreshMissingValuesBtn" class="btn-secondary collection-value-refresh-btn">
-          <i class="ti ti-refresh" aria-hidden="true"></i> Fetch missing prices
-        </button>
-        <button type="button" id="refreshAllValuesBtn" class="btn-secondary collection-value-refresh-btn">
-          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Re-fetch all prices
-        </button>
-      </div>
     </div>
 
     <!-- Portfolio total -->
@@ -7915,6 +7935,22 @@
       </div>
     </div>
 
+    <!-- Discogs reference tools — deliberately de-emphasized and collapsed
+         by default. Your own valuation is the primary path now; this is
+         an optional secondary reference, not something to lead with. -->
+    <details class="cv-discogs-tools">
+      <summary><i class="ti ti-chevron-right" aria-hidden="true"></i> Discogs reference tools (optional)</summary>
+      <p class="field-hint">These pull market data from Discogs for reference only — never part of your Collection Value total above.</p>
+      <div class="cv-discogs-tools-actions">
+        <button type="button" id="refreshMissingValuesBtn" class="btn-text collection-value-refresh-btn">
+          <i class="ti ti-refresh" aria-hidden="true"></i> Fetch missing prices
+        </button>
+        <button type="button" id="refreshAllValuesBtn" class="btn-text collection-value-refresh-btn">
+          <i class="ti ti-refresh-alert" aria-hidden="true"></i> Re-fetch all prices
+        </button>
+      </div>
+    </details>
+
     <!-- Full collection value table -->
     <div class="collection-value-block">
       <div class="cv-block-header">
@@ -7943,8 +7979,8 @@
                 <span class="cv-methodology-tip" tabindex="0" aria-label="How values are calculated">
                   <i class="ti ti-info-circle" aria-hidden="true"></i>
                   <span class="cv-tooltip">
-                    <strong>Exact pressing</strong> — median sale price from Discogs marketplace for your specific release ID. Link a pressing via "Find exact pressing" to get this.<br><br>
-                    <strong>Your valuation</strong> — a price you set manually, e.g. based on an appraisal or purchase price.<br><br>
+                    <strong>Your valuation</strong> — a price you set manually, e.g. based on an appraisal or purchase price. This is what counts toward your Collection Value total.<br><br>
+                    <strong>Exact pressing (Discogs)</strong> — median sale price from Discogs marketplace for your specific release ID, shown for reference only. Link a pressing via "Find exact pressing" to see this.<br><br>
                     <strong>Why no estimates?</strong> Averaging across all editions of an album produces wildly inaccurate numbers — a common reissue and a rare original pressing of the same album can differ by 100×. We only show prices we can stand behind.
                   </span>
                 </span>
